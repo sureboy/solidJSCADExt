@@ -1,6 +1,6 @@
 {
-  "name": "mgtoyshow",
-  "displayName": "MGToyShow",
+  "name": "mgtoy",
+  "displayName": "MGToy",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -46,8 +46,7 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
-    "@types/three": "^0.179.0",
-    "@types/vscode": "^1.103.0",
+    "@types/vscode": "^1.89.0",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.11",
@@ -59,6 +58,5 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "rollup": "^4.50.0"
   }
 }

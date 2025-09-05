@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 export class jsEditorProvider implements vscode.CustomTextEditorProvider {
     private static readonly viewType = 'MGToy.jsPreview';
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -21,22 +22,26 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
 			enableScripts: true,
 		};
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview );
-
+    const basename = path.basename(document.fileName);
 		function updateWebview() {
             //webviewPanel.webview.postMessage({
             //    code:document.getText()
             //});
             //return;
+            //console.log(document.fileName);
+            vscode.window.showInformationMessage(basename,"perview waitting");
             vscode.workspace.fs.readFile(document.uri).then(buffer=>{
                 webviewPanel.webview.postMessage({                
                     code: buffer.buffer,
+                    basename:path.basename(basename,'.mgtoy.js')
                 });
             });
 		}
 		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
-                console.log("change");
-                this.tmpDate = Date.now();
+        this.tmpDate = Date.now();
+        
+                
 				updateWebview();
 			}
 		});
@@ -51,7 +56,7 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
             console.log(e);
 			switch (e.type) {
 				case 'loaded':
-                    console.log("begin",(Date.now()-this.tmpDate)/1000);
+                    //console.log("begin",(Date.now()-this.tmpDate)/1000);
                     updateWebview();
                     //console.log( document.getText());
 					//this.addNewScratch(document);
@@ -60,7 +65,8 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
                     //});
 					break;
                 case 'end':
-                    console.log("begin",(Date.now()-this.tmpDate)/1000);
+                    //console.log("begin",(Date.now()-this.tmpDate)/1000);
+                    vscode.window.showInformationMessage(basename,"waited",String((Date.now()-this.tmpDate)/1000));
                     break;
  
 			}
