@@ -16,14 +16,14 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
 		webviewPanel: vscode.WebviewPanel,
 		_token: vscode.CancellationToken
 	): Promise<void> {
-        this.tmpDate = Date.now();
+    //    this.tmpDate = Date.now();
 		// Setup initial content for the webview
 		webviewPanel.webview.options = {
 			enableScripts: true,
 		};
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview );
     const basename = path.basename(document.fileName);
-		function updateWebview() {
+		function updateWebview(opt={}) {
             //webviewPanel.webview.postMessage({
             //    code:document.getText()
             //});
@@ -31,7 +31,8 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
             //console.log(document.fileName);
             vscode.window.showInformationMessage(basename,"perview waitting");
             vscode.workspace.fs.readFile(document.uri).then(buffer=>{
-                webviewPanel.webview.postMessage({                
+                webviewPanel.webview.postMessage({     
+                  ...opt,           
                     code: buffer.buffer,
                     basename:path.basename(basename,'.mgtoy.js')
                 });
@@ -42,7 +43,7 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
         this.tmpDate = Date.now();
         
                 
-				updateWebview();
+				updateWebview({update:true});
 			}
 		});
 
@@ -57,7 +58,8 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
 			switch (e.type) {
 				case 'loaded':
                     //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                    updateWebview();
+                    this.tmpDate = Date.now();
+                    updateWebview({open:true});
                     //console.log( document.getText());
 					//this.addNewScratch(document);
                     //webviewPanel.webview.postMessage({
