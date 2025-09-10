@@ -29,7 +29,7 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
             //});
             //return;
             //console.log(document.fileName);
-            vscode.window.showInformationMessage(basename,"perview waitting");
+            vscode.window.showInformationMessage("perview waitting");
             vscode.workspace.fs.readFile(document.uri).then(buffer=>{
                 webviewPanel.webview.postMessage({     
                   ...opt,           
@@ -58,22 +58,27 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
 			switch (e.type) {
 				case 'loaded':
                     //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                    this.tmpDate = Date.now();
-                    updateWebview({open:true});
+          this.tmpDate = Date.now();
+          updateWebview({open:true});
                     //console.log( document.getText());
 					//this.addNewScratch(document);
                     //webviewPanel.webview.postMessage({
                     //    code:document.getText()
                     //});
 					break;
-                case 'end':
-                    //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                    vscode.window.showInformationMessage(basename,"waited",String((Date.now()-this.tmpDate)/1000));
-                    break;
- 
+        case 'end':
+            //console.log("begin",(Date.now()-this.tmpDate)/1000);
+          vscode.window.showInformationMessage("waited"+String((Date.now()-this.tmpDate)/1000));
+          break;
+        case 'log':
+          console.log(e.msg);
+          vscode.window.showInformationMessage( e.msg.join('\n') );
+          break;
+        case 'error':
+          vscode.window.showErrorMessage(basename ,{modal:true,detail:e.msg.join('\n') });
+          break; 
 			}
 		});
-
 		//updateWebview();
 	}
      private getHtmlForWebview(webview: vscode.Webview ): string {
