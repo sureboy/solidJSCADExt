@@ -115,14 +115,18 @@
         basename = message.basename
         //console.log("down",(Date.now()-tmpDate) /1000)
         tmpDate = Date.now()
-      
+        //JSON.stringify()
         const blob = new Blob([consoleLog,message.code,`${basename}.default(self.postMessage);
         }catch(error){
+              
           const msg = []
           error.stack.split('\\n').slice(2).reverse().forEach(v=>{
             msg.push(v.trim().replace(/\\([^\\)]+\\)/g,''));  
           })
           console.error(...msg)
+          self.postMessage({ 
+            end:true
+          });
         };`])
           const _blobURL = URL.createObjectURL(blob)
           worker = new Worker(_blobURL);

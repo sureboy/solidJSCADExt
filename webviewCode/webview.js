@@ -3862,9 +3862,13 @@ void main() {
   try{
 `;Ph(()=>{document.getElementById("downSTL").addEventListener("click",u=>{const b=cv(),T=new Blob([b.buffer],{type:"application/octet-stream"}),S=document.createElement("a");S.href=URL.createObjectURL(T),S.download=`${s}.stl`,S.click(),URL.revokeObjectURL(S.href)}),Rr.postMessage({type:"loaded"}),r=Xc(),r.width=document.body.clientWidth,r.height=document.body.clientHeight,Ju(e,sn(e).innerHTML=""),sn(e).appendChild(r);const l=document.getElementById("camera-toggle"),h=document.getElementById("perspective-icon"),f=document.getElementById("orthographic-icon"),d=document.getElementById("toggle-indicator");let p=!0,g="Perspective";function v(){p=!p,h.setAttribute("opacity",p?"1":"0.5"),f.setAttribute("opacity",p?"0.5":"1"),d.setAttribute("x",p?"12":"24"),g=p?"Perspective":"Orthographic",ca(r,g)}l.addEventListener("click",v);const m=()=>{r.width=document.body.clientWidth,r.height=document.body.clientHeight,ca(r,g)};return window.addEventListener("resize",m),window.addEventListener("message",u=>{const b=u.data;if(b.code){if(i)return;s=b.basename;const T=new Blob([a,b.code,`${s}.default(self.postMessage);
         }catch(error){
+              
           const msg = []
           error.stack.split('\\n').slice(2).reverse().forEach(v=>{
             msg.push(v.trim().replace(/\\([^\\)]+\\)/g,''));  
           })
           console.error(...msg)
+          self.postMessage({ 
+            end:true
+          });
         };`]),S=URL.createObjectURL(T);i=new Worker(S),i.onmessage=function(C){const P=C.data;P.start?uv(r):P.ver?hv(r,fv(P.ver,{})):P.end?(ca(r,b.open?g:""),i.terminate(),URL.revokeObjectURL(S),i=null,Rr.postMessage({type:"end"})):P.log?Rr.postMessage({type:"log",msg:P.log}):P.error&&Rr.postMessage({type:"error",msg:P.error})}}}),()=>{}}),Ch();var o=pv(),c=nh(o);Rh(c,l=>Mn(e,l),()=>sn(e)),Th(n,o),oc()}bh(mv,{target:document.getElementById("app")});
