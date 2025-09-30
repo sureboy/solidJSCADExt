@@ -1,0 +1,25 @@
+{
+  "name": "webview-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "buildbak": "npx esbuild ./src/worker/worker.ts --outfile=./src/worker/worker.js --format=iife --global-name=workerLib --bundle && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.0.0",
+    "esbuild": "^0.25.8",
+    "svelte": "^5.35.5",
+    "vite": "^7.0.4"
+  },
+  "dependencies": {
+    "@jscad/modeling": "^2.12.5",
+    "@types/three": "^0.179.0",
+    "@types/vscode": "^1.102.0",
+    "@types/vscode-webview": "^1.57.5", 
+    "three": "^0.179.1"
+  }
+}
