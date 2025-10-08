@@ -5,7 +5,7 @@ import * as path from 'path';
 let panel:vscode.WebviewPanel|null = null;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
- 
+let tmpDate = Date.now();
 const updatePanelTmpFile = async (Text: string,pathName:vscode.Uri,context: vscode.ExtensionContext)=>{
     
    
@@ -33,23 +33,24 @@ const updatePanelTmpFile = async (Text: string,pathName:vscode.Uri,context: vsco
         encoder.encode(
             Text.replaceAll("@jscad/modeling",`./modeling1.js`))) ;
 };
-const initPanelTmpDir =(watcher:vscode.Uri,out:vscode.Uri,content:vscode.ExtensionContext)=>{
-    vscode.workspace.fs.readDirectory(watcher).then(vals=>{
+const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
+     await vscode.workspace.fs.readDirectory(watcher).then(async (vals)=>{
         //console.log(val);
-        vscode.workspace.fs.createDirectory(out);
-        vals.forEach(v=>{
+        
+        //vscode.workspace.fs.createDirectory(out);
+        for (const v of vals) {
             if (!v[0].endsWith(".js")){
                 return;
             }
-            vscode.workspace.fs.readFile(vscode.Uri.joinPath(watcher,v[0])).then(t=>{
-               
-                updatePanelTmpFile(decoder.decode(t),
-                vscode.Uri.joinPath(out,v[0]),content);
-            });
-        });
+            const t = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(watcher,v[0]));
+            getCode({code:decoder.decode(t),name:"./"+ v[0] });
+                 
+        };
+        
     });
+    getCode({});
 };
-const createPanel  = (watchPath:vscode.Uri,outPath:vscode.Uri,context: vscode.ExtensionContext)=>{
+const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
     if (panel){return panel;}
     panel =  vscode.window.createWebviewPanel(
         'mgtoyView',
@@ -59,14 +60,14 @@ const createPanel  = (watchPath:vscode.Uri,outPath:vscode.Uri,context: vscode.Ex
             enableScripts: true,
             retainContextWhenHidden: true,
             localResourceRoots: [ 
-                outPath,
+                //outPath,
                 //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
                 vscode.Uri.file(path.join(context.extensionPath, 'webview')),
-                vscode.Uri.file(path.join(context.extensionPath, 'webviewEdit')),
+                vscode.Uri.file(path.join(context.extensionPath, 'webviewCode')),
             ]
         }
     );
-    initPanelTmpDir(watchPath,outPath,context);
+    //initPanelTmpDir(watchPath,outPath,context);
     panel.onDidDispose(e=>{
         console.log(e);
         panel=null;
@@ -79,52 +80,104 @@ const createPanel  = (watchPath:vscode.Uri,outPath:vscode.Uri,context: vscode.Ex
     style-src ${panel.webview.cspSource} 'unsafe-inline';
     connect-src ${panel.webview.cspSource} 'unsafe-inline';
     `;
-    const mainScr = panel.webview.asWebviewUri(
-        vscode.Uri.joinPath( outPath,  'index.js')
-    );
-  const csgChange =  panel.webview.asWebviewUri(vscode.Uri.file(path.join(context.extensionPath,  'webview', 'csgChange.js')));
-  const scriptUri = panel.webview.asWebviewUri(
-             vscode.Uri.joinPath(context.extensionUri,  'webviewEdit', 'webview.js')
+    //const mainScr = panel.webview.asWebviewUri(
+    //    vscode.Uri.joinPath( outPath,  'index.js')
+    //);
+    const csgChange =  panel.webview.asWebviewUri(
+      vscode.Uri.file(path.join(context.extensionPath,  'webview', 'csgChange.js')
+    ));
+    const scriptUri = panel.webview.asWebviewUri(
+             vscode.Uri.joinPath(context.extensionUri,  'webviewCode', 'webview.js')
            ); 
-         const styleUri = panel.webview.asWebviewUri(
-             vscode.Uri.joinPath(context.extensionUri,  'webviewEdit', 'assets', 'main.css')
+    const modelingurl = panel.webview.asWebviewUri(
+            vscode.Uri.joinPath(context.extensionUri,  'webview', 'modeling.esm.js')
+          ); 
+    const styleUri = panel.webview.asWebviewUri(
+             vscode.Uri.joinPath(context.extensionUri,  'webviewCode', 'assets', 'main.css')
          );
-    panel.webview.html =`<!doctype html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8" /> 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <meta http-equiv="Content-Security-Policy" content="${csp}">
-        <title>Vite + Svelte</title> 
-        <link rel="stylesheet" href="${styleUri}">
-      </head>
-      <body>
-      <script>window.vscode = acquireVsCodeApi();</script>
-
-        <div id="app" ></div>   
-    <script type="module" src="${scriptUri}"> </script>
  
-      </body>
-    </html>`; 
+ 
+ 
+        panel.webview.html =`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta http-equiv="Content-Security-Policy" content="${csp}">
+    <title>Vite + Svelte</title> 
+    <link rel="stylesheet" href="${styleUri}">
+  </head>
+  <body>
+  <script>window.vscode = acquireVsCodeApi();
+  window.modeling ="${modelingurl}"
+  </script>
+
+    <div id="app" ></div>   
+ <script type="module" src="${scriptUri}"> </script>
+ 
+  </body>
+</html>   
+`;
+
+const workerCode = {
+    name:"worker",
+    code:`import * as csg  from '${csgChange}'
+    import * as src  from './index.js'
+    console.log(src )
+    csg.getCsgObjArray(src.main(),self.postMessage)  `
+};
+const workerCode1 = {
+    name:"worker",
+    code:`import * as src  from './test.js'
+    console.log(src )
+    src.main()
+     `
+};
+ 
     //try{}catch(e){}
-    panel.webview.onDidReceiveMessage(message => {
+    panel.webview.onDidReceiveMessage(async (message) => {
         //console.log('[Webview Message]', message);
-        //console.log(e);
+        console.log(message);
         switch (message.type) {
             case 'loaded':
+                tmpDate = Date.now();
+                //console.log(tmpDate,panel);
+               
                 panel?.webview.postMessage({  
-                    update:"loaded",
-                    code:`import * as  src from '${mainScr}'
-                   import * as csg  from '${csgChange}'
-                console.log(src,csg )
-                 csg.getCsgObjArray(src.main(),self.postMessage)
-                   
-
-                  `
+                       
+                    init:workerCode ,
+                                    
                 });
+                await initPanelTmpDir(watchPath,(code:any)=>{
+                    //codelist.push(code);
+                    panel?.webview.postMessage({  
+                       
+                        init:code ,
+                                        
+                    });
+                } );
+                //codelist.push(workerCode);
+                panel?.webview.postMessage({  
+                       
+                     
+                    run:"worker"
+                                    
+                });
+                break; 
+            case 'end':
+                //console.log("begin",(Date.now()-this.tmpDate)/1000);
+                vscode.window.showInformationMessage("waited"+String((Date.now()-tmpDate)/1000));
                 break;
+            case 'log':
+                //console.log(e.msg);
+                vscode.window.showInformationMessage( message.msg.join('\n') );
+                break;
+            case 'error':
+                vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg.join('\n') });
+                break; 
         }
     });
+ 
     return panel;
 };
  
@@ -145,8 +198,9 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             //const bundleConfig = {in:vscode.Uri.joinPath(workspacePath,config.watcher,"index.js"),out:vscode.Uri.joinPath(workspacePath,config.out,"index1.mgtoy.js")};
             //const pattern = new vscode.RelativePattern(vscode.Uri.joinPath(vscode.workspace.getWorkspaceFolder(u)!.uri,config.watcher), '**/*.js');
             const watchPath = vscode.Uri.joinPath(workspacePath,config.watcher);
-            const outPath = vscode.Uri.joinPath(workspacePath,config.out );
-            createPanel(watchPath,outPath,context);
+            //const outPath = vscode.Uri.joinPath(workspacePath,config.out );
+            //initPanelTmpDir(watchPath,outPath,context);
+            createPanel(watchPath,context);
             
             const watcher = vscode.workspace.createFileSystemWatcher(
                 new vscode.RelativePattern(watchPath, '**/*.js')
@@ -174,14 +228,25 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     return;
                 }
             
-                updatePanelTmpFile(document.getText(),vscode.Uri.joinPath(outPath,path.basename(document.fileName)),context);
+                //updatePanelTmpFile(document.getText(),vscode.Uri.joinPath(outPath,path.basename(document.fileName)),context);
                 //os.tmpdir()
                 //.getText().replaceAll("@jscad/modeling","");
                 console.log('文件更改:', uri.fsPath);
-                //const relativePath = path.relative(baseDirectory, filePath);
-                panel?.webview.postMessage({  
-                    update:uri.fsPath
+                vscode.workspace.fs.readFile(uri).then(db=>{
+                    
+                
+                    createPanel(watchPath,context).webview.postMessage({  
+                        update:{
+                            code: decoder.decode(db),
+                            name:"./"+path.basename(uri.fsPath)
+                        },
+                        run:"worker",
+                    });
                 });
+                //const relativePath = path.relative(baseDirectory, filePath);
+               // panel?.webview.postMessage({  
+               //     update:uri.fsPath
+               // });
                    // 获取文件内容
                    /*
                 const code = document.getText();

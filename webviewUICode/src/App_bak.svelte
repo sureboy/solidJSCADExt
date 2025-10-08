@@ -11,10 +11,26 @@
   let worker: Worker; 
   let el:HTMLCanvasElement|null; 
   //let svg:HTMLElement
-  let tmpDate =""
+  let tmpDate = Date.now()
   let basename = "main"
  
- 
+  const consoleLog = `
+  const originalLog = console.log;
+  console.log = (...e)=>{
+  originalLog(e)
+    self.postMessage({ 
+      log: e
+    });
+  }
+  const originalError = console.error;
+  console.error = (...e)=>{
+  originalError(e)
+    self.postMessage({ 
+      error: e
+    });
+  }
+  try{
+`
 
  
   //const blob = new Blob([workerCode,`workerLib.getCsgObjArray(userModule.main(),self.postMessage);`], { type: 'application/javascript' });
@@ -93,19 +109,31 @@
   window.addEventListener('message', (event:any) => {
       //worker.postMessage(event.data)
       const message = event.data;
-      if (message.code)tmpDate=message.code
-      if ( message.update){
+      if (message.code){
         if (worker)return;
-       // console.log(message.code,tmpDate)
-        
-        const blob = new Blob([tmpDate ],{ type: 'application/javascript' })
-   
+        //console.log(message)
+        basename = message.basename
+        //console.log("down",(Date.now()-tmpDate) /1000)
+        tmpDate = Date.now()
+        //JSON.stringify()
+        const blob = new Blob([consoleLog,message.code,`${basename}.default(self.postMessage);
+        }catch(error){
+              
+          const msg = []
+          error.stack.split('\\n').slice(2).reverse().forEach(v=>{
+            msg.push(v.trim().replace(/\\([^\\)]+\\)/g,''));  
+          })
+          console.error(...msg)
+          self.postMessage({ 
+            end:true
+          });
+        };`])
           const _blobURL = URL.createObjectURL(blob)
-          worker = new Worker(_blobURL,{type: "module"});
+          worker = new Worker(_blobURL);
           //console.log((Date.now()-tmpDate) /1000)
           worker.onmessage = function(e) {
             const msg = e.data;
-            console.log(msg)
+            //console.log(msg)
             if (msg.start ){
 
               startSceneOBJ(el);

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { STLEditorProvider } from './STLEditorProvider';
-import { jsEditorProvider } from './jsEditorProvider'; 
+//import { jsEditorProvider } from './jsEditorProvider'; 
 import { watcherServer } from './bundleServer'; 
  
 export function activate(context: vscode.ExtensionContext) {
@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
    
     watcherServer(context);
     context.subscriptions.push(
-        jsEditorProvider.register(context),
+        //jsEditorProvider.register(context),
         STLEditorProvider.register(context)
     );     
 }

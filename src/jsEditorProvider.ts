@@ -54,7 +54,7 @@ export class jsEditorProvider implements vscode.CustomTextEditorProvider {
 
 		// Receive message from the webview.
 		webviewPanel.webview.onDidReceiveMessage(e => {
-            console.log(e);
+        console.log(e);
 			switch (e.type) {
 				case 'loaded':
                     //console.log("begin",(Date.now()-this.tmpDate)/1000);

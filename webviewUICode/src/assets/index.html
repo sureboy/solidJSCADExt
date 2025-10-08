@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" /> 
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta http-equiv="Content-Security-Policy" content="${csp}">
+    <title>Vite + Svelte</title> 
+    <link rel="stylesheet" href="${styleUri}">
+  </head>
+  <body>
+  <script type="importmap" id="myMap">
+    {
+      "imports": {
+        "@jscad/modeling": "${scriptUri1}"
+    }
+  }
+  </script>
+  <script>window.vscode = acquireVsCodeApi();</script>
+
+    <div id="app" ></div>   
+<script type="module"  >
+  vscode.postMessage({ 
+    type:'loaded'
+  });
+
+  window.addEventListener('message', (event) => {
+    const message = event.data;
+    console.log(message)
+ 
+    if (message.update){
+      const importMapElem = document.getElementById('myMap');
+      const currentMap = JSON.parse(importMapElem.textContent);
+    
+      message.update.forEach(val=>{
+        if (currentMap.imports[val.name]){
+          URL.revokeObjectURL(currentMap.imports[val.name])
+        }
+        currentMap.imports[val.name] = URL.createObjectURL(new Blob([val.code],{ type: 'application/javascript' }))
+      })
+
+ 
+      importMapElem.textContent = JSON.stringify(currentMap);
+      console.log(importMapElem.textContent)
+    }
+  })
+
+</script>
+
+  </body>
+</html>

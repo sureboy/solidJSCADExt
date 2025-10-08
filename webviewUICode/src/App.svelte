@@ -11,27 +11,80 @@
   let worker: Worker; 
   let el:HTMLCanvasElement|null; 
   //let svg:HTMLElement
-  let tmpDate = Date.now()
-  let basename = "main"
+  //let tmpDate:string 
+  let basename = "main" 
+  let Max = 100
+  const importPatterns = [
+    /import\s+(?:\*\s+as\s+\w+|[\w{},\s]+)\s+from\s+['"]([^'"]+)['"]/g,
+    /import\s+['"]([^'"]+)['"]/g,
  
-  const consoleLog = `
-  const originalLog = console.log;
-  console.log = (...e)=>{
-  originalLog(e)
-    self.postMessage({ 
-      log: e
-    });
-  }
-  const originalError = console.error;
-  console.error = (...e)=>{
-  originalError(e)
-    self.postMessage({ 
-      error: e
-    });
-  }
-  try{
-`
 
+];
+const currentMap = {}
+const InitCurrentMap = (v:any)=>{
+    return {
+  
+          //oldUrl:v.name,
+          setUrl:function(){
+          console.log(this.url||this.name)
+            this.oldUrl = this.url||this.name;
+            URL.revokeObjectURL(this.oldUrl)
+            this.url = URL.createObjectURL(new Blob([this.code],{ type: 'application/javascript' }))
+            
+          },
+          up:function(){
+            if (!this.persons)return
+             this.persons.forEach(p=>{
+            //console.log("up",p)
+              p.code = p.code.replace(this.oldUrl||this.name , this.url);
+              p.setUrl()
+              p.up()  
+            })        
+             
+          },
+            getImportChildren:function(){
+                const imports  = new Set();
+                for (const pattern of importPatterns) {
+                let match;
+                while ((match = pattern.exec(this.code)) !== null) {
+                    
+                    if (match[1]){ 
+                        if (match[1].startsWith('.')) {
+                            imports.add(match[1]);
+                        }else if (match[1]==="@jscad/modeling"){
+                            this.code = this.code.replace("@jscad/modeling",(window as any).modeling)
+                        }
+                    }
+                }
+                }
+                return Array.from(imports)
+            },
+          down:function(n=0){
+        
+            if (this.url)return
+            //if (n<Max){
+              this.children.forEach(_v=>{
+                if (_v.persons){
+                  _v.persons.add(this)
+                  return
+                }
+                _v.persons = new Set([this])
+                _v.down(n+1)
+                this.code = this.code.replace(_v.oldUrl||_v.name,_v.url)
+              })
+                      
+            this.setUrl()
+            //}  
+          },
+          update:function(){
+            this.children.forEach(_v=>{
+                this.code = this.code.replace(_v.oldUrl||_v.name,_v.url)
+            })
+            this.setUrl()
+          }, 
+          ...v
+        }
+  }
  
   //const blob = new Blob([workerCode,`workerLib.getCsgObjArray(userModule.main(),self.postMessage);`], { type: 'application/javascript' });
   onMount(() => {
@@ -52,7 +105,7 @@
     //const stlLoader = new STLLoader()
 
  
-  vscode.postMessage({ 
+    vscode.postMessage({ 
     //  supportsWebGPU: hasWebGPU,
       type:'loaded'
     });
@@ -103,37 +156,49 @@
 
       //console.log("z")
       onWindowResize(el!,cameraType)		
-    }
-    window.addEventListener('resize',updateSize);   
+  }
+  
+  window.addEventListener('resize',updateSize);   
 
   window.addEventListener('message', (event:any) => {
       //worker.postMessage(event.data)
       const message = event.data;
-      if (message.code){
-        if (worker)return;
-        //console.log(message)
-        basename = message.basename
-        //console.log("down",(Date.now()-tmpDate) /1000)
-        tmpDate = Date.now()
-        //JSON.stringify()
-        const blob = new Blob([consoleLog,message.code,`${basename}.default(self.postMessage);
-        }catch(error){
-              
-          const msg = []
-          error.stack.split('\\n').slice(2).reverse().forEach(v=>{
-            msg.push(v.trim().replace(/\\([^\\)]+\\)/g,''));  
-          })
-          console.error(...msg)
-          self.postMessage({ 
-            end:true
-          });
-        };`])
-          const _blobURL = URL.createObjectURL(blob)
-          worker = new Worker(_blobURL);
-          //console.log((Date.now()-tmpDate) /1000)
-          worker.onmessage = function(e) {
+    console.log(message) 
+    if (message.init){
+      const v = message.init
+      if (v.name){
+        currentMap[v.name] = InitCurrentMap(message.init)
+        Max ++
+      }else {         
+        for (const v of  Object.values<any>(currentMap))
+          v.children = v.getImportChildren().map((name:any)=>currentMap[name])  
+        for (const v of Object.values<any>(currentMap)){
+          v.down()
+        }  
+        console.log(currentMap)               
+      }
+    }
+    if (message.update){
+      let val = currentMap[message.update.name]  
+      if (!val) currentMap[message.update.name] =val = InitCurrentMap(message.update) 
+      else val.code = message.update.code
+      val.children = val.getImportChildren().map(n=> currentMap[n] )
+      val.update() 
+      val.up()
+      console.log("update",val)
+    }
+    if (message.run){
+      const val = currentMap[message.run]  
+      if (worker){
+          worker.terminate()
+          //worker=null
+          //return
+        };
+      worker = new Worker(val.url,{type: "module"})
+      console.log(val,worker)   
+      worker.onmessage = function(e) {
             const msg = e.data;
-            //console.log(msg)
+            console.log(msg)
             if (msg.start ){
 
               startSceneOBJ(el);
@@ -143,7 +208,7 @@
             }else if (msg.end ){
               onWindowResize(el!,message.open?cameraType:"")	
               worker.terminate()
-              URL.revokeObjectURL(_blobURL);
+              //URL.revokeObjectURL(_blobURL);
               worker= null
               //console.log("end",(Date.now()-tmpDate) /1000)
               vscode.postMessage({
@@ -160,9 +225,9 @@
                 msg:msg.error
               });
             }
-          }
-   
-      }
+          }    
+    }
+ 
     });
     return () =>{
      // window.removeEventListener('resize', updateSize);      
@@ -175,6 +240,7 @@
 
 
 </script>
+
 <div bind:this={container}  style="position: absolute;left:0;top:0;z-index: 1;" > 
 </div> 
 <div style="position: absolute;right:5px;top:5px;z-index: 10;" class="pointer-events-auto ">
