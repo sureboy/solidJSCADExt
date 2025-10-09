@@ -5,86 +5,20 @@
   import { createCanvasElement } from "three";
   import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./lib/function/threeScene" 
   import { CSG2Three } from "./lib/function/csg2Three";
+  import {handleCurrentMsg,getCurrent} from "./ImportParser"
 
   //import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let container:HTMLElement; 
   let worker: Worker; 
   let el:HTMLCanvasElement|null; 
+ 
   //let svg:HTMLElement
   //let tmpDate:string 
   let basename = "main" 
   let Max = 100
-  const importPatterns = [
-    /import\s+(?:\*\s+as\s+\w+|[\w{},\s]+)\s+from\s+['"]([^'"]+)['"]/g,
-    /import\s+['"]([^'"]+)['"]/g,
- 
 
-];
-const currentMap = {}
-const InitCurrentMap = (v:any)=>{
-    return {
-  
-          //oldUrl:v.name,
-          setUrl:function(){
-          console.log(this.url||this.name)
-            this.oldUrl = this.url||this.name;
-            URL.revokeObjectURL(this.oldUrl)
-            this.url = URL.createObjectURL(new Blob([this.code],{ type: 'application/javascript' }))
-            
-          },
-          up:function(){
-            if (!this.persons)return
-             this.persons.forEach(p=>{
-            //console.log("up",p)
-              p.code = p.code.replace(this.oldUrl||this.name , this.url);
-              p.setUrl()
-              p.up()  
-            })        
-             
-          },
-            getImportChildren:function(){
-                const imports  = new Set();
-                for (const pattern of importPatterns) {
-                let match;
-                while ((match = pattern.exec(this.code)) !== null) {
-                    
-                    if (match[1]){ 
-                        if (match[1].startsWith('.')) {
-                            imports.add(match[1]);
-                        }else if (match[1]==="@jscad/modeling"){
-                            this.code = this.code.replace("@jscad/modeling",(window as any).modeling)
-                        }
-                    }
-                }
-                }
-                return Array.from(imports)
-            },
-          down:function(n=0){
-        
-            if (this.url)return
-            //if (n<Max){
-              this.children.forEach(_v=>{
-                if (_v.persons){
-                  _v.persons.add(this)
-                  return
-                }
-                _v.persons = new Set([this])
-                _v.down(n+1)
-                this.code = this.code.replace(_v.oldUrl||_v.name,_v.url)
-              })
-                      
-            this.setUrl()
-            //}  
-          },
-          update:function(){
-            this.children.forEach(_v=>{
-                this.code = this.code.replace(_v.oldUrl||_v.name,_v.url)
-            })
-            this.setUrl()
-          }, 
-          ...v
-        }
-  }
+//const currentMap = {}
+
  
   //const blob = new Blob([workerCode,`workerLib.getCsgObjArray(userModule.main(),self.postMessage);`], { type: 'application/javascript' });
   onMount(() => {
@@ -164,38 +98,20 @@ const InitCurrentMap = (v:any)=>{
       //worker.postMessage(event.data)
       const message = event.data;
     console.log(message) 
-    if (message.init){
-      const v = message.init
-      if (v.name){
-        currentMap[v.name] = InitCurrentMap(message.init)
-        Max ++
-      }else {         
-        for (const v of  Object.values<any>(currentMap))
-          v.children = v.getImportChildren().map((name:any)=>currentMap[name])  
-        for (const v of Object.values<any>(currentMap)){
-          v.down()
-        }  
-        console.log(currentMap)               
-      }
+    if (message.init  ){
+      handleCurrentMsg(message.init)
+      
     }
-    if (message.update){
-      let val = currentMap[message.update.name]  
-      if (!val) currentMap[message.update.name] =val = InitCurrentMap(message.update) 
-      else val.code = message.update.code
-      val.children = val.getImportChildren().map(n=> currentMap[n] )
-      val.update() 
-      val.up()
-      console.log("update",val)
-    }
+ 
     if (message.run){
-      const val = currentMap[message.run]  
+      //const val = currentMap[message.run]  
       if (worker){
-          worker.terminate()
+        worker.terminate()
           //worker=null
           //return
-        };
-      worker = new Worker(val.url,{type: "module"})
-      console.log(val,worker)   
+      };
+      worker = new Worker(getCurrent(message.run).toString(),{type: "module"})
+      console.log(worker)   
       worker.onmessage = function(e) {
             const msg = e.data;
             console.log(msg)

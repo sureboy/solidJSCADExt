@@ -6,33 +6,7 @@ let panel:vscode.WebviewPanel|null = null;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 let tmpDate = Date.now();
-const updatePanelTmpFile = async (Text: string,pathName:vscode.Uri,context: vscode.ExtensionContext)=>{
-    
-   
-    const modeling = vscode.Uri.joinPath(
-        vscode.Uri.parse(path.dirname(pathName.fsPath)),
-        "modeling1.js");
-        
-       try{
-        await vscode.workspace.fs.stat(modeling);
-       }catch(e){
-        const scriptUri1 = panel?.webview.asWebviewUri(
-            vscode.Uri.file(path.join(context.extensionPath,  'webview', 'modeling.esm.js'))
-            //vscode.Uri.file(path.join(context.extensionPath,  'webview', 'jscad-modeling.min.js'))
-        );
-        vscode.workspace.fs.writeFile(modeling,encoder.encode(`
-            import modeling from '${scriptUri1}'
-            export default modeling`));
-       }
-      
-       
-    
-    //vscode.workspace.fs.writeFile()
-   
-    vscode.workspace.fs.writeFile(pathName,
-        encoder.encode(
-            Text.replaceAll("@jscad/modeling",`./modeling1.js`))) ;
-};
+
 const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
      await vscode.workspace.fs.readDirectory(watcher).then(async (vals)=>{
         //console.log(val);
@@ -43,12 +17,12 @@ const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
                 return;
             }
             const t = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(watcher,v[0]));
-            getCode({code:decoder.decode(t),name:"./"+ v[0] });
+            getCode({db:t.buffer,name:"./"+ v[0] });
                  
         };
         
     });
-    getCode({});
+    //getCode({});
 };
 const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
     if (panel){return panel;}
@@ -109,7 +83,9 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
   </head>
   <body>
   <script>window.vscode = acquireVsCodeApi();
-  window.modeling ="${modelingurl}"
+  window.includeImport ={
+    "@jscad/modeling":"${modelingurl}",
+  }
   </script>
 
     <div id="app" ></div>   
@@ -121,17 +97,17 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
 
 const workerCode = {
     name:"worker",
-    code:`import * as csg  from '${csgChange}'
+    db:encoder.encode(`import * as csg  from '${csgChange}'
     import * as src  from './index.js'
     console.log(src )
-    csg.getCsgObjArray(src.main(),self.postMessage)  `
+    csg.getCsgObjArray(src.main(),self.postMessage)  `)
 };
 const workerCode1 = {
     name:"worker",
-    code:`import * as src  from './test.js'
+    db:encoder.encode(`import * as src  from './test.js'
     console.log(src )
     src.main()
-     `
+     `)
 };
  
     //try{}catch(e){}
@@ -141,12 +117,9 @@ const workerCode1 = {
         switch (message.type) {
             case 'loaded':
                 tmpDate = Date.now();
-                //console.log(tmpDate,panel);
-               
-                panel?.webview.postMessage({  
-                       
-                    init:workerCode ,
-                                    
+                //console.log(tmpDate,panel);               
+                panel?.webview.postMessage({                         
+                    init:workerCode ,                                    
                 });
                 await initPanelTmpDir(watchPath,(code:any)=>{
                     //codelist.push(code);
@@ -157,9 +130,8 @@ const workerCode1 = {
                     });
                 } );
                 //codelist.push(workerCode);
-                panel?.webview.postMessage({  
-                       
-                     
+                panel?.webview.postMessage({                    
+                    update:true,
                     run:"worker"
                                     
                 });
@@ -216,6 +188,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             watcher.onDidChange(uri => {
                 vscode.window.showInformationMessage(`文件已修改: ${uri.fsPath}`);
                 //bundleUserCode(bundleConfig);
+                /*
                 const editor = vscode.window.activeTextEditor;
                 if (!editor) {
                     vscode.window.showErrorMessage('没有打开的编辑器');
@@ -231,16 +204,18 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 //updatePanelTmpFile(document.getText(),vscode.Uri.joinPath(outPath,path.basename(document.fileName)),context);
                 //os.tmpdir()
                 //.getText().replaceAll("@jscad/modeling","");
+                */
                 console.log('文件更改:', uri.fsPath);
-                vscode.workspace.fs.readFile(uri).then(db=>{
-                    
+                
+                vscode.workspace.fs.readFile(uri).then(db=>{                   
                 
                     createPanel(watchPath,context).webview.postMessage({  
-                        update:{
-                            code: decoder.decode(db),
+                        init:{
+                            db:  db.buffer,
                             name:"./"+path.basename(uri.fsPath)
                         },
                         run:"worker",
+                        
                     });
                 });
                 //const relativePath = path.relative(baseDirectory, filePath);
