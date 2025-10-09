@@ -123,15 +123,13 @@ const workerCode1 = {
                 });
                 await initPanelTmpDir(watchPath,(code:any)=>{
                     //codelist.push(code);
-                    panel?.webview.postMessage({  
-                       
-                        init:code ,
-                                        
+                    panel?.webview.postMessage({                         
+                        init:code ,                                        
                     });
                 } );
                 //codelist.push(workerCode);
                 panel?.webview.postMessage({                    
-                    update:true,
+                    open:true,
                     run:"worker"
                                     
                 });
