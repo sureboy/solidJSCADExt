@@ -1,167 +1,122 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { vscode } from './vscodeApi';
+  import { vscode } from './lib/function/vscodeApi';
  // import workerCode from './worker/worker?raw'; 
   import { createCanvasElement } from "three";
-  import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./lib/function/threeScene" 
-  import { CSG2Three } from "./lib/function/csg2Three";
-  import {handleCurrentMsg,getCurrent} from "./ImportParser"
-
+  import {onWindowResize, Exporter} from "./lib/function/threeScene" 
+  //import { CSG2Three } from "./lib/function/csg2Three";
+  import {handleCurrentMsg} from "./lib/function/ImportParser"
+  import { runWorker } from "./lib/function/worker";
   //import {STLLoader} from "three/addons/loaders/STLLoader.js"
-  let container:HTMLElement; 
-  let worker: Worker; 
-  let el:HTMLCanvasElement|null; 
- 
-  //let svg:HTMLElement
-  //let tmpDate:string 
-  let basename = "main" 
-  let Max = 100
-
-//const currentMap = {}
-
- 
-  //const blob = new Blob([workerCode,`workerLib.getCsgObjArray(userModule.main(),self.postMessage);`], { type: 'application/javascript' });
+  let container:HTMLElement;  
+  let el:HTMLCanvasElement|null;  
+  let basename = "...."  
   onMount(() => {
     document.getElementById("downSTL").addEventListener("click",e=>{
       const res = Exporter() 
       const blob = new Blob([res.buffer as ArrayBuffer], { type: 'application/octet-stream' })
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${basename}.stl`;
-      //document.body.appendChild(link);
+      link.download = `${basename}.stl`; 
       link.click();
-      URL.revokeObjectURL(link.href);
-            //document.body.removeChild(link);
-    })
-    //const hasWebGPU = !!navigator["gpu"];
-    //console.log("gpu",hasWebGPU)
-    //vscode.postMessage({ supportsWebGPU: hasWebGPU });
-    //const stlLoader = new STLLoader()
-
- 
+      URL.revokeObjectURL(link.href); 
+    })  
     vscode.postMessage({ 
     //  supportsWebGPU: hasWebGPU,
       type:'loaded'
     });
-
-
-
     el = createCanvasElement() ;   
     el.width = document.body.clientWidth;
     el.height = document.body.clientHeight;
     container.innerHTML=""
-    container.appendChild(el) 
-    
+    container.appendChild(el)  
+    const svg = document.getElementById('camera-toggle');
+    const perspectiveIcon = document.getElementById('perspective-icon');
+    const orthographicIcon = document.getElementById('orthographic-icon');
+    const toggleIndicator = document.getElementById('toggle-indicator');
+    //const label = document.querySelector('text');
 
-   /* */
+    let isPerspective = true;
+    let cameraType = "Perspective"
 
-  //})
-  const svg = document.getElementById('camera-toggle');
-  const perspectiveIcon = document.getElementById('perspective-icon');
-  const orthographicIcon = document.getElementById('orthographic-icon');
-  const toggleIndicator = document.getElementById('toggle-indicator');
-  //const label = document.querySelector('text');
-
-  let isPerspective = true;
-  let cameraType = "Perspective"
-
-  function toggleCamera() {
-    isPerspective = !isPerspective;
-    
-    // 切换图标透明度
-    perspectiveIcon.setAttribute('opacity', isPerspective ? '1' : '0.5');
-    orthographicIcon.setAttribute('opacity', isPerspective ? '0.5' : '1');
-    
-    // 移动切换指示器
-    toggleIndicator.setAttribute('x', isPerspective ? '12' : '24');
-    
-    // 更新文字标签
-    cameraType = isPerspective ? 'Perspective' : 'Orthographic';
-    onWindowResize(el, cameraType)
-    // 实际切换相机逻辑
- 
-  }
-
-  svg.addEventListener('click', toggleCamera);
-
-  const updateSize = ()=>{
-      el!.width = document.body.clientWidth;
-      el!.height = document.body.clientHeight; 
-
-      //console.log("z")
-      onWindowResize(el!,cameraType)		
-  }
-  
-  window.addEventListener('resize',updateSize);   
-
-  window.addEventListener('message', (event:any) => {
-      //worker.postMessage(event.data)
-      const message = event.data;
-    console.log(message) 
-    if (message.init  ){
-      handleCurrentMsg(message.init)
+    function toggleCamera() {
+      isPerspective = !isPerspective;
       
+      // 切换图标透明度
+      perspectiveIcon.setAttribute('opacity', isPerspective ? '1' : '0.5');
+      orthographicIcon.setAttribute('opacity', isPerspective ? '0.5' : '1');
+      
+      // 移动切换指示器
+      toggleIndicator.setAttribute('x', isPerspective ? '12' : '24');
+      
+      // 更新文字标签
+      cameraType = isPerspective ? 'Perspective' : 'Orthographic';
+      onWindowResize(el, cameraType)
+      // 实际切换相机逻辑
+  
     }
- 
-    if (message.run){
-      //const val = currentMap[message.run]  
-      if (worker){
-        worker.terminate()
-          //worker=null
-          //return
-      };
-      worker = new Worker(getCurrent(message.run).toString(),{type: "module"})
-      console.log(worker)   
-      worker.onmessage = function(e) {
-            const msg = e.data;
-            console.log(msg)
-            if (msg.start ){
 
-              startSceneOBJ(el);
-            }else if (msg.ver){
-              addSceneOBJ(el, CSG2Three(msg.ver,{}) );
-              //console.log("update",(Date.now()-tmpDate) /1000)
-            }else if (msg.end ){
-              onWindowResize(el!,message.open?cameraType:"")	
-              worker.terminate()
-              //URL.revokeObjectURL(_blobURL);
-              worker= null
-              //console.log("end",(Date.now()-tmpDate) /1000)
-              vscode.postMessage({
-                type:'end'
-              });
-            }else if (msg.log){
-              vscode.postMessage({
-                type:'log',
-                msg:msg.log
-              });
-            }else if (msg.error){
-              vscode.postMessage({
-                type:'error',
-                msg:msg.error
-              });
-            }
-          }    
+    svg.addEventListener('click', toggleCamera);
+
+    const updateSize = ()=>{
+        el!.width = document.body.clientWidth;
+        el!.height = document.body.clientHeight; 
+
+        //console.log("z")
+        onWindowResize(el!,cameraType)		
     }
- 
+    
+    window.addEventListener('resize',updateSize);   
+    const menu = document.getElementById("module_list")
+    menu.addEventListener("click",e=>{
+      const button = (e.target  as HTMLInputElement).closest('button');
+      console.log(button.textContent)
+      workermsg.basename = button.textContent
+      basename="...."
+      runWorker(el,workermsg);
+    })
+    const tmpDiv = menu.firstChild
+    const workermsg = {
+      basename:"",
+      cameraType:"",
+      module:(modulelist:{list:string[],basename:string})=>{
+        basename = modulelist.basename
+        menu.innerHTML=""
+        modulelist.list.forEach(m=>{
+          const div = tmpDiv.cloneNode(true)
+          div.textContent = m;
+          
+          menu.appendChild(div)
+        })
+      }}
+    window.addEventListener('message', (event:any) => {
+        //worker.postMessage(event.data)
+      const message = event.data;
+      //console.log(message) 
+      if (message.init  ){
+        handleCurrentMsg(message.init)        
+      }  
+      if (message.run){
+        workermsg.cameraType = message.open?cameraType:""
+        //workermsg.basename = basename;
+        runWorker(el,workermsg);
+        //console.log
+      }
+  
     });
     return () =>{
-     // window.removeEventListener('resize', updateSize);      
+    // window.removeEventListener('resize', updateSize);      
       //worker.terminate();
       //worker = null;
     } 
   });
-
- 
-
-
 </script>
 
 <div bind:this={container}  style="position: absolute;left:0;top:0;z-index: 1;" > 
 </div> 
-<div style="position: absolute;right:5px;top:5px;z-index: 10;" class="pointer-events-auto ">
+<div style="position: absolute;right:5px;top:5px;z-index: 11;" class="pointer-events-auto ">
  
-    <details  >
+    <details name="downMenu"  >
         <summary class="download-summary" >
           <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M24 32L24 16M24 32L18 26M24 32L30 26" stroke="#3498db" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
@@ -182,9 +137,7 @@
     </details>
  
 </div>
-<div style="position: absolute;left:5px;top:5px;z-index: 10;" class="pointer-events-auto" id="camera-toggle">
-
- 
+<div style="position: absolute;left:5px;top:5px;z-index: 11;" class="pointer-events-auto" id="camera-toggle">
   <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" >
     <!-- 按钮背景 -->
     <rect x="1" y="1" width="46" height="46" rx="4" fill="#2d2d2d" stroke="#555" stroke-width="1"/>
@@ -217,6 +170,25 @@
     
  
   </svg>
+</div>
+<div style="position:absolute;left:0px;top:5px;z-index:10;width:100%;font-weight: 500;" class="pointer-events-auto">
+  <details name="moduleMenu"  >
+    <summary style="cursor: pointer;height:48px;text-align: center;line-height: 48px;"  >
+{basename}
+</summary>
+<div  style="color:white;text-align: center;" id="module_list">
+ 
+    <button style="height:48:px;line-height:48px;" >
+      STL 
+    </button>
+ 
+  <!--
+  <div class="download-option"> 
+      <span class="option-text" id="down3MF" >3MF</span> 
+  </div>
+  -->
+</div>
+</details>
 </div>
 <style>
 

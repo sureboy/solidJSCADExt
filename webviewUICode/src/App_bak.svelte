@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { vscode } from './vscodeApi';
+  import { vscode } from './lib/function/vscodeApi';
  // import workerCode from './worker/worker?raw'; 
   import { createCanvasElement } from "three";
   import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./lib/function/threeScene" 

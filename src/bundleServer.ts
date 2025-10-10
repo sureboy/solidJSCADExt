@@ -4,7 +4,7 @@ import * as path from 'path';
  
 let panel:vscode.WebviewPanel|null = null;
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+//const decoder = new TextDecoder();
 let tmpDate = Date.now();
 
 const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
@@ -36,7 +36,7 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
             localResourceRoots: [ 
                 //outPath,
                 //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
-                vscode.Uri.file(path.join(context.extensionPath, 'webview')),
+                vscode.Uri.file(path.join(context.extensionPath, 'myModule')),
                 vscode.Uri.file(path.join(context.extensionPath, 'webviewCode')),
             ]
         }
@@ -58,17 +58,18 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
     //    vscode.Uri.joinPath( outPath,  'index.js')
     //);
     const csgChange =  panel.webview.asWebviewUri(
-      vscode.Uri.file(path.join(context.extensionPath,  'webview', 'csgChange.js')
+      vscode.Uri.file(path.join(context.extensionPath,  'myModule', 'csgChange.js')
     ));
+    const modelingurl = panel.webview.asWebviewUri(
+        vscode.Uri.joinPath(context.extensionUri,  'myModule', 'modeling.esm.js')
+      ); 
     const scriptUri = panel.webview.asWebviewUri(
              vscode.Uri.joinPath(context.extensionUri,  'webviewCode', 'webview.js')
-           ); 
-    const modelingurl = panel.webview.asWebviewUri(
-            vscode.Uri.joinPath(context.extensionUri,  'webview', 'modeling.esm.js')
-          ); 
+    ); 
+
     const styleUri = panel.webview.asWebviewUri(
-             vscode.Uri.joinPath(context.extensionUri,  'webviewCode', 'assets', 'main.css')
-         );
+        vscode.Uri.joinPath(context.extensionUri,  'webviewCode', 'assets', 'main.css')
+    );
  
  
  
@@ -85,6 +86,7 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
   <script>window.vscode = acquireVsCodeApi();
   window.includeImport ={
     "@jscad/modeling":"${modelingurl}",
+    "csgChange":"${csgChange}",
   }
   </script>
 
@@ -94,13 +96,43 @@ const createPanel  = ( watchPath:vscode.Uri,context: vscode.ExtensionContext)=>{
   </body>
 </html>   
 `;
-
+const consoleLog = `
+const originalLog = console.log;
+console.log = (...e)=>{
+originalLog(e)
+  self.postMessage({ 
+    log: e
+  });
+}
+const originalError = console.error;
+console.error = (...e)=>{
+originalError(e)
+  self.postMessage({ 
+    error: e
+  });
+}
+try{
+`;
+const consoleLogEnd=`}catch(error){        
+    const msg = []
+    error.stack.split('\\n').slice(2).reverse().forEach(v=>{
+    msg.push(v.trim().replace(/\\([^\\)]+\\)/g,''));  
+    })
+    console.error(...msg)
+    self.postMessage({ 
+    end:true
+    });
+};`;
 const workerCode = {
     name:"worker",
     db:encoder.encode(`import * as csg  from '${csgChange}'
-    import * as src  from './index.js'
-    console.log(src )
-    csg.getCsgObjArray(src.main(),self.postMessage)  `)
+import * as src  from './index.js'
+${consoleLog}
+//const key = new URL(import.meta.url).searchParams.get("k");
+//console.log(key)
+self.postMessage({module:Object.keys(src)})
+csg.getCsgObjArray(src.main(),self.postMessage);
+${consoleLogEnd}  `)
 };
 const workerCode1 = {
     name:"worker",
@@ -143,7 +175,7 @@ const workerCode1 = {
                 vscode.window.showInformationMessage( message.msg.join('\n') );
                 break;
             case 'error':
-                vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg.join('\n') });
+                vscode.window.showErrorMessage("err" ,{modal:true,detail:JSON.stringify(message.msg) });
                 break; 
         }
     });

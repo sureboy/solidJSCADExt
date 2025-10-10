@@ -16,8 +16,8 @@ type importType = {
     moduleName:string,
     startPosition:number,
     endPosition:number,
-    fullImport:string,
-    obj:currentObj
+    //fullImport:string,
+    obj:currentObj,
 }
 const currentMap = new Map<string,currentObj>();
 const includeImport = (window as any).includeImport;
@@ -29,68 +29,45 @@ Object.keys(includeImport).forEach(k=>{
         toString:function(){return includeImport[k];}});
 });
 //console.log(includeImportKeys);
-export class ImportParser {
+const  importParser = (code:string)=> {
+    const regex = /import\s*(?:(?:(?:\w+|\*\s*as\s*\w+|\{[^}]*\})\s+from\s+)?['"]([^'"]+)['"]|['"]([^'"]+)['"])/g;
+    const imports:importType[] = [];
     
-    static parse(code:string) {
-        const regex = /import\s*(?:(?:(?:\w+|\*\s*as\s*\w+|\{[^}]*\})\s+from\s+)?['"]([^'"]+)['"]|['"]([^'"]+)['"])/g;
-        const imports:importType[] = [];
-        
-        let match:RegExpExecArray|null;
-        while ((match = regex.exec(code)) !== null) {
-            const moduleName = match[1] || match[2];
-            //if (!moduleName.startsWith(".")){
-            //    continue;
-            //}
-            const quoteIndex = Math.max(
-                match[0].indexOf("'"),
-                match[0].indexOf('"')
-            );
-            const startPosition = match.index + quoteIndex + 1;
-          
-            imports.push({
-                moduleName: moduleName,
-                startPosition: startPosition,
-                endPosition: startPosition + moduleName.length,
-                fullImport: match[0]
-            } as importType);
-        }
-        
-        return imports;
-    }
-    
-    static findModuleAtPosition(code:string, position:number) {
-        const imports = this.parse(code);
-        return imports.find(imp => 
-            position >= imp.startPosition && position <= imp.endPosition
+    let match:RegExpExecArray|null;
+    while ((match = regex.exec(code)) !== null) {
+        const moduleName = match[1] || match[2];
+        //if (!moduleName.startsWith(".")){
+        //    continue;
+        //}
+        const quoteIndex = Math.max(
+            match[0].indexOf("'"),
+            match[0].indexOf('"')
         );
+        const startPosition = match.index + quoteIndex + 1;
+        
+        imports.push({
+            moduleName: moduleName,
+            startPosition: startPosition,
+            endPosition: startPosition + moduleName.length,
+            // fullImport: match[0]
+        } as importType);
     }
-}
+    
+    return imports;
+};
+ 
 //const encoder = new TextEncoder();
 
-export const getCurrent = (name:string, n=0)=>{
+export const getCurrent = (name:string )=>{
     //this.persons
     
     return currentMap.has(name)?currentMap.get(name):name;
 
-    
-    if (currentMap.has(name)){
-        return currentMap.get(name);
-    }
-    if (n>2){return name;}
-    return  {
-        name,
-        persons:new Set<currentObj>(), 
-        toString:function(){
-            //return name;
-            return getCurrent(name,n+1);
-        }
-    } as currentObj ;
-    //currentMap.set(name,c_);
-    //return c_;
+     
 };
 const decoder = new TextDecoder();
 const updateCurrent = (c:currentObj)=>{
-    console.log("update",c.name);
+    //console.log("update",c.name);
     if (c.url){
         URL.revokeObjectURL(c.url);
         c.url = '';
@@ -109,7 +86,7 @@ const reloadCurrent = (c:currentObj,msg:messageObj)=>{
     c.srcList = [];
 
     //let indexPos = 0;
-    ImportParser.parse(src).forEach(p=>{
+    importParser(src).forEach(p=>{
         //let url:currentObj = getCurrent(p.moduleName);
         /*
         if (currentMap.has(p.moduleName)){
@@ -148,20 +125,13 @@ const toStringCurrent = (c:currentObj)=>{
                 obj.persons.add(c);
             }
         }
-        //    src.persons.add(c);
-        //}
-        //console.log(src);
-        
-        //if (src.persons){
-       
-        //}
     });
     
     c.url = URL.createObjectURL(new Blob([code],{type:'application/javascript'}));
     //console.log(code);
     return c.url;  
 };
-export const InitCurrentMap = (v:messageObj)=>{
+const InitCurrentMap = (v:messageObj)=>{
     // v.code = decoder.decode(v.db)
     return {
         persons:new Set<currentObj>(),
