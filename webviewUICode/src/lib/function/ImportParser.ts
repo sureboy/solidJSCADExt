@@ -68,10 +68,12 @@ export const getCurrent = (name:string )=>{
 const decoder = new TextDecoder();
 const updateCurrent = (c:currentObj)=>{
     //console.log("update",c.name);
-    if (c.url){
-        URL.revokeObjectURL(c.url);
-        c.url = '';
+    if (!c.url){
+        return;
     }
+    URL.revokeObjectURL(c.url);
+    c.url = '';
+    
     c.persons.forEach((p:currentObj)=>{
         updateCurrent(p);
     });

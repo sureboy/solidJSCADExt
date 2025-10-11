@@ -2,6 +2,16 @@ import {getCurrent} from "./ImportParser";
 import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./threeScene" ;
 import { CSG2Three } from "./csg2Three";
 import { vscode } from './vscodeApi';
+type workerConfigType = {
+  cameraType: string;
+  module: (modulelist: {
+      list: string[];
+      basename: string;
+  }) => void;
+  main: string;
+  index: string;
+}
+ 
 const consoleLog = `
 const originalLog = console.log;
 console.log = (...e)=>{
@@ -20,21 +30,19 @@ originalError(e)
 try{
 `;
 const consoleLogEnd=`}catch(error){        
-    const msg = []
- 
     console.error(error)
     self.postMessage({ 
     end:true
     });
 };`;
 let worker: Worker|null; 
-const getBaseUrl = (name:string)=>{
+const getBaseUrl = (config:{main:string,index:string})=>{
   return URL.createObjectURL( 
         new Blob([`
 import * as csg  from '${getCurrent("csgChange")}'
-import * as src  from '${getCurrent("./index.js")}'
+import * as src  from '${getCurrent("./"+config.index)}'
 ${consoleLog} 
- const main = "${name}";
+ const main = "${config.main}";
  const list = Object.keys(src)
 const module = {list,basename:main?main:list[0]}
  
@@ -48,13 +56,13 @@ self.postMessage(msg)
  
 ${consoleLogEnd} `],{type:'application/javascript'}));
 };
-export const runWorker = (el:HTMLCanvasElement,message:{basename:string,cameraType:string,module:(params:string[])=>void })=>{
+export const runWorker = (el:HTMLCanvasElement,message:workerConfigType )=>{
     if (worker){
         worker.terminate();
           //worker=null
           //return
       };
-    const baseUrl = getBaseUrl(message.basename);
+    const baseUrl = getBaseUrl(message);
     worker = new Worker(baseUrl,{type: "module"});
     //console.log(worker)   
     worker.onmessage = function(e) {

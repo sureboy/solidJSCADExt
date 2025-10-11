@@ -10,14 +10,15 @@
   //import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let container:HTMLElement;  
   let el:HTMLCanvasElement|null;  
-  let basename = "...."  
+  let showName = "...."  
+
   onMount(() => {
     document.getElementById("downSTL").addEventListener("click",e=>{
       const res = Exporter() 
       const blob = new Blob([res.buffer as ArrayBuffer], { type: 'application/octet-stream' })
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${basename}.stl`; 
+      link.download = `${showName}.stl`; 
       link.click();
       URL.revokeObjectURL(link.href); 
     })  
@@ -71,16 +72,16 @@
     menu.addEventListener("click",e=>{
       const button = (e.target  as HTMLInputElement).closest('button');
       console.log(button.textContent)
-      workermsg.basename = button.textContent
-      basename="...."
+      workermsg.main = button.textContent
+      showName="...."
       runWorker(el,workermsg);
     })
     const tmpDiv = menu.firstChild
     const workermsg = {
-      basename:"",
+      ...(window as any).myConfig as {main:string,index:string},
       cameraType:"",
       module:(modulelist:{list:string[],basename:string})=>{
-        basename = modulelist.basename
+        showName = modulelist.basename
         menu.innerHTML=""
         modulelist.list.forEach(m=>{
           const div = tmpDiv.cloneNode(true)
@@ -89,6 +90,7 @@
           menu.appendChild(div)
         })
       }}
+    //console.log(workermsg)
     window.addEventListener('message', (event:any) => {
         //worker.postMessage(event.data)
       const message = event.data;
@@ -114,7 +116,7 @@
 
 <div bind:this={container}  style="position: absolute;left:0;top:0;z-index: 1;" > 
 </div> 
-<div style="position: absolute;right:5px;top:5px;z-index: 11;" class="pointer-events-auto ">
+<div style="position: absolute;right:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto ">
  
     <details name="downMenu"  >
         <summary class="download-summary" >
@@ -137,7 +139,7 @@
     </details>
  
 </div>
-<div style="position: absolute;left:5px;top:5px;z-index: 11;" class="pointer-events-auto" id="camera-toggle">
+<div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
   <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" >
     <!-- 按钮背景 -->
     <rect x="1" y="1" width="46" height="46" rx="4" fill="#2d2d2d" stroke="#555" stroke-width="1"/>
@@ -174,11 +176,11 @@
 <div style="position:absolute;left:0px;top:5px;z-index:10;width:100%;font-weight: 500;" class="pointer-events-auto">
   <details name="moduleMenu"  >
     <summary style="cursor: pointer;height:48px;text-align: center;line-height: 48px;"  >
-{basename}
+{showName}
 </summary>
 <div  style="color:white;text-align: center;" id="module_list">
  
-    <button style="height:48:px;line-height:48px;" >
+    <button style="height:48:px;line-height:48px;cursor: pointer;" >
       STL 
     </button>
  
