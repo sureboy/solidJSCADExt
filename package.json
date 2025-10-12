@@ -2,7 +2,7 @@
   "name": "mgtoy",
   "displayName": "MGToy",
   "description": "",
-  "version": "0.0.3",
+  "version": "0.0.1",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -14,7 +14,6 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
- 
     "customEditors": [
       {
         "viewType": "MGToy.stlPreview",
@@ -22,15 +21,6 @@
         "selector": [
           {
             "filenamePattern": "*.stl"
-          }
-        ]
-      },
-      {
-        "viewType": "MGToy.jsPreview",
-        "displayName": "mgtoy.js Preview",
-        "selector": [
-          {
-            "filenamePattern": "*.mgtoy.js"
           }
         ]
       }
@@ -60,9 +50,5 @@
     "typescript": "^5.8.3",
     "webpack": "^5.99.7",
     "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "rollup": "^4.50.2"
   }
 }
