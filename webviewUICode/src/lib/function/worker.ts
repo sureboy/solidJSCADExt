@@ -40,7 +40,7 @@ const getBaseUrl = (config:{main:string,index:string})=>{
   return URL.createObjectURL( 
         new Blob([`
 import * as csg  from '${getCurrent("csgChange")}'
-import * as src  from '${getCurrent("./"+config.index)}'
+import * as src  from '${getCurrent(config.index)}'
 ${consoleLog} 
  const main = "${config.main}";
  const list = Object.keys(src)
@@ -62,14 +62,19 @@ export const runWorker = (el:HTMLCanvasElement,message:workerConfigType )=>{
           //worker=null
           //return
       };
+      vscode.postMessage({
+        type:'start'
+      });
     const baseUrl = getBaseUrl(message);
     worker = new Worker(baseUrl,{type: "module"});
     //console.log(worker)   
+
     worker.onmessage = function(e) {
       const msg = e.data;
       //message.msg = msg;
       console.log(msg);
       if (msg.start ){
+
         startSceneOBJ(el);
       }else if (msg.ver){
         addSceneOBJ(el, CSG2Three(msg.ver,{}) );

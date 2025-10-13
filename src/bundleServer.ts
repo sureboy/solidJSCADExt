@@ -17,8 +17,8 @@ const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
                 return;
             }
             const t = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(watcher,v[0]));
-            getCode({db:t.buffer,name:"./"+ v[0] });
-                 
+            getCode({db:t.buffer,name: v[0] });
+            //console.log(v); 
         };
         
     });
@@ -121,9 +121,12 @@ const createPanel  = ( config:{index:string,main:string,watchPath:vscode.Uri,ext
                                     
                 });
                 break; 
+            case 'start':
+                tmpDate = Date.now();
+                break; 
             case 'end':
                 //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                vscode.window.showInformationMessage("waited"+String((Date.now()-tmpDate)/1000));
+                vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000));
                 break;
             case 'log':
                 //console.log(e.msg);
@@ -162,20 +165,19 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
             context.subscriptions.push(watcher);
             watcher.onDidCreate(uri => {
-                vscode.window.showInformationMessage(`文件已创建: ${uri.fsPath}`);
-                console.log('文件创建:', uri.fsPath);
+                vscode.window.showInformationMessage(`Create: ${uri.fsPath}`); 
             });        
             // 监听文件更改事件
             watcher.onDidChange(uri => {
-                vscode.window.showInformationMessage(`文件已修改: ${uri.fsPath}`);
+                vscode.window.showInformationMessage(`Change: ${uri.fsPath}`);
                 //console.log('文件更改:', uri.fsPath);
-                
+                tmpDate = Date.now();
                 vscode.workspace.fs.readFile(uri).then(db=>{                   
                 
                     createPanel(config).webview.postMessage({  
                         init:{
                             db:  db.buffer,
-                            name:"./"+path.basename(uri.fsPath)
+                            name:path.basename(uri.fsPath)
                         },
                         run:"worker",
                         
@@ -185,8 +187,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             });        
             // 监听文件删除事件
             watcher.onDidDelete(uri => {
-                vscode.window.showInformationMessage(`文件已删除: ${uri.fsPath}`);
-                console.log('文件删除:', uri.fsPath);
+                vscode.window.showInformationMessage(`Delete: ${uri.fsPath}`); 
             });
         }); 
         

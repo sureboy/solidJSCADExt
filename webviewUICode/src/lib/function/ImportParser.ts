@@ -36,9 +36,7 @@ const  importParser = (code:string)=> {
     let match:RegExpExecArray|null;
     while ((match = regex.exec(code)) !== null) {
         const moduleName = match[1] || match[2];
-        //if (!moduleName.startsWith(".")){
-        //    continue;
-        //}
+
         const quoteIndex = Math.max(
             match[0].indexOf("'"),
             match[0].indexOf('"')
@@ -46,13 +44,13 @@ const  importParser = (code:string)=> {
         const startPosition = match.index + quoteIndex + 1;
         
         imports.push({
-            moduleName: moduleName,
+            moduleName:moduleName.startsWith(".")?moduleName.split("/").pop():moduleName ,
             startPosition: startPosition,
             endPosition: startPosition + moduleName.length,
             // fullImport: match[0]
         } as importType);
     }
-    
+    //console.log(imports);
     return imports;
 };
  
