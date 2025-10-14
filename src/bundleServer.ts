@@ -24,11 +24,16 @@ const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
     });
     //getCode({});
 };
-const createPanel  = ( config:{index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     if (panel){return panel;}
+    if (!config.index){
+        config.index = "index.js";
+    }else if (!config.index.endsWith(".js")){
+        config.index+=".js";
+    }
     panel =  vscode.window.createWebviewPanel(
         'mgtoyView',
-        'test',
+        config.name||"mgtoy",
         vscode.ViewColumn.One,
         {
             enableScripts: true,
@@ -77,7 +82,7 @@ const createPanel  = ( config:{index:string,main:string,watchPath:vscode.Uri,ext
     <meta charset="UTF-8" /> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <meta http-equiv="Content-Security-Policy" content="${csp}">
-    <title>Vite + Svelte</title> 
+    <title>${config.name||"mgtoy"}</title> 
     <link rel="stylesheet" href="${styleUri}">
   </head>
   <body>
@@ -86,7 +91,7 @@ const createPanel  = ( config:{index:string,main:string,watchPath:vscode.Uri,ext
     "@jscad/modeling":"${modelingurl}",
     "csgChange":"${csgChange}",
   }
-    window.myConfig={index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
+    window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
   </script>
 
     <div id="app" ></div>   

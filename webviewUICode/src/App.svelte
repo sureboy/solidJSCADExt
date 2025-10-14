@@ -5,23 +5,113 @@
   import { createCanvasElement } from "three";
   import {onWindowResize, Exporter} from "./lib/function/threeScene" 
   //import { CSG2Three } from "./lib/function/csg2Three";
-  import {handleCurrentMsg} from "./lib/function/ImportParser"
+  import {handleCurrentMsg,getCurrent,getCurrentCode} from "./lib/function/ImportParser"
   import { runWorker } from "./lib/function/worker";
   //import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let container:HTMLElement;  
   let el:HTMLCanvasElement|null;  
-  let showName = "...."  
+  let showName = "...."   
+  const stringToGzip= async (src:string)=>{
+    const originalBytes = new TextEncoder().encode(src);
+    const readableStream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(originalBytes);
+        controller.close();
+      }
+    });
+    const compressionStream = new CompressionStream('gzip');
+    const compressedStream = readableStream.pipeThrough(compressionStream);
 
-  
+    // 4. 从压缩流中读取数据块
+    const reader = compressedStream.getReader();
+    const chunks = [];
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value); // value 是 Uint8Array 类型的数据块
+    }
+    return chunks
+
+  }
+  const gzipToString= async (data:Uint8Array<ArrayBufferLike>)=>{
+    const decompressedStream = new DecompressionStream('gzip');
+    const writer = decompressedStream.writable.getWriter();
+    writer.write(data.buffer as BufferSource);
+    writer.close();
+    const decompressedResponse = new Response(decompressedStream.readable);
+    const decompressedArrayBuffer = await decompressedResponse.arrayBuffer();
+    //const decompressedArrayBuffer = await decompressedBlob.arrayBuffer();
+    
+    // 尝试将解压缩数据转换为文本，如果不是文本则显示为十六进制
+    let resultText;
+    try {
+        const textDecoder = new TextDecoder();
+        resultText = textDecoder.decode(decompressedArrayBuffer);
+    } catch (e) {
+      console.error(e)
+        // 如果不是有效的文本，显示为十六进制
+        //resultText = arrayBufferToHexString(decompressedArrayBuffer);
+    }
+    return resultText
+  }
+  const getFileName = (s:string)=>{
+      const a =  /\/\*\*\s*([\w\.]+)\s*\*/g.exec(s)
+      //console.log(a)
+      if (a && a[1])
+      return a[1]
+      else 
+      return ""
+    }
+  const srcStringToJsFile = (src:string,back:(msg:{name:string,db:string})=>void)=>{
+    src.split("========").forEach(db=>{
+     const name = getFileName(db)
+     //console.log("filename",getFileName(db))
+     if (name)
+     back({
+      name ,
+      db,
+     })
+    })
+  }  
   onMount(() => {
     document.getElementById("downSTL").addEventListener("click",e=>{
       const res = Exporter() 
       const blob = new Blob([res.buffer as ArrayBuffer], { type: 'application/octet-stream' })
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${showName}.stl`; 
+      link.download = `${workermsg.name}_${showName}_${workermsg.index.split(".").shift()}_${Date.now()}.stl`; 
       link.click();
       URL.revokeObjectURL(link.href); 
+    })  
+    document.getElementById("downCode").addEventListener("click",async (e)=>{
+      //const res = Exporter() 
+      const current = getCurrent(workermsg.index)  
+      if (typeof current ==="string"){
+        return
+      }
+      const codeList = []
+      //console.log(current)
+      current.children=new Set()
+      getCurrentCode(current,(name:string,code:string)=>{
+        codeList.push(`/**${name}*/
+${code}
+`)
+        //codeList.push(code)
+      })
+      if (!window.CompressionStream || !window.DecompressionStream) {
+        console.log("down code err")
+        return
+      }
+      const chunks = await stringToGzip(codeList.join("========"))
+      const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(compressedBlob);
+      link.download = `${workermsg.name}_${showName}_${workermsg.index.split(".").shift()}_${Date.now()}.mgtoy.gz`; 
+      link.click();
+      URL.revokeObjectURL(link.href); 
+      
+ 
     })  
     vscode.postMessage({ 
     //  supportsWebGPU: hasWebGPU,
@@ -54,18 +144,16 @@
       // 更新文字标签
       cameraType = isPerspective ? 'Perspective' : 'Orthographic';
       onWindowResize(el, cameraType)
-      // 实际切换相机逻辑
-  
     }
 
     svg.addEventListener('click', toggleCamera);
 
     const updateSize = ()=>{
-        el!.width = document.body.clientWidth;
-        el!.height = document.body.clientHeight; 
+      el!.width = document.body.clientWidth;
+      el!.height = document.body.clientHeight; 
 
-        //console.log("z")
-        onWindowResize(el!,cameraType)		
+      //console.log("z")
+      onWindowResize(el!,cameraType)
     }
     
     window.addEventListener('resize',updateSize);   
@@ -73,28 +161,63 @@
     menu.addEventListener("click",e=>{
       const button = (e.target  as HTMLInputElement).closest('button');
       console.log(button.textContent)
+      if (button.textContent==="..."){
+        return
+      }
       workermsg.main = button.textContent
       showName="...."
       runWorker(el,workermsg);
     })
     const tmpDiv = menu.firstChild
     const workermsg = {
-      ...(window as any).myConfig as {main:string,index:string},
-      cameraType:"",
+      ...(window as any).myConfig as {name:string,main:string,index:string},
+      cameraType:cameraType,
       module:(modulelist:{list:string[],basename:string})=>{
-        showName = modulelist.basename
+        showName =modulelist.basename;
         menu.innerHTML=""
+     
         modulelist.list.forEach(m=>{
           const div = tmpDiv.cloneNode(true)
           div.textContent = m;
           
           menu.appendChild(div)
         })
+        menu.appendChild(tmpDiv)
       }}
     //console.log(workermsg)
     window.addEventListener('message', (event:any) => {
         //worker.postMessage(event.data)
       const message = event.data;
+      if (message.gzData){
+        gzipToString(message.gzData).then(src=>{
+          //console.log(src)
+          srcStringToJsFile(src,(db)=>{
+            //console.log(db);
+            handleCurrentMsg(db)
+          })
+          console.log(workermsg)
+          runWorker(el,workermsg);
+        })
+        //console.log()
+      }
+      if (message.getSrc){
+        const current = getCurrent(workermsg.index)  
+        if (typeof current ==="string"){
+          return
+        } 
+        current.children=new Set()
+        getCurrentCode(current,(name:string,code:string)=>{
+          vscode.postMessage({
+            type:"src",
+            name,
+            code:new TextEncoder().encode(code)
+          }) 
+        })
+        vscode.postMessage({
+            type:"src"
+          }) 
+
+      }
       //console.log(message) 
       if (message.init  ){
         handleCurrentMsg(message.init)        
@@ -127,15 +250,16 @@
           </svg>
         </summary>
         <div class="download-options">
-            <div class="download-option">
+            <div class="download-option" id="downSTL">
  
-                <span class="option-text" id="downSTL" >STL</span> 
+                <span class="option-text"  >STL</span> 
             </div>
-            <!--
-            <div class="download-option"> 
-                <span class="option-text" id="down3MF" >3MF</span> 
+            
+            <div class="download-option" id="downCode"> 
+                <span class="option-text"  >Gzip</span> 
             </div>
-            -->
+ 
+            
         </div>
     </details>
  
@@ -181,8 +305,8 @@
 </summary>
 <div  style="color:white;text-align: center;" id="module_list">
  
-    <button style="height:48:px;line-height:48px;cursor: pointer;" >
-      STL 
+    <button class="option-text" style="height:48:px;line-height:48px;cursor: pointer;" >
+      ...
     </button>
  
   <!--

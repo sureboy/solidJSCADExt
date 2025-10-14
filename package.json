@@ -23,6 +23,15 @@
             "filenamePattern": "*.stl"
           }
         ]
+      },
+      {
+        "viewType": "MGToy.gzPreview",
+        "displayName": "gz Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.mgtoy.gz"
+          }
+        ]
       }
     ]
   },

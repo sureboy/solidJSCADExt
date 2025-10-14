@@ -1,6 +1,6 @@
 type messageObj = {
     name:string,
-    db?:AllowSharedBufferSource
+    db?:AllowSharedBufferSource | string
 }
 type currentObj = { 
     url?:string;
@@ -8,6 +8,7 @@ type currentObj = {
     //code?: string; 
     srcList?:((()=>currentObj|string )|string)[]
     toString:()=>string;
+    children?:Set<currentObj>;
     //update?:()=>void;
     //reload?:(db:AllowSharedBufferSource)=>void;
  
@@ -55,7 +56,43 @@ const  importParser = (code:string)=> {
 };
  
 //const encoder = new TextEncoder();
-
+export const getCurrentCode = ( src:currentObj,back:(name:string,code:string)=>void) => {
+    let code = "";
+    if (!src.children){
+        src.children = new Set<currentObj>();
+       
+    }
+    src.children.add(src);
+    src.srcList?.forEach(_src=>{
+        if (typeof _src ==="string"){
+            code+=_src;
+            return;
+        }
+        const ___src = _src();
+        if (typeof ___src ==="string"){
+            code+=___src;
+            return;
+        }
+         
+        //if (!___src.name)console.log(___src);
+        if (___src.db){
+            
+            if (!src.children.has(___src)) {
+                ___src.children = src.children;
+                getCurrentCode(___src,back);
+            }
+            code+= "./" + ___src.name;   
+        }else{
+            code+=  ___src.name;      
+        }    
+        
+        
+    });
+    if (code){
+        console.log(code);
+        back(src.name,code);
+    }
+};
 export const getCurrent = (name:string )=>{
     //this.persons
     
@@ -81,7 +118,7 @@ const reloadCurrent = (c:currentObj,msg:messageObj)=>{
 
     //this.code = ;
     //this.src = [];
-    const src = decoder.decode(msg.db);
+    const src = (typeof msg.db ==="string")?msg.db: decoder.decode(msg.db);
     let tmpEndPos:number = 0;
     c.srcList = [];
 
