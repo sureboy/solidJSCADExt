@@ -1,13 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {PawDrawDocument,WebviewCollection} from './pawDrawEditor';
+import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 
-interface PawDrawEdit {
-	readonly color: string;
-	readonly stroke: ReadonlyArray<[number, number]>;
-}
+ 
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
-    private static newPawDrawFileId = 1;
+    //private static newPawDrawFileId = 1;
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
 
         return vscode.window.registerCustomEditorProvider(
@@ -30,18 +27,6 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         openContext: { backupId?: string },
         _token: vscode.CancellationToken
     ): Promise<PawDrawDocument> {
-        /*
-        console.log(uri);
-        const fileName = path.basename(uri.fsPath,".gz");
-        vscode.window.showInformationMessage("create MGtoy package",{modal:true,detail:`Do you need to create a new package from ${fileName}?` },"ok").then(msg=>{
-          //console.log(msg);
-          if (msg==="ok"){
-            const workspacePath = vscode.workspace.getWorkspaceFolder(uri)!.uri;            
-            vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(workspacePath,fileName,"src"));
-          }
-        });
-        //return;
-        */
         const document: PawDrawDocument = await PawDrawDocument.create(
           uri, 
           openContext.backupId, {
@@ -64,6 +49,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         return document;
     }
     private tmpDate = 0;
+  
     async resolveCustomEditor(
         document: PawDrawDocument,
         webviewPanel: vscode.WebviewPanel,
@@ -85,91 +71,52 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const NewWorkspace =  vscode.Uri.joinPath(
             vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
             [name,main].join("_"));
-        const myWorkspaceConfig = {name,index,main,date,src:"src"};
-
-        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview,{name,index:index+".js",main});
-
-        //webviewPanel.webview.onDidReceiveMessage(e => this.onMessage(document, e));
-
-        // Wait for the webview to be properly ready before we init
-        const createWorkspacePackage = async()=>{
-            try{
-                await vscode.workspace.fs.stat(NewWorkspace);
-             }catch(e){
-                 console.log(e);
-                 vscode.window.showWarningMessage(`Do you need to create a Package from Gzip file '${packageName}'`,"OK").then(v=>{
-                     if (v!=="OK"){
-                         return;
-                     }
-                     webviewPanel.webview.postMessage({
-                         getSrc:true
-                     });
-                     vscode.workspace.fs.writeFile(
-                        vscode.Uri.joinPath(NewWorkspace,"mgtoy.json"),
-                        new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
-                     );
-                     vscode.workspace.fs.writeFile(
-                        vscode.Uri.joinPath(NewWorkspace,"package.json"),
-                        new TextEncoder().encode(JSON.stringify({
-                            name:name.toLowerCase(),
-                            type: "module",
-                            main: "src/"+index+".js",
-                            version: "1.0.0", 
-                            description:name,
-                            private: true,
-                            dependencies: {
-                                "@jscad/modeling": "^2.12.5"
-                            }
-                        }, null, 2)),
-                     );
-
-                     //vscode.workspace.fs.createDirectory(NewWorkspace);
-                 });
-             }
-        };
-        webviewPanel.webview.onDidReceiveMessage(message => {
-            console.log(message);
-            switch (message.type) {
-                case 'loaded':
-                    this.tmpDate=Date.now();
-                    webviewPanel.webview.postMessage({
-                        gzData:document.documentData
-                    });
-                    //this.postMessage(webviewPanel,"gzData",document.documentData);
-                    //this.loadGz(document, webviewPanel);
-                    break; 
-                case 'start':
-                    this.tmpDate = Date.now();
-                    break; 
-                case 'end':
-                    //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                    vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
-                    createWorkspacePackage();
-                    
-                    break;
-                case 'src':
-                    if (!message.name){
-                        vscode.window.showWarningMessage(
-                            `Do you need to move the workspace to the ${packageName} Folder`,
-                            "OK").then(v=>{
-                            if (v!=="OK"){return;}
-                            vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
-                        });
-                        return;
-                    }
-                    vscode.workspace.fs.writeFile(
-                        vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,message.name),
-                        message.code); 
-                    break;
-                case 'log':
-                    //console.log(e.msg);
-                    vscode.window.showInformationMessage( message.msg.join('\n') );
-                    break;
-                case 'error':
-                    vscode.window.showErrorMessage("err" ,{modal:true,detail:JSON.stringify(message.msg) });
-                    break; 
-            }
+        const myWorkspaceConfig = {name,main,index,date,src:"src"};
+        const handMap = new Map<string, (e?: any) => void>();
+        handMap.set('loaded',()=>{
+            this.tmpDate=Date.now();
+                webviewPanel.webview.postMessage({
+                    gzData:document.documentData
+                });
         });
+        handMap.set('start',()=>{
+            this.tmpDate = Date.now();
+        });
+        handMap.set('end',()=>{
+            vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
+            createWorkspacePackage(
+                NewWorkspace,
+                myWorkspaceConfig,
+                ()=>{
+                    webviewPanel.webview.postMessage({
+                            getSrc:true
+                    });
+                }
+            );
+        });
+        handMap.set('src',(message)=>{
+            if (!message.name){
+                vscode.window.showWarningMessage(
+                    `Do you need to move the workspace to the ${packageName} Folder`,
+                    "OK").then(v=>{
+                    if (v!=="OK"){return;}
+                    vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
+                });
+                return;
+            }
+            vscode.workspace.fs.writeFile(
+                vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,message.name),
+                message.code); 
+        });
+
+        setHtmlForWebview(webviewPanel.webview,
+            {name,index:index+".js",main,
+                extensionUri:this._context.extensionUri
+            },
+            handMap
+        );
+
+      
  
     }
 
@@ -191,59 +138,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
     public backupCustomDocument(document: PawDrawDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
         return document.backup(context.destination, cancellation);
     }
-
-    private getHtmlForWebview(webview: vscode.Webview,config:{name:string,index:string,main:string}): string {
- const csp = `
-    default-src 'none';
-    script-src 'self' ${webview.cspSource} 'unsafe-inline';
-    worker-src ${webview.cspSource} blob: data:;
-    style-src ${webview.cspSource} 'unsafe-inline';
-    connect-src ${webview.cspSource} 'unsafe-inline';
-    `;
-    //const mainScr = panel.webview.asWebviewUri(
-    //    vscode.Uri.joinPath( outPath,  'index.js')
-    //);
-    const csgChange =  webview.asWebviewUri(
-      vscode.Uri.joinPath( this._context.extensionUri,  'myModule', 'csgChange.js')
-    );
-    const modelingurl = webview.asWebviewUri(
-        vscode.Uri.joinPath(this._context.extensionUri,  'myModule', 'modeling.esm.js')
-      ); 
-    const scriptUri = webview.asWebviewUri(
-             vscode.Uri.joinPath(this._context.extensionUri,  'webviewCode', 'webview.js')
-    ); 
-
-    const styleUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(this._context.extensionUri,  'webviewCode', 'assets', 'main.css')
-    ); 
-    
  
-    return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" /> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta http-equiv="Content-Security-Policy" content="${csp}">
-    <title>${config.name||"mgtoy"}</title> 
-    <link rel="stylesheet" href="${styleUri}">
-  </head>
-  <body>
-  <script>window.vscode = acquireVsCodeApi();
-  window.includeImport ={
-    "@jscad/modeling":"${modelingurl}",
-    "csgChange":"${csgChange}",
-  }
-    window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
-  </script>
-
-    <div id="app" ></div>   
- <script type="module" src="${scriptUri}"> </script>
- 
-  </body>
-</html>   
-`; 
- 
-    }
     private _requestId = 1;
     private readonly _callbacks = new Map<number, (response: any) => void>();
 
@@ -256,3 +151,65 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 
 
 }
+export const newWorkspacePackage= async(
+    NewWorkspace:vscode.Uri,
+    myWorkspaceConfig:{
+        name:string,
+        index:string,
+        main:string,
+        date:string,
+        src:string},
+        handleEnd?:()=>void)=>{
+            
+    await vscode.workspace.fs.writeFile(
+        vscode.Uri.joinPath(NewWorkspace,"mgtoy.json"),
+        new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
+    );
+    await vscode.workspace.fs.writeFile(
+        vscode.Uri.joinPath(NewWorkspace,"package.json"),
+        new TextEncoder().encode(JSON.stringify({
+            name:myWorkspaceConfig.name.toLowerCase(),
+            type: "module",
+            main: "src/"+myWorkspaceConfig.index+".js",
+            version: "1.0.0", 
+            description:myWorkspaceConfig.name,
+            private: true,
+            dependencies: {
+                "@jscad/modeling": "^2.12.5"
+            }
+        }, null, 2)),
+    );
+    //return handleEnd;
+    if (handleEnd){
+        handleEnd();
+    }
+    
+                 //vscode.workspace.fs.createDirectory(NewWorkspace);
+            
+};
+const createWorkspacePackage = async( 
+    NewWorkspace:vscode.Uri,
+    myWorkspaceConfig:{
+        name:string,
+        index:string,
+        main:string,
+        date:string,
+        src:string},
+        handleEnd?:()=>void)=>{
+    try{
+        await vscode.workspace.fs.stat(NewWorkspace);
+     }catch(e){
+        vscode.window.showWarningMessage(`Do you need to create a Package from Gzip file '${
+            [myWorkspaceConfig.name,
+            myWorkspaceConfig.main,
+            myWorkspaceConfig.index].join("_")}'`,"OK").then( v=>{
+            if (v!=="OK"){
+                return;
+            }
+            newWorkspacePackage(NewWorkspace,myWorkspaceConfig,handleEnd);
+        });
+         //console.log(e); 
+         //vscode.workspace.getWorkspaceFolder()
+      
+     }
+};

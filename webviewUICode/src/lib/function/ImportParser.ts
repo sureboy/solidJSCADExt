@@ -8,7 +8,7 @@ type currentObj = {
     //code?: string; 
     srcList?:((()=>currentObj|string )|string)[]
     toString:()=>string;
-    children?:Set<currentObj>;
+    //children?:Set<currentObj>;
     //update?:()=>void;
     //reload?:(db:AllowSharedBufferSource)=>void;
  
@@ -30,12 +30,21 @@ Object.keys(includeImport).forEach(k=>{
         toString:function(){return includeImport[k];}});
 });
 //console.log(includeImportKeys);
+export const regexExec = (code:string,
+    regex:RegExp 
+    ,back:(r:RegExpExecArray,lastIndex:number)=>void
+)=>{
+    let match:RegExpExecArray|null;
+    while ((match = regex.exec(code)) !== null) {
+        
+        back(match,regex.lastIndex);
+    }
+};
 const  importParser = (code:string)=> {
     const regex = /import\s*(?:(?:(?:\w+|\*\s*as\s*\w+|\{[^}]*\})\s+from\s+)?['"]([^'"]+)['"]|['"]([^'"]+)['"])/g;
     const imports:importType[] = [];
-    
-    let match:RegExpExecArray|null;
-    while ((match = regex.exec(code)) !== null) {
+    regexExec(code,regex,(match,i)=>{
+        //console.log(match,match[0].length,i);
         const moduleName = match[1] || match[2];
 
         const quoteIndex = Math.max(
@@ -50,19 +59,16 @@ const  importParser = (code:string)=> {
             endPosition: startPosition + moduleName.length,
             // fullImport: match[0]
         } as importType);
-    }
+    });
+   
     //console.log(imports);
     return imports;
 };
  
 //const encoder = new TextEncoder();
-export const getCurrentCode = ( src:currentObj,back:(name:string,code:string)=>void) => {
-    let code = "";
-    if (!src.children){
-        src.children = new Set<currentObj>();
-       
-    }
-    src.children.add(src);
+export const getCurrentCode = ( src:currentObj,back:(name:string,code:string)=>void,children = new Set<currentObj>()) => {
+    let code = "";    
+    children.add(src);
     src.srcList?.forEach(_src=>{
         if (typeof _src ==="string"){
             code+=_src;
@@ -77,9 +83,9 @@ export const getCurrentCode = ( src:currentObj,back:(name:string,code:string)=>v
         //if (!___src.name)console.log(___src);
         if (___src.db){
             
-            if (!src.children.has(___src)) {
-                ___src.children = src.children;
-                getCurrentCode(___src,back);
+            if (!children.has(___src)) {
+               
+                getCurrentCode(___src,back,children);
             }
             code+= "./" + ___src.name;   
         }else{

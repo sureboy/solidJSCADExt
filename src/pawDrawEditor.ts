@@ -102,26 +102,7 @@ export class PawDrawDocument extends Disposable implements vscode.CustomDocument
 	 *
 	 * This fires an event to notify VS Code that the document has been edited.
 	 */
-	makeEdit(edit: PawDrawEdit) {
-		this._edits.push(edit);
-
-		this._onDidChange.fire({
-			label: 'Stroke',
-			undo: async () => {
-				this._edits.pop();
-				this._onDidChangeDocument.fire({
-					edits: this._edits,
-				});
-			},
-			redo: async () => {
-				this._edits.push(edit);
-				this._onDidChangeDocument.fire({
-					edits: this._edits,
-				});
-			}
-		});
-	}
-
+ 
 	/**
 	 * Called by VS Code when the user saves the document.
 	 */
@@ -207,4 +188,77 @@ export class WebviewCollection {
 			this._webviews.delete(entry);
 		});
 	}
+	
 }
+export const  setHtmlForWebview = (
+	webview: vscode.Webview,
+	config:{name:string,index:string,main:string,extensionUri:vscode.Uri},
+	handleMessageMap:Map<string,(e?:any)=>void>
+)=> {
+	const csp = `
+	   default-src 'none';
+	   script-src 'self' ${webview.cspSource} 'unsafe-inline';
+	   worker-src ${webview.cspSource} blob: data:;
+	   style-src ${webview.cspSource} 'unsafe-inline';
+	   connect-src ${webview.cspSource} 'unsafe-inline';
+	   `;
+	   //const mainScr = panel.webview.asWebviewUri(
+	   //    vscode.Uri.joinPath( outPath,  'index.js')
+	   //);
+	   const csgChange =  webview.asWebviewUri(
+		 vscode.Uri.joinPath( config.extensionUri,  'myModule', 'csgChange.js')
+	   );
+	   const modelingurl = webview.asWebviewUri(
+		   vscode.Uri.joinPath(config.extensionUri,  'myModule', 'modeling.esm.js')
+		 ); 
+	   const scriptUri = webview.asWebviewUri(
+				vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'webview.js')
+	   ); 
+   
+	   const styleUri = webview.asWebviewUri(
+		   vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'assets', 'main.css')
+	   ); 
+	   
+
+	   	webview.onDidReceiveMessage(message => {
+		 	switch (message.type) {
+			case 'log':
+				vscode.window.showInformationMessage( message.msg.join('\n') );
+				break;
+			case 'error':
+				vscode.window.showErrorMessage("err" ,{modal:true,detail:JSON.stringify(message.msg) });
+				break;
+			default:
+				if (!handleMessageMap.has(message.type)){
+					return;
+				}
+				handleMessageMap.get(message.type)!(message);
+			}		
+	   	});
+	
+		   webview.html = `<!doctype html>
+   <html lang="en">
+	 <head>
+	   <meta charset="UTF-8" /> 
+	   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		 <meta http-equiv="Content-Security-Policy" content="${csp}">
+	   <title>${config.name||"mgtoy"}</title> 
+	   <link rel="stylesheet" href="${styleUri}">
+	 </head>
+	 <body>
+	 <script>window.vscode = acquireVsCodeApi();
+	 window.includeImport ={
+	   "@jscad/modeling":"${modelingurl}",
+	   "csgChange":"${csgChange}",
+	 }
+	   window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
+	 </script>
+   
+	   <div id="app" ></div>   
+	<script type="module" src="${scriptUri}"> </script>
+	
+	 </body>
+   </html>   
+   `; 
+	
+	   };

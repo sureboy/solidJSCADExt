@@ -37,24 +37,22 @@ const consoleLogEnd=`}catch(error){
 };`;
 let worker: Worker|null; 
 const getBaseUrl = (config:{main:string,index:string})=>{
-  return URL.createObjectURL( 
-        new Blob([`
-import * as csg  from '${getCurrent("csgChange")}'
+  const src = `import * as csg  from '${getCurrent("csgChange")}'
 import * as src  from '${getCurrent(config.index)}'
-${consoleLog} 
- const main = "${config.main}";
- const list = Object.keys(src)
-const module = {list,basename:main?main:list[0]}
- 
-
-csg.getCsgObjArray(src[module.basename](),(msg)=>{
-if (msg.end){
-     msg.module = module       
-}
-self.postMessage(msg)
-})
- 
-${consoleLogEnd} `],{type:'application/javascript'}));
+  ${consoleLog} 
+  const main = "${config.main}";
+  const list = Object.keys(src)
+  const module = {list,basename:main?main:list[0]}
+  csg.getCsgObjArray(src[module.basename](),(msg)=>{
+  if (msg.end){
+      msg.module = module       
+  }
+  self.postMessage(msg)
+}) 
+${consoleLogEnd} `;
+//console.log(src);
+  return URL.createObjectURL(
+    new Blob([src],{type:'application/javascript'}));
 };
 export const runWorker = (el:HTMLCanvasElement,message:workerConfigType )=>{
     if (worker){

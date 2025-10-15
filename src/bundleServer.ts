@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
- 
+import { setHtmlForWebview} from './pawDrawEditor';
 let panel:vscode.WebviewPanel|null = null;
-const encoder = new TextEncoder();
+//const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 let tmpDate = Date.now();
 
@@ -75,73 +75,34 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
     const styleUri = panel.webview.asWebviewUri(
         vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'assets', 'main.css')
     ); 
- 
-        panel.webview.html =`<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" /> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <meta http-equiv="Content-Security-Policy" content="${csp}">
-    <title>${config.name||"mgtoy"}</title> 
-    <link rel="stylesheet" href="${styleUri}">
-  </head>
-  <body>
-  <script>window.vscode = acquireVsCodeApi();
-  window.includeImport ={
-    "@jscad/modeling":"${modelingurl}",
-    "csgChange":"${csgChange}",
-  }
-    window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
-  </script>
-
-    <div id="app" ></div>   
- <script type="module" src="${scriptUri}"> </script>
- 
-  </body>
-</html>   
-`; 
- 
- 
-    //try{}catch(e){}
-    panel.webview.onDidReceiveMessage(async (message) => {
-        //console.log('[Webview Message]', message);
-        console.log(message);
-        switch (message.type) {
-            case 'loaded':
-                tmpDate = Date.now();
-                //console.log(tmpDate,panel);               
-                //panel?.webview.postMessage({                         
-                //    init:workerCode ,                                    
-                //});
-                await initPanelTmpDir(config.watchPath,(code:any)=>{
-                    //codelist.push(code);
-                    panel?.webview.postMessage({                         
-                        init:code ,                                        
-                    });
-                } );
-                //codelist.push(workerCode);
-                panel?.webview.postMessage({                    
-                    open:true,
-                    run:"worker"
-                                    
-                });
-                break; 
-            case 'start':
-                tmpDate = Date.now();
-                break; 
-            case 'end':
-                //console.log("begin",(Date.now()-this.tmpDate)/1000);
-                vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000));
-                break;
-            case 'log':
-                //console.log(e.msg);
-                vscode.window.showInformationMessage( message.msg.join('\n') );
-                break;
-            case 'error':
-                vscode.window.showErrorMessage("err" ,{modal:true,detail:JSON.stringify(message.msg) });
-                break; 
-        }
+    const handMap = new Map();
+    handMap.set('loaded',()=>{
+        tmpDate = Date.now();
+        initPanelTmpDir(config.watchPath,(code:any)=>{
+            //codelist.push(code);
+            panel?.webview.postMessage({                         
+                init:code ,                                        
+            });
+        } ).then(()=>{
+            panel?.webview.postMessage({                    
+                open:true,
+                run:"worker"
+                                
+            });
+        });
+        //codelist.push(workerCode);
+       
     });
+    handMap.set('start',()=>{tmpDate = Date.now();});
+    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000));});
+   
+    setHtmlForWebview(
+        panel.webview,config,
+        handMap
+    );
+      
+ 
+  
  
     return panel;
 };
@@ -151,7 +112,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         if (files.length === 0) {
             return;
         }
-        console.log(files);
+        //console.log(files);
         const u = files[0];
         vscode.workspace.fs.readFile(u).then(v=>{
             const config = JSON.parse(v.toString());

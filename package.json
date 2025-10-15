@@ -14,6 +14,12 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "mgtoy.create",
+        "title": "mgtoy create"
+      }
+    ],
     "customEditors": [
       {
         "viewType": "MGToy.stlPreview",

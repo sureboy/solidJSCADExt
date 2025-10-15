@@ -3,11 +3,12 @@
   import { vscode } from './lib/function/vscodeApi';
  // import workerCode from './worker/worker?raw'; 
   import { createCanvasElement } from "three";
-  import {onWindowResize, Exporter} from "./lib/function/threeScene" 
+  import {onWindowResize, Exporter,addSceneSTL} from "./lib/function/threeScene" 
+
   //import { CSG2Three } from "./lib/function/csg2Three";
-  import {handleCurrentMsg,getCurrent,getCurrentCode} from "./lib/function/ImportParser"
+  import {handleCurrentMsg,getCurrent,getCurrentCode,regexExec} from "./lib/function/ImportParser"
   import { runWorker } from "./lib/function/worker";
-  //import {STLLoader} from "three/addons/loaders/STLLoader.js"
+  import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let container:HTMLElement;  
   let el:HTMLCanvasElement|null;  
   let showName = "...."   
@@ -54,15 +55,29 @@
     }
     return resultText
   }
-  const getFileName = (s:string)=>{
-      const a =  /\/\*\*\s*([\w\.]+)\s*\*/g.exec(s)
-      //console.log(a)
-      if (a && a[1])
-      return a[1]
-      else 
-      return ""
-    }
+
   const srcStringToJsFile = (src:string,back:(msg:{name:string,db:string})=>void)=>{
+    let name = ""
+    let codeStart = 0
+    //let codeEnd  = 0
+    //console.log(src)
+    regexExec(src,/\/\*\*\s*([\w\.]+)\s*\*/g,(r,i)=>{      
+      if (name){
+        //codeEnd = 
+        //console.log(r,codeStart,src.slice(r.index,i))
+        //const db = src.slice(codeStart,r.index).trim()
+        //if (db)
+        back({name,db:src.slice(codeStart,r.index).trim()})
+      }
+      name = r[1]
+      codeStart = i+1
+
+      // r[1]
+      // r.index,i
+    })
+    if (name)
+    back({name,db:src.slice(codeStart).trim()})
+/*
     src.split("========").forEach(db=>{
      const name = getFileName(db)
      //console.log("filename",getFileName(db))
@@ -72,6 +87,7 @@
       db,
      })
     })
+     */
   }  
   onMount(() => {
     document.getElementById("downSTL").addEventListener("click",e=>{
@@ -89,29 +105,26 @@
       if (typeof current ==="string"){
         return
       }
-      const codeList = []
+      let codeSrc = ""
       //console.log(current)
-      current.children=new Set()
+      //current.children=new Set()
       getCurrentCode(current,(name:string,code:string)=>{
-        codeList.push(`/**${name}*/
+        codeSrc +=`
+/**${name}*/
 ${code}
-`)
-        //codeList.push(code)
+`        //codeList.push(code)
       })
       if (!window.CompressionStream || !window.DecompressionStream) {
         console.log("down code err")
         return
       }
-      const chunks = await stringToGzip(codeList.join("========"))
+      const chunks = await stringToGzip(codeSrc)
       const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
-      
       const link = document.createElement('a');
       link.href = URL.createObjectURL(compressedBlob);
       link.download = `${workermsg.name}_${showName}_${workermsg.index.split(".").shift()}_${Date.now()}.mgtoy.gz`; 
       link.click();
       URL.revokeObjectURL(link.href); 
-      
- 
     })  
     vscode.postMessage({ 
     //  supportsWebGPU: hasWebGPU,
@@ -192,20 +205,31 @@ ${code}
         gzipToString(message.gzData).then(src=>{
           //console.log(src)
           srcStringToJsFile(src,(db)=>{
-            //console.log(db);
-            handleCurrentMsg(db)
+            
+            //if (db.db) {
+              //console.log(db);
+              handleCurrentMsg(db)
+            //}
+            
           })
           console.log(workermsg)
           runWorker(el,workermsg);
         })
         //console.log()
       }
+      if (message.stlData){
+        console.log(message)
+        addSceneSTL(el,new STLLoader().parse(message.stlData));
+        document.getElementById("downMenuList").style.display="none"
+      }else{
+        document.getElementById("downMenuList").style.display="block"
+      }
       if (message.getSrc){
         const current = getCurrent(workermsg.index)  
         if (typeof current ==="string"){
           return
         } 
-        current.children=new Set()
+        //current.children=new Set()
         getCurrentCode(current,(name:string,code:string)=>{
           vscode.postMessage({
             type:"src",
@@ -240,7 +264,8 @@ ${code}
 
 <div bind:this={container}  style="position: absolute;left:0;top:0;z-index: 1;" > 
 </div> 
-<div style="position: absolute;right:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto ">
+<div id="downMenuList">
+<div style="position: absolute;right:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto " >
  
     <details name="downMenu"  >
         <summary class="download-summary" >
@@ -263,6 +288,27 @@ ${code}
         </div>
     </details>
  
+</div>
+
+<div style="position:absolute;left:0px;top:5px;z-index:10;width:100%;font-weight: 500;" class="pointer-events-auto">
+  <details name="moduleMenu"  >
+    <summary style="cursor: pointer;height:48px;text-align: center;line-height: 48px;"  >
+{showName}
+</summary>
+<div  style="color:white;text-align: center;" id="module_list">
+ 
+    <button class="option-text" style="height:48:px;line-height:48px;cursor: pointer;" >
+      ...
+    </button>
+ 
+  <!--
+  <div class="download-option"> 
+      <span class="option-text" id="down3MF" >3MF</span> 
+  </div>
+  -->
+</div>
+</details>
+</div>
 </div>
 <div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
   <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" >
@@ -297,25 +343,6 @@ ${code}
     
  
   </svg>
-</div>
-<div style="position:absolute;left:0px;top:5px;z-index:10;width:100%;font-weight: 500;" class="pointer-events-auto">
-  <details name="moduleMenu"  >
-    <summary style="cursor: pointer;height:48px;text-align: center;line-height: 48px;"  >
-{showName}
-</summary>
-<div  style="color:white;text-align: center;" id="module_list">
- 
-    <button class="option-text" style="height:48:px;line-height:48px;cursor: pointer;" >
-      ...
-    </button>
- 
-  <!--
-  <div class="download-option"> 
-      <span class="option-text" id="down3MF" >3MF</span> 
-  </div>
-  -->
-</div>
-</details>
 </div>
 <style>
 

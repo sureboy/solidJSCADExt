@@ -157,7 +157,7 @@ const initOrb = (el:HTMLCanvasElement)=>{
 		stopAnimate=true
 	})	
 	*/
-}
+};
  
 const initRender = (el:HTMLCanvasElement,orthographic:boolean=false)=>{
 	renderer = new WebGLRenderer({ antialias: true,alpha:true, canvas: el,preserveDrawingBuffer:true, });
@@ -165,11 +165,11 @@ const initRender = (el:HTMLCanvasElement,orthographic:boolean=false)=>{
 	//renderTarget = new WebGLRenderTarget( el.width,el.height );
 	//renderer.setRenderTarget(renderTarget)
 	
-	initOrb(el) 
+	initOrb(el) ;
  
 	//onWindowResize(el,true,orthographic)
 	
-}
+};
 export const  startSceneOBJTF = (el: HTMLCanvasElement,...object: Object3D[])=>{
 	if (el !== _el){
 		_el = el
@@ -215,12 +215,13 @@ const materialSTL = new MeshPhongMaterial({
 });
 export const addSceneSTL = (el:HTMLCanvasElement,m:BufferGeometry) =>{
 	if (el !== _el){
-		_el = el
-		initRender(el)
+		_el = el;
+		initRender(el);
 	}	
-	group.add(new Mesh(m,materialSTL))
-	return
-}
+	group.add(new Mesh(m,materialSTL));
+	onWindowResize(el);
+	return;
+};
 export const  addSceneOBJ = (el: HTMLCanvasElement,...m:Object3D[])=>{
 	if (el !== _el){
 		_el = el
