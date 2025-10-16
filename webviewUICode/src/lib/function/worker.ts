@@ -1,7 +1,7 @@
 import {getCurrent} from "./ImportParser";
 import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./threeScene" ;
 import { CSG2Three } from "./csg2Three";
-import { vscode } from './vscodeApi';
+//import { vscode } from './vscodeApi';
 type workerConfigType = {
   cameraType: string;
   module: (modulelist: {
@@ -54,52 +54,63 @@ ${consoleLogEnd} `;
   return URL.createObjectURL(
     new Blob([src],{type:'application/javascript'}));
 };
-export const runWorker = (el:HTMLCanvasElement,message:workerConfigType )=>{
-    if (worker){
-        worker.terminate();
-          //worker=null
-          //return
-      };
+/*
+export const runWorkerInVscode = (el:HTMLCanvasElement,message:workerConfigType )=>{
+    
+    runWorkerBase(el,message,vscode.postMessage);
       vscode.postMessage({
         type:'start'
       });
-    const baseUrl = getBaseUrl(message);
-    worker = new Worker(baseUrl,{type: "module"});
-    //console.log(worker)   
+   
+};
+*/
+export const runWorker = ( el:HTMLCanvasElement,message:workerConfigType,postMessage:(e:any)=>void )=>{
+  if (worker){
+    worker.terminate();
+    worker = null;
+  }
+  postMessage({
+    type:'start'
+  });
+  const baseUrl = getBaseUrl(message);
+  worker = new Worker(baseUrl,{type: "module"});
+  //console.log(worker)   
 
-    worker.onmessage = function(e) {
-      const msg = e.data;
-      //message.msg = msg;
-      console.log(msg);
-      if (msg.start ){
+  worker.onmessage = function(e) {
+    const msg = e.data;
+    //message.msg = msg;
+    console.log(msg);
+    if (msg.start ){
 
-        startSceneOBJ(el);
-      }else if (msg.ver){
-        addSceneOBJ(el, CSG2Three(msg.ver,{}) );
-        //console.log("update",(Date.now()-tmpDate) /1000)
-      }else if (msg.end ){
-        if (msg.module){
-            message.module(msg.module);
-        }
-        onWindowResize(el!,message.cameraType )	;
-        worker?.terminate();
-        URL.revokeObjectURL(baseUrl);
-        worker= null;
-        //console.log("end",(Date.now()-tmpDate) /1000)
-        vscode.postMessage({
-          type:'end'
-        });
-      }else if (msg.log){
-        vscode.postMessage({
-          type:'log',
-          msg:msg.log
-        });
-      }else if (msg.error){
-        vscode.postMessage({
-          type:'error',
-          msg:msg.error
-        });
+      startSceneOBJ(el);
+    }else if (msg.ver){
+      addSceneOBJ(el, CSG2Three(msg.ver,{}) );
+      //console.log("update",(Date.now()-tmpDate) /1000)
+    }else if (msg.end ){
+      if (msg.module){
+          message.module(msg.module);
       }
-      
-    } ; 
+      console.log("cameraType",message.cameraType);
+      onWindowResize(el!,message.cameraType )	;
+      worker?.terminate();
+      URL.revokeObjectURL(baseUrl);
+      worker= null;
+      //console.log("end",(Date.now()-tmpDate) /1000)
+      postMessage({
+        type:'end'
+      });
+    }else if (msg.log){
+      postMessage({
+        type:'log',
+        msg:msg.log
+      });
+    }else if (msg.error){
+      postMessage({
+        type:'error',
+        msg:msg.error
+      });
+    }
+    
+  } ; 
+  return worker;
 };

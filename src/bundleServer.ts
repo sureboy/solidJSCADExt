@@ -46,35 +46,13 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
             ]
         }
     );
+    //panel.options=
     //initPanelTmpDir(watchPath,outPath,context);
     panel.onDidDispose(e=>{
         console.log(e);
         panel=null;
     });
-    //const cspSource = panel.webview.cspSource;
-    const csp = `
-    default-src 'none';
-    script-src 'self' ${panel.webview.cspSource} 'unsafe-inline';
-    worker-src ${panel.webview.cspSource} blob: data:;
-    style-src ${panel.webview.cspSource} 'unsafe-inline';
-    connect-src ${panel.webview.cspSource} 'unsafe-inline';
-    `;
-    //const mainScr = panel.webview.asWebviewUri(
-    //    vscode.Uri.joinPath( outPath,  'index.js')
-    //);
-    const csgChange =  panel.webview.asWebviewUri(
-      vscode.Uri.joinPath( config.extensionUri,  'myModule', 'csgChange.js')
-    );
-    const modelingurl = panel.webview.asWebviewUri(
-        vscode.Uri.joinPath(config.extensionUri,  'myModule', 'modeling.esm.js')
-      ); 
-    const scriptUri = panel.webview.asWebviewUri(
-             vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'webview.js')
-    ); 
-
-    const styleUri = panel.webview.asWebviewUri(
-        vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'assets', 'main.css')
-    ); 
+     
     const handMap = new Map();
     handMap.set('loaded',()=>{
         tmpDate = Date.now();

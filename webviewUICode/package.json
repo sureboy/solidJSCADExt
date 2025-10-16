@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "buildbak": "npx esbuild ./src/worker/worker.ts --outfile=./src/worker/worker.js --format=iife --global-name=workerLib --bundle && vite build",
+    "build:jscad":"npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./modeling.esm.js --minify --bundle --format=esm",
+    "build:node":"vite build --config webview.vite.config.js",
     "preview": "vite preview"
   },
   "devDependencies": {

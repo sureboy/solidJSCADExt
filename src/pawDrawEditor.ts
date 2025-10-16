@@ -195,6 +195,7 @@ export const  setHtmlForWebview = (
 	config:{name:string,index:string,main:string,extensionUri:vscode.Uri},
 	handleMessageMap:Map<string,(e?:any)=>void>
 )=> {
+	//webview.options.localResourceRoots=[]
 	const csp = `
 	   default-src 'none';
 	   script-src 'self' ${webview.cspSource} 'unsafe-inline';
