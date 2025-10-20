@@ -41,7 +41,9 @@ export const initSolidPage = ()=>{
 <div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
     <Camera ></Camera>
 </div>
-<Menu  Clickhandle={()=>{
+<Menu  Clickhandle={(n)=>{
+    workermsg.main = n
+    
     console.log(workermsg) 
     runWorker(solidConfig.el,workermsg,postMessage)
 }}></Menu>
