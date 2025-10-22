@@ -18,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
                 if (!uri){return;}
                 newWorkspacePackage(
                     uri,
+                    context,
                     {name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src"},
                     ()=>{
                         vscode.workspace.fs.writeFile(

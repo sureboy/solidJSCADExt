@@ -86,7 +86,8 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
             createWorkspacePackage(
                 NewWorkspace,
-                myWorkspaceConfig,
+                this._context,
+                myWorkspaceConfig, 
                 ()=>{
                     webviewPanel.webview.postMessage({
                             getSrc:true
@@ -96,9 +97,11 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         });
         handMap.set('src',(message)=>{
             if (!message.name){
-                vscode.window.showWarningMessage(
-                    `Do you need to move the workspace to the ${packageName} Folder`,
-                    "OK").then(v=>{
+                vscode.window.showWarningMessage("Workspace change",{
+                    modal:true,
+                    detail: `Do you need to move the workspace to the ${NewWorkspace} Folder`
+                },                   
+                "OK").then(v=>{
                     if (v!=="OK"){return;}
                     vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
                 });
@@ -153,6 +156,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 }
 export const newWorkspacePackage= async(
     NewWorkspace:vscode.Uri,
+    context: vscode.ExtensionContext,
     myWorkspaceConfig:{
         name:string,
         index:string,
@@ -164,22 +168,20 @@ export const newWorkspacePackage= async(
     await vscode.workspace.fs.writeFile(
         vscode.Uri.joinPath(NewWorkspace,"mgtoy.json"),
         new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
-    );
+    );    
+    await vscode.workspace.fs.copy(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),vscode.Uri.joinPath(NewWorkspace,"types","modeling"));
+    //return handleEnd;
     await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"package.json"),
+        vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
         new TextEncoder().encode(JSON.stringify({
-            name:myWorkspaceConfig.name.toLowerCase(),
-            type: "module",
-            main: "src/"+myWorkspaceConfig.index+".js",
-            version: "1.0.0", 
-            description:myWorkspaceConfig.name,
-            private: true,
-            dependencies: {
-                "@jscad/modeling": "^2.12.5"
+            compilerOptions:  {
+                paths: { 
+                "@jscad/modeling":["./types/modeling"]
+                }
             }
         }, null, 2)),
-    );
-    //return handleEnd;
+    ); 
+ 
     if (handleEnd){
         handleEnd();
     }
@@ -189,6 +191,7 @@ export const newWorkspacePackage= async(
 };
 const createWorkspacePackage = async( 
     NewWorkspace:vscode.Uri,
+    context: vscode.ExtensionContext,
     myWorkspaceConfig:{
         name:string,
         index:string,
@@ -206,7 +209,7 @@ const createWorkspacePackage = async(
             if (v!=="OK"){
                 return;
             }
-            newWorkspacePackage(NewWorkspace,myWorkspaceConfig,handleEnd);
+            newWorkspacePackage(NewWorkspace,context,myWorkspaceConfig,handleEnd);
         });
          //console.log(e); 
          //vscode.workspace.getWorkspaceFolder()

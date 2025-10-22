@@ -1,14 +1,15 @@
 <script lang="ts" >
     import { Exporter} from "./function/threeScene" 
     import {getCurrent,getCurrentCode,regexExec} from "./function/ImportParser"  
-    export let workermsg:{name:string,index:string,solidName:string}
+    export let workermsg:{name:string,index:string,main:string}
  
     const downSTLclick = ()=>{
       const res = Exporter() 
       const blob = new Blob([res.buffer as ArrayBuffer], { type: 'application/octet-stream' })
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${workermsg.name}_${workermsg.solidName}_${workermsg.index.split(".").shift()}_${Date.now()}.stl`; 
+      //console.log(workermsg)
+      link.download = `${workermsg.name}_${workermsg.main}_${workermsg.index.split(".").shift()}_${Date.now()}.stl`; 
       link.click();
       URL.revokeObjectURL(link.href); 
     } 
@@ -35,7 +36,7 @@ ${code}
       const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(compressedBlob);
-      link.download = `${workermsg.name}_${workermsg.solidName}_${workermsg.index.split(".").shift()}_${Date.now()}.mgtoy.gz`; 
+      link.download = `${workermsg.name}_${workermsg.main}_${workermsg.index.split(".").shift()}_${Date.now()}.mgtoy.gz`; 
       link.click();
       URL.revokeObjectURL(link.href); 
     }   

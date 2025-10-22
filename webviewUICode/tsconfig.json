@@ -1,0 +1,19 @@
+{
+  
+  "compilerOptions": {
+    "target": "ES2015",
+    "moduleResolution": "nodenext",
+    "module": "nodenext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true, 
+      "declaration": true,
+      "emitDeclarationOnly": true,
+      "outFile": "./bundle.d.ts",
+      "declarationMap": false,
+ 
+    },
+    
+    
+    "files": ["./node_modules/@jscad/modeling/src/index.d.ts"],
+    "include": ["**/*.d.ts"]
+}

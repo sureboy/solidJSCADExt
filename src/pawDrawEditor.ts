@@ -203,9 +203,7 @@ export const  setHtmlForWebview = (
 	   style-src ${webview.cspSource} 'unsafe-inline';
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
-	   //const mainScr = panel.webview.asWebviewUri(
-	   //    vscode.Uri.joinPath( outPath,  'index.js')
-	   //);
+ 
 	   const csgChange =  webview.asWebviewUri(
 		 vscode.Uri.joinPath( config.extensionUri,  'myModule', 'csgChange.js')
 	   );
@@ -247,7 +245,8 @@ export const  setHtmlForWebview = (
 	   <link rel="stylesheet" href="${styleUri}">
 	 </head>
 	 <body>
-	 <script>window.vscode = acquireVsCodeApi();
+	 <script>
+	 window.vscode = acquireVsCodeApi();
 	 window.includeImport ={
 	   "@jscad/modeling":"${modelingurl}",
 	   "csgChange":"${csgChange}",

@@ -2,15 +2,15 @@
   import { onMount } from 'svelte';
   import { vscode } from './lib/function/vscodeApi';
  // import workerCode from './worker/worker?raw'; 
- import ShowSolid,{ initSolidPage,solidConfig} from './lib/ShowSolid.svelte';
+  import ShowSolid,{ initSolidPage,solidConfig} from './lib/ShowSolid.svelte';
  
-  import {onWindowResize, Exporter,addSceneSTL} from "./lib/function/threeScene" 
-import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
+  import { addSceneSTL} from "./lib/function/threeScene" 
+  import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
   //import { CSG2Three } from "./lib/function/csg2Three";
   import {handleCurrentMsg,getCurrent,getCurrentCode} from "./lib/function/ImportParser"
   import { runWorker } from "./lib/function/worker";
   import {STLLoader} from "three/addons/loaders/STLLoader.js"
- 
+  let showMenu = true
   //let showName = "...."   
   onMount(() => {
     initSolidPage()
@@ -33,9 +33,11 @@ import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
       if (message.stlData){
         console.log(message)
         addSceneSTL(solidConfig.el,new STLLoader().parse(message.stlData));
-        document.getElementById("downMenuList").style.display="none"
+        showMenu=false
+        //document.getElementById("downMenuList").style.display="none"
       }else{
-        document.getElementById("downMenuList").style.display="block"
+        showMenu=true
+        //document.getElementById("downMenuList").style.display="block"
       }
       if (message.getSrc){
         const current = getCurrent(solidConfig.workermsg.index)  
@@ -59,6 +61,7 @@ import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
       }  
       if (message.run){
         console.log("run",solidConfig)
+        //showMenu=false
         //if (!message.open) solidConfig.workermsg.cameraType = "" 
         runWorker(solidConfig.el,Object.assign({},solidConfig.workermsg,{cameraType:message.open?solidConfig.workermsg.cameraType:''}),vscode.postMessage);
         //console.log
@@ -72,5 +75,5 @@ import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
     } 
   });
 </script>
-<ShowSolid postMessage={vscode.postMessage}></ShowSolid> 
+<ShowSolid postMessage={vscode.postMessage} {showMenu}></ShowSolid> 
 

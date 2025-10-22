@@ -3,10 +3,10 @@
 export const workermsg = {
       ...(window as any).myConfig as {name:string,main:string,index:string},
       cameraType:"Perspective",
-      solidName : "...",
+      //solidName : "...",
       module:(m:{ list: string[];
         basename: string;})=>{
-        workermsg.solidName = m.basename
+        //workermsg.solidName = m.basename
         moduleInit(m)
       } 
     }

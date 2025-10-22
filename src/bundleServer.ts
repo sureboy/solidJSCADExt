@@ -72,7 +72,7 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
        
     });
     handMap.set('start',()=>{tmpDate = Date.now();});
-    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000));});
+    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000)+"s");});
    
     setHtmlForWebview(
         panel.webview,config,

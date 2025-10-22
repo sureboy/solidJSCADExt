@@ -1,5 +1,5 @@
 import {getCurrent} from "./ImportParser";
-import {onWindowResize,startSceneOBJ,addSceneOBJ,Exporter} from "./threeScene" ;
+import {onWindowResize,startSceneOBJ,addSceneOBJ} from "./threeScene" ;
 import { CSG2Three } from "./csg2Three";
 //import { vscode } from './vscodeApi';
 type workerConfigType = {
