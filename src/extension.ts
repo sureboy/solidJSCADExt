@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
                         vscode.workspace.fs.writeFile(
                             vscode.Uri.joinPath(uri,"src","index.js"),
                         new TextEncoder().encode(
-                            "import modeling from './modeling/index.js';\nexport const main=()=>{\n  return modeling.primitives.cube()\n}")
+                            "import modeling from '@jscad/modeling';\nexport const main=()=>{\n  return modeling.primitives.cube()\n}")
                         ).then(()=>{
                             vscode.commands.executeCommand('vscode.openFolder', uri); 
                         });
