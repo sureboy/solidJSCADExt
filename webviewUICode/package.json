@@ -9,21 +9,21 @@
     "buildbak": "npx esbuild ./src/worker/worker.ts --outfile=./src/worker/worker.js --format=iife --global-name=workerLib --bundle && vite build",
     "build:jscad": "npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./modeling.esm.js --minify --bundle --format=esm",
     "build:node": "vite build --config webview.vite.config.js",
+    "copy":"cp -r ./node_modules/@jscad/modeling ../myModule/",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^6.0.0",
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
     "esbuild": "^0.25.8",
-    "svelte": "^5.35.5",
-    "vite": "^7.0.4"
+    "svelte": "^5.41.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.11"
   },
   "dependencies": {
-    "@jscad/modeling": "^2.12.5",
-    "@types/three": "^0.179.0",
+    "@jscad/modeling": "^2.12.6",
+    "@types/three": "^0.180.0",
     "@types/vscode": "^1.102.0",
     "@types/vscode-webview": "^1.57.5",
-    "dts-bundle": "^0.7.3",
-    "three": "^0.179.1",
-    "typescript": "^5.9.3"
+    "three": "^0.180.0"
   }
 }

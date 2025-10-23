@@ -6,8 +6,9 @@ type currentObj = {
     url?:string;
     persons:Set<currentObj>;
     //code?: string; 
-    srcList?:((()=>currentObj|string )|string)[]
-    toString:()=>string;
+    srcList?:((()=>Promise<currentObj> )|string)[]
+    getUri:()=>Promise<string>;
+    //toString:()=>string;
     //children?:Set<currentObj>;
     //update?:()=>void;
     //reload?:(db:AllowSharedBufferSource)=>void;
@@ -21,14 +22,16 @@ type importType = {
     obj:currentObj,
 }
 const currentMap = new Map<string,currentObj>();
+const waitGetMap = new Map<string,(c:currentObj)=>void>();
 const includeImport = (window as any).includeImport;
 Object.keys(includeImport).forEach(k=>{
     currentMap.set(k,{
          
         persons:new Set<currentObj>(),
         name:k,
-        toString:function(){return includeImport[k];}});
+        getUri:async ()=>{return includeImport[k];}});
 });
+ 
 //console.log(includeImportKeys);
 export const regexExec = (code:string,
     regex:RegExp 
@@ -54,7 +57,7 @@ const  importParser = (code:string)=> {
         const startPosition = match.index + quoteIndex + 1;
         
         imports.push({
-            moduleName:moduleName.startsWith(".")?moduleName.split("/").pop():moduleName ,
+            moduleName:moduleName,//.startsWith(".")?moduleName.split("/").pop():moduleName ,
             startPosition: startPosition,
             endPosition: startPosition + moduleName.length,
             // fullImport: match[0]
@@ -66,43 +69,72 @@ const  importParser = (code:string)=> {
 };
  
 //const encoder = new TextEncoder();
-export const getCurrentCode = ( src:currentObj,back:(name:string,code:string)=>void,children = new Set<currentObj>()) => {
+export const getCurrentCode =async ( src:currentObj,back:(name:string,code:string)=>void,children = new Set<currentObj>()) => {
     let code = "";    
     children.add(src);
-    src.srcList?.forEach(_src=>{
+    if (!src.srcList){
+        return;
+    }
+    for (const _src of src.srcList){
+ 
         if (typeof _src ==="string"){
             code+=_src;
-            return;
+            continue;
         }
-        const ___src = _src();
-        if (typeof ___src ==="string"){
-            code+=___src;
-            return;
-        }
+        const ___src =await _src();
+
          
         //if (!___src.name)console.log(___src);
         if (___src.db){
             
             if (!children.has(___src)) {
                
-                getCurrentCode(___src,back,children);
+                await getCurrentCode(___src,back,children);
             }
-            code+= "./" + ___src.name;   
-        }else{
+            //code+= "./" + ___src.name;   
+        }//else{
             code+=  ___src.name;      
-        }    
+        //}    
         
         
-    });
+    };
     if (code){
-        console.log(code);
+        //console.log(code);
         back(src.name,code);
     }
 };
-export const getCurrent = (name:string )=>{
+export const getCurrent =async (name:string,reqMessage?:(e:{type:"req",path:string})=>void )=>{
     //this.persons
+
+     
+    return new Promise<currentObj|null>((resolve, reject)=>{
+       
+        if (currentMap.has(name)){
+            resolve(currentMap.get(name));
+            return ;
+        }
+        if (!reqMessage){
+            console.log("not reqmsg");
+            resolve(InitCurrentMap({name}));
+            //reject("Found Not");
+            return;
+        }
+     
+        reqMessage({type:"req",path:name});
+        waitGetMap.set(name,(c:currentObj)=>{
+            
+            resolve(c);
+           
+            
+            waitGetMap.delete(name);
+        });
+        
+    });
     
-    return currentMap.has(name)?currentMap.get(name):name;
+    //return getMsg(name);
+
+    //return currentMap.has(name)?currentMap.get(name):name;
+    
 
      
 };
@@ -119,14 +151,18 @@ const updateCurrent = (c:currentObj)=>{
         updateCurrent(p);
     });
 };
-const reloadCurrent = (c:currentObj,msg:messageObj)=>{
+const reloadCurrent = (c:currentObj,msg:messageObj,postMessage?:(e:any)=>void)=>{
     updateCurrent(c);
 
     //this.code = ;
     //this.src = [];
+    c.srcList = [];
+    if (!msg.db){
+        return;
+    }
     const src = (typeof msg.db ==="string")?msg.db: decoder.decode(msg.db);
     let tmpEndPos:number = 0;
-    c.srcList = [];
+   
 
     //let indexPos = 0;
     importParser(src).forEach(p=>{
@@ -140,7 +176,9 @@ const reloadCurrent = (c:currentObj,msg:messageObj)=>{
             }};
         }*/
         c.srcList.push( src.slice(tmpEndPos,p.startPosition) );
-        c.srcList.push(()=> getCurrent(p.moduleName));
+        c.srcList.push( ()=>{
+            return  getCurrent(p.moduleName,postMessage);
+        } );
         tmpEndPos = p.endPosition;
 
         //console.log(p);
@@ -152,23 +190,28 @@ const reloadCurrent = (c:currentObj,msg:messageObj)=>{
     //if (this.persons)
 
 };
-const toStringCurrent = (c:currentObj)=>{
+const toStringCurrent =async (c:currentObj)=>{
     if (c.url){
         return c.url;
     }
+    if (!c.srcList){
+        return c.name;
+    }
     let code ="";
-    c.srcList.forEach(src=>{
-        
+    for (const src of c.srcList){ 
         if (typeof src ==="string"){
             code+=src;
         }else{
-            const obj = src();
-            code+=obj.toString();
+            const obj =await src();
+            code+= await obj.getUri();
             if (typeof obj !=="string" && obj.persons){
                 obj.persons.add(c);
             }
         }
-    });
+    };
+    if (!code){
+        return c.name;
+    }
     
     c.url = URL.createObjectURL(new Blob([code],{type:'application/javascript'}));
     //console.log(code);
@@ -176,19 +219,18 @@ const toStringCurrent = (c:currentObj)=>{
 };
 const InitCurrentMap = (v:messageObj)=>{
     // v.code = decoder.decode(v.db)
-    return {
+    const cur = {
         persons:new Set<currentObj>(),
-        toString:function(){
-            return toStringCurrent(this);            
-        },
-        
-        
+        getUri:async ()=>{
+            return toStringCurrent(cur);            
+        },        
         ...v
     } as currentObj;
+    return cur;
 };
 
  
-export const handleCurrentMsg = (message:messageObj)=>{
+export const handleCurrentMsg = (message:messageObj,postMessage?:(e:any)=>void)=>{
     if (!message.name){         
         return;
     }  
@@ -196,11 +238,15 @@ export const handleCurrentMsg = (message:messageObj)=>{
     if (!currentMap.has(message.name)){
         cur = InitCurrentMap(message);
         currentMap.set(message.name,cur);
+
     }else{
-        cur = currentMap.get(message.name);
-        
+        cur = currentMap.get(message.name);        
     }
-    reloadCurrent(cur,message);
+    reloadCurrent(cur,message,postMessage);
+    if (waitGetMap.has(message.name)){
+        waitGetMap.get(message.name)(cur);  
+    }
+    
     //msg.reload(message.db);   
        
 };

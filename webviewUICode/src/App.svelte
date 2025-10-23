@@ -14,19 +14,32 @@
   //let showName = "...."   
   onMount(() => {
     initSolidPage()
+    /*
+    runWorker(
+      solidConfig.el,
+      Object.assign({},
+      solidConfig.workermsg,
+      {cameraType:solidConfig.workermsg.cameraType}),
+      vscode.postMessage);
+
+    */
     vscode.postMessage({ 
     //  supportsWebGPU: hasWebGPU,
       type:'loaded'
     });
+    
     window.addEventListener('message', (event:any) => {
         //worker.postMessage(event.data)
       const message = event.data;
       if (message.gzData){
         gzipToString(message.gzData).then(src=>{
-          //console.log(src)
+          
           srcStringToJsFile(src,(db)=>{ 
+           
               handleCurrentMsg(db) 
+              console.log(db.name);
           }) 
+          console.log(solidConfig)
           runWorker(solidConfig.el,solidConfig.workermsg,vscode.postMessage);
         }) 
       }
@@ -40,24 +53,26 @@
         //document.getElementById("downMenuList").style.display="block"
       }
       if (message.getSrc){
-        const current = getCurrent(solidConfig.workermsg.index)  
-        if (typeof current ==="string"){
-          return
-        }  
-        getCurrentCode(current,(name:string,code:string)=>{
-          vscode.postMessage({
-            type:"src",
-            name,
-            code:new TextEncoder().encode(code)
-          }) 
+        getCurrent(solidConfig.workermsg.index,vscode.postMessage).then(
+          current=>{   
+            console.log(current)     
+          getCurrentCode(current,(name:string,code:string)=>{
+            vscode.postMessage({
+              type:"src",
+              name,
+              code:new TextEncoder().encode(code)
+            }) 
+          }).then(()=>{
+            vscode.postMessage({
+              type:"src"
+            }) 
+          })
         })
-        vscode.postMessage({
-            type:"src"
-          }) 
+  
       }
       //console.log(message) 
       if (message.init  ){
-        handleCurrentMsg(message.init)        
+        handleCurrentMsg(message.init,vscode.postMessage)        
       }  
       if (message.run){
         console.log("run",solidConfig)

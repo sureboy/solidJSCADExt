@@ -43,7 +43,7 @@ export const initSolidPage = ()=>{
     <Camera  ></Camera>
 </div>
 {#if showMenu}
-<Menu  Clickhandle={(n)=>{
+<Menu   Clickhandle={(n)=>{
     workermsg.main = n
     
     //console.log(workermsg) 

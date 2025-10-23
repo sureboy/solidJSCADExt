@@ -79,6 +79,12 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     gzData:document.documentData
                 });
         });
+        handMap.set('req',(e)=>{
+            console.log(e);
+            webviewPanel.webview.postMessage({                         
+                init:{name:e.path  } ,                                  
+            });
+        });
         handMap.set('start',()=>{
             this.tmpDate = Date.now();
         });
@@ -169,10 +175,32 @@ export const newWorkspacePackage= async(
         vscode.Uri.joinPath(NewWorkspace,"mgtoy.json"),
         new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
     );    
-    await vscode.workspace.fs.copy(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),vscode.Uri.joinPath(NewWorkspace,"types","modeling"));
+    await vscode.workspace.fs.copy(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
     //return handleEnd;
+    //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
+    const cf = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));
+    
+    const cf_ = JSON.parse(cf.toString());
+    //console.log(cf_);
+    
+
     await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
+        vscode.Uri.joinPath(NewWorkspace,"package.json"),
+        new TextEncoder().encode(JSON.stringify({
+            name:myWorkspaceConfig.name.toLowerCase(),
+            type: "module",
+            main: "src/"+myWorkspaceConfig.index+".js",
+            version: "1.0.0", 
+            description:myWorkspaceConfig.name,
+            private: true,
+            dependencies: {
+                "@jscad/modeling": cf_.version
+            }
+        }, null, 2)),
+    );
+    /*
+    await vscode.workspace.fs.writeFile(
+        vscode.Uri.joinPath(NewWorkspace,"package.json"),
         new TextEncoder().encode(JSON.stringify({
             compilerOptions:  {
                 paths: { 
@@ -181,7 +209,7 @@ export const newWorkspacePackage= async(
             }
         }, null, 2)),
     ); 
- 
+    */
     if (handleEnd){
         handleEnd();
     }

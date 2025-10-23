@@ -13,25 +13,23 @@
       link.click();
       URL.revokeObjectURL(link.href); 
     } 
-    const downCodeclick = async (e)=>{
-      //const res = Exporter() 
-      const current = getCurrent(workermsg.index)  
-      if (typeof current ==="string"){
+    const downCodeclick = async ()=>{
+      if (!window.CompressionStream || !window.DecompressionStream) {
+        console.log("down code err")
         return
       }
-      let codeSrc = ""
+      //const res = Exporter() 
+      const current =await getCurrent(workermsg.index)  
       //console.log(current)
-      //current.children=new Set()
-      getCurrentCode(current,(name:string,code:string)=>{
+      let codeSrc = ""
+ 
+      await getCurrentCode(current,(name:string,code:string)=>{
         codeSrc +=`
 /**${name}*/
 ${code}
 `        //codeList.push(code)
       })
-      if (!window.CompressionStream || !window.DecompressionStream) {
-        console.log("down code err")
-        return
-      }
+      //console.log("codeSrc",codeSrc)
       const chunks = await stringToGzip(codeSrc)
       const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
       const link = document.createElement('a');

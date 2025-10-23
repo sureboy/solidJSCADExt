@@ -36,9 +36,20 @@ const consoleLogEnd=`}catch(error){
     });
 };`;
 let worker: Worker|null; 
-const getBaseUrl = (config:{main:string,index:string})=>{
-  const src = `import * as csg  from '${getCurrent("csgChange")}'
-import * as src  from '${getCurrent(config.index)}'
+
+ 
+const getBaseUrl =async (config:{main:string,index:string},postMessage?:(e:any)=>void)=>{
+ 
+  const csgObj = await getCurrent("csgChange",postMessage);
+ 
+  const csgUri = await csgObj.getUri();
+ 
+  const indexObj =await getCurrent(config.index,postMessage);
+ 
+  const indexuri = await indexObj.getUri();
+ 
+  const src = `import * as csg  from '${csgUri}'
+import * as src  from '${indexuri}'
   ${consoleLog} 
   const main = "${config.main}";
   const list = Object.keys(src)
@@ -50,7 +61,7 @@ import * as src  from '${getCurrent(config.index)}'
   self.postMessage(msg)
 }) 
 ${consoleLogEnd} `;
-//console.log(src);
+console.log(src);
   return URL.createObjectURL(
     new Blob([src],{type:'application/javascript'}));
 };
@@ -64,7 +75,7 @@ export const runWorkerInVscode = (el:HTMLCanvasElement,message:workerConfigType 
    
 };
 */
-export const runWorker = ( el:HTMLCanvasElement,message:workerConfigType,postMessage:(e:any)=>void )=>{
+export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMessage?:(e:any)=>void )=>{
   if (worker){
     worker.terminate();
     worker = null;
@@ -72,45 +83,46 @@ export const runWorker = ( el:HTMLCanvasElement,message:workerConfigType,postMes
   postMessage({
     type:'start'
   });
-  const baseUrl = getBaseUrl(message);
-  worker = new Worker(baseUrl,{type: "module"});
-  //console.log(worker)   
+  getBaseUrl(message,postMessage).then(baseUrl=>{
+    //const baseUrl =await getBaseUrl(message,postMessage);
+    worker = new Worker(baseUrl,{type: "module"});
+    //console.log(worker)  
+    worker.onmessage = function(e) {
+      const msg = e.data;
+      //message.msg = msg;
+      console.log(msg);
+      if (msg.start ){
 
-  worker.onmessage = function(e) {
-    const msg = e.data;
-    //message.msg = msg;
-    console.log(msg);
-    if (msg.start ){
-
-      startSceneOBJ(el);
-    }else if (msg.ver){
-      addSceneOBJ(el, CSG2Three(msg.ver,{}) );
-      //console.log("update",(Date.now()-tmpDate) /1000)
-    }else if (msg.end ){
-      if (msg.module){
-          message.module(msg.module);
+        startSceneOBJ(el);
+      }else if (msg.ver){
+        addSceneOBJ(el, CSG2Three(msg.ver,{}) );
+        //console.log("update",(Date.now()-tmpDate) /1000)
+      }else if (msg.end ){
+        if (msg.module){
+            message.module(msg.module);
+        }
+        console.log("cameraType",message.cameraType);
+        onWindowResize(el!,message.cameraType )	;
+        worker?.terminate();
+        URL.revokeObjectURL(baseUrl);
+        worker= null;
+        //console.log("end",(Date.now()-tmpDate) /1000)
+        postMessage({
+          type:'end'
+        });
+      }else if (msg.log){
+        postMessage({
+          type:'log',
+          msg:msg.log
+        });
+      }else if (msg.error){
+        postMessage({
+          type:'error',
+          msg:msg.error
+        });
       }
-      console.log("cameraType",message.cameraType);
-      onWindowResize(el!,message.cameraType )	;
-      worker?.terminate();
-      URL.revokeObjectURL(baseUrl);
-      worker= null;
-      //console.log("end",(Date.now()-tmpDate) /1000)
-      postMessage({
-        type:'end'
-      });
-    }else if (msg.log){
-      postMessage({
-        type:'log',
-        msg:msg.log
-      });
-    }else if (msg.error){
-      postMessage({
-        type:'error',
-        msg:msg.error
-      });
-    }
-    
-  } ; 
-  return worker;
+      
+    } ; 
+  });
+  //return worker;
 };

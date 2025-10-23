@@ -27,7 +27,7 @@ export const gzipToString= async (data:Uint8Array<ArrayBufferLike>)=>{
     let codeStart = 0;
     //let codeEnd  = 0
     //console.log(src)
-    regexExec(src,/\/\*\*\s*([\w\.]+)\s*\*/g,(r,i)=>{      
+    regexExec(src,/\/\*\*\s*([\w\.\/]+)\s*\*/g,(r,i)=>{      
       if (name){
         //codeEnd = 
         //console.log(r,codeStart,src.slice(r.index,i))

@@ -6,13 +6,14 @@ let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 let tmpDate = Date.now();
-
+ 
 const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
      await vscode.workspace.fs.readDirectory(watcher).then(async (vals)=>{
         //console.log(val);
         
         //vscode.workspace.fs.createDirectory(out);
         for (const v of vals) {
+            console.log(v);
             if (!v[0].endsWith(".js")){
                 return;
             }
@@ -24,6 +25,7 @@ const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
     });
     //getCode({});
 };
+ 
 const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     if (panel){return panel;}
     if (!config.index){
@@ -54,8 +56,47 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
     });
      
     const handMap = new Map();
+    handMap.set('req',(e:{path:string})=>{ 
+        console.log(e);
+        const fn = async ()=>{
+            try{
+               const t = await vscode.workspace.fs.readFile(
+                    vscode.Uri.joinPath(
+                        config.watchPath,e.path )); 
+                panel?.webview.postMessage({                         
+                    init:{db:t.buffer,name:e.path } ,                                  
+                });
+                    
+            }catch(err:any){
+                //console.log(err);
+                //vscode.window.showErrorMessage(err);
+                panel?.webview.postMessage({                         
+                    init:{name:e.path } ,                                  
+                });
+            }
+        };
+        fn();
+        
+    });
+    
     handMap.set('loaded',()=>{
         tmpDate = Date.now();
+        panel?.webview.postMessage({                    
+            open:true,
+            run:"worker"
+                            
+        });
+                /*
+        //const filePath = vscode.Uri.joinPath(config.watchPath,e.path||config.index);
+        vscode.workspace.fs.readFile(
+            vscode.Uri.joinPath(
+                config.watchPath,e.path||config.index)).then(t=>{
+            panel?.webview.postMessage({                         
+                init:{db:t.buffer,name:e.path||config.index} ,    
+                ...e.view                                  
+            });
+        });
+ 
         initPanelTmpDir(config.watchPath,(code:any)=>{
             //codelist.push(code);
             panel?.webview.postMessage({                         
@@ -68,11 +109,13 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
                                 
             });
         });
+       */
         //codelist.push(workerCode);
        
     });
+    
     handMap.set('start',()=>{tmpDate = Date.now();});
-    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000)+"s");});
+    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000)+" s");});
    
     setHtmlForWebview(
         panel.webview,config,
@@ -123,7 +166,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                             db:  db.buffer,
                             name:path.basename(uri.fsPath)
                         },
-                        run:"worker",
+                        run:true,
                         
                     });
                 });
