@@ -7,7 +7,7 @@
   import { addSceneSTL} from "./lib/function/threeScene" 
   import {gzipToString,srcStringToJsFile} from "./lib/function/utils"
   //import { CSG2Three } from "./lib/function/csg2Three";
-  import {handleCurrentMsg,getCurrent,getCurrentCode} from "./lib/function/ImportParser"
+  import {delCurrentMsg,handleCurrentMsg,getCurrent,getCurrentCode} from "./lib/function/ImportParser"
   import { runWorker } from "./lib/function/worker";
   import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let showMenu = true
@@ -69,6 +69,9 @@
           })
         })
   
+      }
+      if (message.del){
+        delCurrentMsg(message.del.name);
       }
       //console.log(message) 
       if (message.init  ){

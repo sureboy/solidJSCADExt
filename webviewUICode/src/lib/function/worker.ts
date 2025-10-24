@@ -19,19 +19,13 @@ originalLog(e)
   self.postMessage({ 
     log: e
   });
-}
-const originalError = console.error;
-console.error = (...e)=>{
-originalError(e)
-  self.postMessage({ 
-    error: e
-  });
-}
+} 
 try{
 `;
 const consoleLogEnd=`}catch(error){        
     console.error(error)
     self.postMessage({ 
+    error:error.stack,
     end:true
     });
 };`;
@@ -43,8 +37,11 @@ const getBaseUrl =async (config:{main:string,index:string},postMessage?:(e:any)=
   const csgObj = await getCurrent("csgChange",postMessage);
  
   const csgUri = await csgObj.getUri();
- 
-  const indexObj =await getCurrent(config.index,postMessage);
+  let indexName = config.index;
+  if (!indexName.startsWith("./")){
+    indexName = "./"+indexName;
+  }
+  const indexObj =await getCurrent(indexName,postMessage);
  
   const indexuri = await indexObj.getUri();
  
@@ -61,7 +58,7 @@ import * as src  from '${indexuri}'
   self.postMessage(msg)
 }) 
 ${consoleLogEnd} `;
-console.log(src);
+//console.log(src);
   return URL.createObjectURL(
     new Blob([src],{type:'application/javascript'}));
 };
@@ -85,19 +82,37 @@ export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMess
   });
   getBaseUrl(message,postMessage).then(baseUrl=>{
     //const baseUrl =await getBaseUrl(message,postMessage);
+ 
     worker = new Worker(baseUrl,{type: "module"});
     //console.log(worker)  
+    worker.onerror = e=>{
+      console.error("error", e );
+      postMessage({
+        type:'error',
+        msg:"Code syntax error"
+      });
+    };
+    worker.onmessageerror = e=>{
+      console.error("messageErr",e);
+      postMessage({
+        type:'error',
+        msg:e.data
+      });
+    };
+    
     worker.onmessage = function(e) {
       const msg = e.data;
       //message.msg = msg;
-      console.log(msg);
+      console.log(e,msg);
       if (msg.start ){
 
         startSceneOBJ(el);
-      }else if (msg.ver){
+      }
+       if (msg.ver){
         addSceneOBJ(el, CSG2Three(msg.ver,{}) );
         //console.log("update",(Date.now()-tmpDate) /1000)
-      }else if (msg.end ){
+      }
+      if (msg.end ){
         if (msg.module){
             message.module(msg.module);
         }
@@ -110,12 +125,14 @@ export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMess
         postMessage({
           type:'end'
         });
-      }else if (msg.log){
+      }
+       if (msg.log){
         postMessage({
           type:'log',
           msg:msg.log
         });
-      }else if (msg.error){
+      }
+       if (msg.error){
         postMessage({
           type:'error',
           msg:msg.error
@@ -123,6 +140,8 @@ export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMess
       }
       
     } ; 
+ 
   });
+
   //return worker;
 };

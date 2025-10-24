@@ -113,8 +113,8 @@ export const getCurrent =async (name:string,reqMessage?:(e:{type:"req",path:stri
             resolve(currentMap.get(name));
             return ;
         }
-        if (!reqMessage){
-            console.log("not reqmsg");
+        if (!reqMessage || !name.startsWith("./")){
+            console.log("not reqmsg",name);
             resolve(InitCurrentMap({name}));
             //reject("Found Not");
             return;
@@ -227,6 +227,9 @@ const InitCurrentMap = (v:messageObj)=>{
         ...v
     } as currentObj;
     return cur;
+};
+export const delCurrentMsg = (name:string)=>{
+    currentMap.delete(name);
 };
 
  

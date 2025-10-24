@@ -6,25 +6,7 @@ let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 let tmpDate = Date.now();
- 
-const initPanelTmpDir =async (watcher:vscode.Uri, getCode:Function)=>{
-     await vscode.workspace.fs.readDirectory(watcher).then(async (vals)=>{
-        //console.log(val);
-        
-        //vscode.workspace.fs.createDirectory(out);
-        for (const v of vals) {
-            console.log(v);
-            if (!v[0].endsWith(".js")){
-                return;
-            }
-            const t = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(watcher,v[0]));
-            getCode({db:t.buffer,name: v[0] });
-            //console.log(v); 
-        };
-        
-    });
-    //getCode({});
-};
+
  
 const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     if (panel){return panel;}
@@ -34,7 +16,7 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
         config.index+=".js";
     }
     panel =  vscode.window.createWebviewPanel(
-        'mgtoyView',
+        'View',
         config.name||"mgtoy",
         vscode.ViewColumn.One,
         {
@@ -121,10 +103,6 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
         panel.webview,config,
         handMap
     );
-      
- 
-  
- 
     return panel;
 };
  
@@ -136,14 +114,30 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         //console.log(files);
         const u = files[0];
         vscode.workspace.fs.readFile(u).then(v=>{
-            const config = JSON.parse(v.toString());
-            if (!config.src){
+            const conf:{
+                src:string,
+                name: string,
+                index: string,
+                main: string,
+                } = JSON.parse(v.toString());
+            if (!conf.src){
                 return;
             }  
-            //console.log(config);       
-            const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
-            config.watchPath = vscode.Uri.joinPath(workspacePath,config.src);
-            config.extensionUri = context.extensionUri;
+            //console.log(config);  
+            //const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
+            const config:{
+                name: string;
+                index: string;
+                main: string;
+                watchPath: vscode.Uri;
+                extensionUri: vscode.Uri;
+            } = {
+                watchPath : vscode.Uri.joinPath(
+                    vscode.workspace.getWorkspaceFolder(u)!.uri,
+                    conf.src),
+                extensionUri : context.extensionUri,
+                ...conf
+            };
             createPanel(config);
             
             const watcher = vscode.workspace.createFileSystemWatcher(
@@ -151,30 +145,51 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             );
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
             context.subscriptions.push(watcher);
-            watcher.onDidCreate(uri => {
-                vscode.window.showInformationMessage(`Create: ${uri.fsPath}`); 
-            });        
+       
             // 监听文件更改事件
-            watcher.onDidChange(uri => {
-                vscode.window.showInformationMessage(`Change: ${uri.fsPath}`);
+            watcher.onDidChange(uri => { 
+                let name = path.relative(
+                    vscode.workspace.asRelativePath(config.watchPath),
+                    vscode.workspace.asRelativePath(uri)
+                );
+                if (!name.startsWith("./")){
+                    name = "./"+name;
+                }
+                vscode.window.showInformationMessage(`Change: ${name}`);
                 //console.log('文件更改:', uri.fsPath);
+                
                 tmpDate = Date.now();
-                vscode.workspace.fs.readFile(uri).then(db=>{                   
+                vscode.workspace.fs.readFile(uri).then(db=>{              
                 
                     createPanel(config).webview.postMessage({  
                         init:{
                             db:  db.buffer,
-                            name:path.basename(uri.fsPath)
+                            name 
                         },
                         run:true,
                         
                     });
-                });
-                
+                });                
             });        
             // 监听文件删除事件
             watcher.onDidDelete(uri => {
-                vscode.window.showInformationMessage(`Delete: ${uri.fsPath}`); 
+                let name = path.relative(
+                    vscode.workspace.asRelativePath(config.watchPath),
+                    vscode.workspace.asRelativePath(uri)
+                );
+                if (!name.startsWith("./")){
+                    name = "./"+name;
+                }
+                //const name = path.relative(config.watchPath.fsPath,uri.fsPath);
+               
+                if (panel){
+                    panel.webview.postMessage({
+                        del:{
+                            name:path.basename(uri.fsPath)
+                        }
+                    });
+                }
+                vscode.window.showInformationMessage(`Delete: ${name}`); 
             });
         }); 
         

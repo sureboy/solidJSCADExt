@@ -225,7 +225,8 @@ export const  setHtmlForWebview = (
 				vscode.window.showInformationMessage( message.msg.join('\n') );
 				break;
 			case 'error':
-				vscode.window.showErrorMessage("err" ,{modal:true,detail:JSON.stringify(message.msg) });
+				console.log(message);
+				vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg });
 				break;
 			default:
 				if (!handleMessageMap.has(message.type)){
