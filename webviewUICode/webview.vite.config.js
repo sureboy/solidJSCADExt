@@ -7,11 +7,11 @@ export default defineConfig({
   build: {
     //minify:false,
    
-    outDir: path.resolve(__dirname, './nodeweb'),
+    outDir: path.resolve(__dirname, '../webviewCode'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'src/nodeMain.js')
+        main: path.resolve(__dirname, 'src/webviewMain.js')
       },
       output: {
         minifyInternalExports:true,

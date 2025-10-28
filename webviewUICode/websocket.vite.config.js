@@ -5,11 +5,11 @@ import path from 'path';
 export default defineConfig({
   plugins: [svelte()],
   build: {
-    outDir: path.resolve(__dirname, './nodeweb'),
+    outDir: path.resolve(__dirname, '../myModule/webui'),
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'src/main.js')
+        main: path.resolve(__dirname, 'src/websocketMain.js')
       },
       output: {
         //minifyInternalExports:true,

@@ -175,7 +175,17 @@ export const newWorkspacePackage= async(
         vscode.Uri.joinPath(NewWorkspace,"mgtoy.json"),
         new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
     );    
-    await vscode.workspace.fs.copy(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+    await vscode.workspace.fs.copy(
+        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),
+        vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+    await vscode.workspace.fs.copy(
+        vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
+        vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","csgChange.js")
+    );
+    await vscode.workspace.fs.copy(
+        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
+        vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","modeling.esm.js")
+    );
     //return handleEnd;
     //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
     const cf = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));
@@ -189,7 +199,7 @@ export const newWorkspacePackage= async(
         new TextEncoder().encode(JSON.stringify({
             name:myWorkspaceConfig.name.toLowerCase(),
             type: "module",
-            main: "src/"+myWorkspaceConfig.index+".js",
+            main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.index+".js",
             version: "1.0.0", 
             description:myWorkspaceConfig.name,
             private: true,

@@ -249,8 +249,8 @@ export const  setHtmlForWebview = (
 	 <script>
 	 window.vscode = acquireVsCodeApi();
 	 window.includeImport ={
-	   "@jscad/modeling":"${modelingurl}",
-	   "csgChange":"${csgChange}",
+	   "@jscad/modeling":"./lib/modeling.esm.js",
+	   "csgChange":"./lib/csgChange.js",
 	 }
 	   window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
 	 </script>

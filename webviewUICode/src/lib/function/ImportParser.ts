@@ -24,6 +24,7 @@ type importType = {
 const currentMap = new Map<string,currentObj>();
 const waitGetMap = new Map<string,(c:currentObj)=>void>();
 const includeImport = (window as any).includeImport;
+/*
 Object.keys(includeImport).forEach(k=>{
     currentMap.set(k,{
          
@@ -31,7 +32,7 @@ Object.keys(includeImport).forEach(k=>{
         name:k,
         getUri:async ()=>{return includeImport[k];}});
 });
- 
+ */
 //console.log(includeImportKeys);
 export const regexExec = (code:string,
     regex:RegExp 
@@ -103,17 +104,23 @@ export const getCurrentCode =async ( src:currentObj,back:(name:string,code:strin
         back(src.name,code);
     }
 };
-export const getCurrent =async (name:string,reqMessage?:(e:{type:"req",path:string})=>void )=>{
+export const getCurrent = (name:string,reqMessage?:(e:{type:"req",path:string})=>void )=>{
     //this.persons
 
      
     return new Promise<currentObj|null>((resolve, reject)=>{
-       
+        if (!name.startsWith("./")){
+            if (includeImport[name]){
+                name = includeImport[name];
+            }
+        }
         if (currentMap.has(name)){
             resolve(currentMap.get(name));
             return ;
         }
-        if (!reqMessage || !name.startsWith("./")){
+
+
+        if (!reqMessage ){
             console.log("not reqmsg",name);
             resolve(InitCurrentMap({name}));
             //reject("Found Not");

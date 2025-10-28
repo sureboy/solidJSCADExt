@@ -34,7 +34,7 @@ let worker: Worker|null;
  
 const getBaseUrl =async (config:{main:string,index:string},postMessage?:(e:any)=>void)=>{
  
-  const csgObj = await getCurrent("csgChange",postMessage);
+  const csgObj = await getCurrent("./lib/csgChange.js",postMessage);
  
   const csgUri = await csgObj.getUri();
   let indexName = config.index;
@@ -58,7 +58,7 @@ import * as src  from '${indexuri}'
   self.postMessage(msg)
 }) 
 ${consoleLogEnd} `;
-//console.log(src);
+console.log(src);
   return URL.createObjectURL(
     new Blob([src],{type:'application/javascript'}));
 };

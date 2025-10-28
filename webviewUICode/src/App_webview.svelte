@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  
-  //import { vscode } from './lib/function/vscodeApi';
+  import { vscode } from './lib/function/vscodeApi';
  // import workerCode from './worker/worker?raw'; 
   import ShowSolid,{ initSolidPage,solidConfig} from './lib/ShowSolid.svelte';
  
@@ -12,33 +11,26 @@
   import { runWorker } from "./lib/function/worker";
   import {STLLoader} from "three/addons/loaders/STLLoader.js"
   let showMenu = true
-  let wss:WebSocket
-  let WebSocketisOpen = false
-  const postMessage = (msg:any)=>{
-    if (!WebSocketisOpen){
-      console.log("not open",msg)
-      return
-    }
-
-    wss.send(JSON.stringify(msg))
-  }
+  //let showName = "...."   
   onMount(() => {
-    console.log(window.location.host)
     initSolidPage()
-    wss = new WebSocket(`ws://${window.location.host}`);
-    //
-    wss.onopen = (e)=>{
-      //console.log(e)
-     // wss = this
-      WebSocketisOpen = true
-      postMessage({
-        type:'loaded'
-      })
-       
-    }
-    wss.onmessage = (event)=>{
-      console.log(event)
-      const message = JSON.parse(event.data);
+    /*
+    runWorker(
+      solidConfig.el,
+      Object.assign({},
+      solidConfig.workermsg,
+      {cameraType:solidConfig.workermsg.cameraType}),
+      vscode.postMessage);
+
+    */
+    vscode.postMessage({ 
+    //  supportsWebGPU: hasWebGPU,
+      type:'loaded'
+    });
+    
+    window.addEventListener('message', (event:any) => {
+        //worker.postMessage(event.data)
+      const message = event.data;
       if (message.gzData){
         gzipToString(message.gzData).then(src=>{
           
@@ -48,7 +40,7 @@
               console.log(db.name);
           }) 
           console.log(solidConfig)
-          runWorker(solidConfig.el,solidConfig.workermsg,postMessage);
+          runWorker(solidConfig.el,solidConfig.workermsg,vscode.postMessage);
         }) 
       }
       if (message.stlData){
@@ -61,17 +53,17 @@
         //document.getElementById("downMenuList").style.display="block"
       }
       if (message.getSrc){
-        getCurrent(solidConfig.workermsg.index,postMessage).then(
+        getCurrent(solidConfig.workermsg.index,vscode.postMessage).then(
           current=>{   
             console.log(current)     
           getCurrentCode(current,(name:string,code:string)=>{
-            postMessage({
+            vscode.postMessage({
               type:"src",
               name,
               code:new TextEncoder().encode(code)
             }) 
           }).then(()=>{
-            postMessage({
+            vscode.postMessage({
               type:"src"
             }) 
           })
@@ -83,19 +75,23 @@
       }
       //console.log(message) 
       if (message.init  ){
-        handleCurrentMsg(message.init,postMessage)        
+        handleCurrentMsg(message.init,vscode.postMessage)        
       }  
       if (message.run){
         console.log("run",solidConfig)
         //showMenu=false
         //if (!message.open) solidConfig.workermsg.cameraType = "" 
-        runWorker(solidConfig.el,Object.assign({},solidConfig.workermsg,{cameraType:message.open?solidConfig.workermsg.cameraType:''}),postMessage);
+        runWorker(solidConfig.el,Object.assign({},solidConfig.workermsg,{cameraType:message.open?solidConfig.workermsg.cameraType:''}),vscode.postMessage);
         //console.log
       }
-
-    }
-    
-   
-  })
+  
+    });
+    return () =>{
+    // window.removeEventListener('resize', updateSize);      
+      //worker.terminate();
+      //worker = null;
+    } 
+  });
 </script>
-<ShowSolid {postMessage}  {showMenu}></ShowSolid> 
+<ShowSolid postMessage={vscode.postMessage} {showMenu}></ShowSolid> 
+
