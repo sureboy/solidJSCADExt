@@ -4,7 +4,7 @@ import { gzEditorProvider,newWorkspacePackage } from './gzEditorProvider';
 import { watcherServer } from './bundleServer'; 
 import * as path from "path";
  
-import { startHttpServer, stopHttpServer } from './httpServer';
+import {   stopHttpServer } from './httpServer';
 
    
 export function activate(context: vscode.ExtensionContext) {
@@ -14,11 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
      
         vscode.commands.registerCommand('mgtoy.stopServer', stopHttpServer),
-        vscode.commands.registerCommand('mgtoy.startServer',()=>{
-            if (vscode.workspace.workspaceFolders){
-                startHttpServer(context,vscode.workspace.workspaceFolders[0].uri);
-            }            
-        }),
+         
         
         vscode.commands.registerCommand('mgtoy.create', () => {
             //console.log(args);

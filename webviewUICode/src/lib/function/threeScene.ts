@@ -195,8 +195,8 @@ export const  startSceneOBJTF = (el: HTMLCanvasElement,...object: Object3D[])=>{
  
 export const  startSceneOBJ = (el: HTMLCanvasElement)=>{
 	if (el !== _el){
-		_el = el
-		initRender(el)
+		_el = el;
+		initRender(el);
 		 
 	}	else{
 		group.clear();

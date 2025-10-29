@@ -105,8 +105,15 @@ export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMess
       //message.msg = msg;
       console.log(e,msg);
       if (msg.start ){
-
-        startSceneOBJ(el);
+        try{
+          startSceneOBJ(el);
+        }catch(err){
+          postMessage({
+            type:'initError',
+            msg:err.error
+          });
+        }
+        
       }
        if (msg.ver){
         addSceneOBJ(el, CSG2Three(msg.ver,{}) );

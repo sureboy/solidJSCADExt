@@ -1,14 +1,30 @@
 import * as http from 'http'; 
-import * as vscode from 'vscode';
-import { Context } from 'mocha';
+import * as vscode from 'vscode'; 
 import * as WebSocket from 'ws';
 import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
-import {workerspaceMessageHandMap} from './bundleServer';
-import { buffer } from 'stream/consumers';
+import {workerspaceMessageHandMap} from './bundleServer'; 
+import * as os from "os";
 let server: http.Server | null = null;
-const port = 3000; // 默认端口
+export const port = 3000; // 默认端口
 let tmpDate = Date.now();
+export const getLocalIp = ()=> {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+        if (!interfaces[name]){
+            continue;
+        }
+      for (const netInterface  of interfaces[name]) {
+        // 跳过内部地址和非IPv4地址
+        if (netInterface.internal || netInterface.family !== 'IPv4') {
+          continue;
+        }
+        // 返回第一个找到的非内部IPv4地址
+        return netInterface.address;
+      }
+    }
+    return 'localhost'; // 默认回退地址
+};
 const readfile = async( filePaths:vscode.Uri,res:any)=>{
     const ext = path.extname(filePaths.fsPath);
     const contentType = {
@@ -29,7 +45,7 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         res.writeHead(404);
     }
 };
-const createHttpServer = (context:vscode.ExtensionContext)=>{
+const createHttpServer = (context:vscode.ExtensionContext, config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     
     const libUri = vscode.Uri.joinPath(context.extensionUri,"myModule");
     const rooturi = vscode.Uri.joinPath(libUri,"webui");
@@ -49,7 +65,7 @@ const createHttpServer = (context:vscode.ExtensionContext)=>{
         <meta charset="UTF-8" /> 
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        <title>${"mgtoy"}</title> 
+        <title>${config.name||"mgtoy"}</title> 
         <link rel="stylesheet" href="/assets/main.css">
         </head>
         <body>
@@ -58,7 +74,7 @@ const createHttpServer = (context:vscode.ExtensionContext)=>{
         "@jscad/modeling":"./lib/modeling.esm.js",
         "csgChange":"./lib/csgChange.js",
         }
-        window.myConfig={name:"${"mgtoy"}",index:"${"index.js"}",main:"${"main"}"}
+        window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
         </script>
     
         <div id="app" ></div>   
@@ -78,23 +94,23 @@ const createHttpServer = (context:vscode.ExtensionContext)=>{
                  
     });
 };
-export const startHttpServer = (context:vscode.ExtensionContext,workspace:vscode.Uri)=>{
+export const startHttpServer = (context:vscode.ExtensionContext, config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     
     if (server) {
         vscode.window.showInformationMessage('服务器已在运行');
         return;
     } 
-    server = createHttpServer(context);
+    server = createHttpServer(context,config);
     const wss = new WebSocket.Server({ server }); 
     wss.on('connection', (ws) => {
         console.log("wss open"); 
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
             listenMessage(JSON.parse(data),workerspaceMessageHandMap(
-                vscode.Uri.joinPath(workspace,"src"),
+                config.watchPath,
                 tmpDate,
                 (e:any)=>{
-                    if (e.init){
+                    if (e.init && e.init.db && typeof e.init.db !== "string"){
                         const init = e.init as {name:string,db:ArrayBuffer};
                         const name = Buffer.from(`${init.name}\n`);
                         const db = Buffer.from(init.db);
@@ -106,7 +122,6 @@ export const startHttpServer = (context:vscode.ExtensionContext,workspace:vscode
                         ws.send(newBuffer.buffer);
 
                     }else{
-                      
                         ws.send(JSON.stringify(e));
                     }
                     
@@ -117,8 +132,14 @@ export const startHttpServer = (context:vscode.ExtensionContext,workspace:vscode
  
     });
     server.listen(port, () => {
-        vscode.window.showInformationMessage(`服务器已启动: http://localhost:${port}`);
-        vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+        //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
+        
+        vscode.window.showInformationMessage( `Http server:http://${getLocalIp()}:${port}`,"open").then(v=>{
+            if (v==="open"){
+                vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+            }
+        }); 
+        
     });
 
     server.on('error', (err) => {

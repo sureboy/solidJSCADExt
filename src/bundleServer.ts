@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
+import {startHttpServer,port,getLocalIp} from './httpServer';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
@@ -73,8 +74,14 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
         };
         fn();
         
+    }); 
+    handMap.set('initError',(message:{msg:string})=>{
+		vscode.window.showErrorMessage("err" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${port}` },"browser").then(v=>{
+		    if (v==="browser"){
+                 vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+			}
+		});
     });
-    
     handMap.set('loaded',()=>{
         tmpDate = Date.now();
          postMessage({                    
@@ -109,7 +116,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 return;
             }  
             //console.log(config);  
-            //const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
+            const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
             const config:{
                 name: string;
                 index: string;
@@ -118,11 +125,12 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 extensionUri: vscode.Uri;
             } = {
                 watchPath : vscode.Uri.joinPath(
-                    vscode.workspace.getWorkspaceFolder(u)!.uri,
+                    workspacePath,
                     conf.src),
                 extensionUri : context.extensionUri,
                 ...conf
             };
+            startHttpServer(context,config);
             createPanel(config);
             
             const watcher = vscode.workspace.createFileSystemWatcher(

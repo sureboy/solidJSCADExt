@@ -199,6 +199,7 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 		console.log(message);
 		vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg });
 		break;
+
 	default:
 		if (!handMap.has(message.type)){
 			return;
