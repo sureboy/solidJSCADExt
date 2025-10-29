@@ -36,7 +36,20 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
         console.log(e);
         panel=null;
     });
-     
+    
+    setHtmlForWebview(
+        panel.webview,config,
+        workerspaceMessageHandMap(config.watchPath,tmpDate,(db:any)=>{
+           if (panel) {panel.webview.postMessage(db);}
+           else {
+            console.log(db);
+           }
+        })
+    );
+    
+    return panel;
+};
+export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:number,postMessage:(db:any)=>void)=>{
     const handMap = new Map();
     handMap.set('req',(e:{path:string})=>{ 
         console.log(e);
@@ -44,15 +57,16 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
             try{
                const t = await vscode.workspace.fs.readFile(
                     vscode.Uri.joinPath(
-                        config.watchPath,e.path )); 
-                panel?.webview.postMessage({                         
+                        workerspacePath,e.path
+                    )); 
+                 postMessage({                         
                     init:{db:t.buffer,name:e.path } ,                                  
                 });
                     
             }catch(err:any){
                 //console.log(err);
                 //vscode.window.showErrorMessage(err);
-                panel?.webview.postMessage({                         
+                postMessage({                         
                     init:{name:e.path } ,                                  
                 });
             }
@@ -63,47 +77,18 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
     
     handMap.set('loaded',()=>{
         tmpDate = Date.now();
-        panel?.webview.postMessage({                    
+         postMessage({                    
             open:true,
             run:"worker"
                             
         });
-                /*
-        //const filePath = vscode.Uri.joinPath(config.watchPath,e.path||config.index);
-        vscode.workspace.fs.readFile(
-            vscode.Uri.joinPath(
-                config.watchPath,e.path||config.index)).then(t=>{
-            panel?.webview.postMessage({                         
-                init:{db:t.buffer,name:e.path||config.index} ,    
-                ...e.view                                  
-            });
-        });
- 
-        initPanelTmpDir(config.watchPath,(code:any)=>{
-            //codelist.push(code);
-            panel?.webview.postMessage({                         
-                init:code ,                                        
-            });
-        } ).then(()=>{
-            panel?.webview.postMessage({                    
-                open:true,
-                run:"worker"
-                                
-            });
-        });
-       */
-        //codelist.push(workerCode);
+       
        
     });
     
     handMap.set('start',()=>{tmpDate = Date.now();});
     handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000)+" s");});
-   
-    setHtmlForWebview(
-        panel.webview,config,
-        handMap
-    );
-    return panel;
+    return handMap;
 };
  
 export const watcherServer = (context: vscode.ExtensionContext)=>{

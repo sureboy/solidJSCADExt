@@ -167,7 +167,16 @@ const reloadCurrent = (c:currentObj,msg:messageObj,postMessage?:(e:any)=>void)=>
     if (!msg.db){
         return;
     }
-    const src = (typeof msg.db ==="string")?msg.db: decoder.decode(msg.db);
+    let src = "";
+    if (typeof msg.db ==="string"){
+        src = msg.db;
+    }else if ( msg.db instanceof ArrayBuffer){
+        src = decoder.decode(msg.db);
+    }else{
+        console.log(msg,typeof msg.db);
+        return;
+    }
+    //src = (typeof msg.db ==="string")?msg.db: decoder.decode(msg.db);
     let tmpEndPos:number = 0;
    
 

@@ -37,7 +37,19 @@
        
     }
     wss.onmessage = (event)=>{
-      console.log(event)
+      console.log(typeof event.data ,event.data)
+      
+        if (event.data instanceof Blob ){
+        event.data.text().then(db=>{
+          const index = db.indexOf('\n');
+          //console.log(index,db.substring(0,index),db.substring(index+1))
+          handleCurrentMsg({name:db.substring(0,index),db:db.substring(index+1)},postMessage)
+        })
+         return
+      }
+      if (typeof event.data !== "string"){
+        return
+      }
       const message = JSON.parse(event.data);
       if (message.gzData){
         gzipToString(message.gzData).then(src=>{

@@ -190,6 +190,22 @@ export class WebviewCollection {
 	}
 	
 }
+export const listenMessage = (message:{type:string,msg:string},handMap:Map<string,any>)=>{
+	switch (message.type) {
+	case 'log':
+		vscode.window.showInformationMessage( message.msg  );
+		break;
+	case 'error':
+		console.log(message);
+		vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg });
+		break;
+	default:
+		if (!handMap.has(message.type)){
+			return;
+		}
+		handMap.get(message.type)!(message);
+	}		
+};
 export const  setHtmlForWebview = (
 	webview: vscode.Webview,
 	config:{name:string,index:string,main:string,extensionUri:vscode.Uri},
@@ -220,20 +236,7 @@ export const  setHtmlForWebview = (
 	   
 
 	   	webview.onDidReceiveMessage(message => {
-		 	switch (message.type) {
-			case 'log':
-				vscode.window.showInformationMessage( message.msg.join('\n') );
-				break;
-			case 'error':
-				console.log(message);
-				vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg });
-				break;
-			default:
-				if (!handleMessageMap.has(message.type)){
-					return;
-				}
-				handleMessageMap.get(message.type)!(message);
-			}		
+			listenMessage(message,handleMessageMap);	
 	   	});
 	
 		   webview.html = `<!doctype html>
