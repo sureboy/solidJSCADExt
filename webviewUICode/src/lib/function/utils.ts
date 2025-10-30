@@ -1,8 +1,9 @@
 import {regexExec} from "./ImportParser";
-export const gzipToString= async (data:Uint8Array<ArrayBufferLike>)=>{
+
+export const gzipToString= async (data: ArrayBuffer )=>{
     const decompressedStream = new DecompressionStream('gzip');
     const writer = decompressedStream.writable.getWriter();
-    writer.write(data.buffer as BufferSource);
+    writer.write(data as BufferSource);
     writer.close();
     const decompressedResponse = new Response(decompressedStream.readable);
     const decompressedArrayBuffer = await decompressedResponse.arrayBuffer();
@@ -56,3 +57,4 @@ export const gzipToString= async (data:Uint8Array<ArrayBufferLike>)=>{
     })
      */
   }  ;
+

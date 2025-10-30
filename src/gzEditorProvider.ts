@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
-
+import {postTypeTag} from './util';
  
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
     //private static newPawDrawFileId = 1;
@@ -72,17 +72,20 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
             [name,main].join("_"));
         const myWorkspaceConfig = {name,main,index,date,src:"src"};
+
         const handMap = new Map<string, (e?: any) => void>();
         handMap.set('loaded',()=>{
             this.tmpDate=Date.now();
                 webviewPanel.webview.postMessage({
-                    gzData:document.documentData
+                    type:postTypeTag.gzData,
+                    msg:document.documentData.buffer
                 });
         });
         handMap.set('req',(e)=>{
             console.log(e);
-            webviewPanel.webview.postMessage({                         
-                init:{name:e.path  } ,                                  
+            webviewPanel.webview.postMessage({   
+                type:postTypeTag.init,                      
+                msg:{name:e.path  } ,                                  
             });
         });
         handMap.set('start',()=>{
@@ -96,12 +99,13 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 myWorkspaceConfig, 
                 ()=>{
                     webviewPanel.webview.postMessage({
-                            getSrc:true
+                        type:postTypeTag.getSrc 
                     });
                 }
             );
         });
         handMap.set('src',(message)=>{
+            console.log(message);
             if (!message.name){
                 vscode.window.showWarningMessage("Workspace change",{
                     modal:true,
@@ -113,9 +117,14 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 });
                 return;
             }
-            vscode.workspace.fs.writeFile(
-                vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,message.name),
-                message.code); 
+           // vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src)).then(()=>{
+                vscode.workspace.fs.writeFile(
+                    vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,message.name),
+                    new TextEncoder().encode(message.code)).then(res=>{
+                        console.log(res);
+                }); 
+            //});
+          
         });
 
         setHtmlForWebview(webviewPanel.webview,
@@ -178,6 +187,7 @@ export const newWorkspacePackage= async(
     await vscode.workspace.fs.copy(
         vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),
         vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+        /*
     await vscode.workspace.fs.copy(
         vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
         vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","csgChange.js")
@@ -185,7 +195,7 @@ export const newWorkspacePackage= async(
     await vscode.workspace.fs.copy(
         vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
         vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","modeling.esm.js")
-    );
+    );*/
     //return handleEnd;
     //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
     const cf = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));

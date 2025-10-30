@@ -1,6 +1,6 @@
-type messageObj = {
+export type messageObj = {
     name:string,
-    db?:AllowSharedBufferSource | string
+    db?:ArrayBuffer | string
 }
 type currentObj = { 
     url?:string;
@@ -126,12 +126,17 @@ export const getCurrent = (name:string,reqMessage?:(e:{type:"req",path:string})=
             //reject("Found Not");
             return;
         }
-     
+        
         reqMessage({type:"req",path:name});
-        waitGetMap.set(name,(c:currentObj)=>{
+        const t = setTimeout(()=>{
             
+            waitGetMap.delete(name);
+            resolve(InitCurrentMap({name}));
+        }, 2000);
+        waitGetMap.set(name,(c:currentObj)=>{
+            clearTimeout(t);
             resolve(c);
-           
+            
             
             waitGetMap.delete(name);
         });

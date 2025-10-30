@@ -1,6 +1,6 @@
 import * as http from 'http'; 
 import * as vscode from 'vscode'; 
-import * as WebSocket from 'ws';
+import * as WS from 'ws';
 import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
 import {workerspaceMessageHandMap} from './bundleServer'; 
@@ -8,6 +8,7 @@ import * as os from "os";
 let server: http.Server | null = null;
 export const port = 3000; // 默认端口
 let tmpDate = Date.now();
+export const clientwsMap = new Set<WS.WebSocket>();
 export const getLocalIp = ()=> {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
@@ -94,34 +95,43 @@ const createHttpServer = (context:vscode.ExtensionContext, config:{name:string,i
                  
     });
 };
+export const WSSendInit = (init:{name:string,db?:string|ArrayBuffer},ws:WS.WebSocket)=>{
+    if (!init.db || typeof init.db ==="string"){
+        ws.send(JSON.stringify(init));
+        return;
+    }
+    const head = Buffer.from(JSON.stringify(init)+"\n");
+    const db = Buffer.from(init.db);
+    const totalLength = head.length + db.length;
+    const newBuffer = Buffer.alloc(totalLength);
+    head.copy(newBuffer, 0); 
+    db.copy(newBuffer, head.length);
+    ws.binaryType = "arraybuffer";
+    ws.send(newBuffer.buffer);
+};
 export const startHttpServer = (context:vscode.ExtensionContext, config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     
     if (server) {
         vscode.window.showInformationMessage('服务器已在运行');
-        return;
+        return server;
     } 
     server = createHttpServer(context,config);
-    const wss = new WebSocket.Server({ server }); 
-    wss.on('connection', (ws) => {
-        console.log("wss open"); 
+    const wss = new WS.Server({ server }); 
+    wss.on('connection', (ws,req) => {
+        console.log("wss open",ws,req); 
+        clientwsMap.add(ws);
+        ws.onclose = ()=>{
+            clientwsMap.delete(ws);
+        };
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
             listenMessage(JSON.parse(data),workerspaceMessageHandMap(
                 config.watchPath,
                 tmpDate,
                 (e:any)=>{
-                    if (e.init && e.init.db && typeof e.init.db !== "string"){
-                        const init = e.init as {name:string,db:ArrayBuffer};
-                        const name = Buffer.from(`${init.name}\n`);
-                        const db = Buffer.from(init.db);
-                        const totalLength = name.length + db.length;
-                        const newBuffer = Buffer.alloc(totalLength);
-                        name.copy(newBuffer, 0); 
-                        db.copy(newBuffer, name.length);
-                        ws.binaryType = "arraybuffer";
-                        ws.send(newBuffer.buffer);
-
-                    }else{
+                    if (e.init){
+                        WSSendInit(e.init,ws);
+                    } else{
                         ws.send(JSON.stringify(e));
                     }
                     
@@ -134,9 +144,9 @@ export const startHttpServer = (context:vscode.ExtensionContext, config:{name:st
     server.listen(port, () => {
         //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
         
-        vscode.window.showInformationMessage( `Http server:http://${getLocalIp()}:${port}`,"open").then(v=>{
-            if (v==="open"){
-                vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+        vscode.window.showInformationMessage( `Remote browsing address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
+            if (v==="Browser view"){
+                vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
             }
         }); 
         

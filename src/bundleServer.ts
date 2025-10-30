@@ -2,7 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {startHttpServer,port,getLocalIp} from './httpServer';
+import {startHttpServer,port,getLocalIp,clientwsMap,WSSendInit} from './httpServer';
+import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
@@ -50,6 +51,8 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
     
     return panel;
 };
+
+ 
 export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:number,postMessage:(db:any)=>void)=>{
     const handMap = new Map();
     handMap.set('req',(e:{path:string})=>{ 
@@ -60,41 +63,43 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
                     vscode.Uri.joinPath(
                         workerspacePath,e.path
                     )); 
-                 postMessage({                         
-                    init:{db:t.buffer,name:e.path } ,                                  
-                });
+                postMessage({type:postTypeTag.init,msg:{db:t.buffer,name:e.path }});
+                // postMessage({                         
+                //    init:{db:t.buffer,name:e.path } ,                                  
+                //});
                     
             }catch(err:any){
                 //console.log(err);
                 //vscode.window.showErrorMessage(err);
-                postMessage({                         
-                    init:{name:e.path } ,                                  
-                });
+                postMessage({type:postTypeTag.init,msg:{ name:e.path }});
+                //postMessage({                         
+                //    init:{name:e.path } ,                                  
+                //});
             }
         };
         fn();
         
     }); 
     handMap.set('initError',(message:{msg:string})=>{
-		vscode.window.showErrorMessage("err" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${port}` },"browser").then(v=>{
-		    if (v==="browser"){
-                 vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
+		vscode.window.showErrorMessage("err" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${port}` },"Browser view").then(v=>{
+		    if (v==="Browser view"){
+                 vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
 			}
 		});
     });
     handMap.set('loaded',()=>{
         tmpDate = Date.now();
-         postMessage({                    
-            open:true,
-            run:"worker"
-                            
-        });
-       
-       
-    });
-    
+        postMessage({                    
+            msg:{open:true},
+            type:postTypeTag.run             
+        });       
+    });    
     handMap.set('start',()=>{tmpDate = Date.now();});
-    handMap.set('end',()=>{vscode.window.showInformationMessage("waited "+String((Date.now()-tmpDate)/1000)+" s");});
+    handMap.set('end',()=>{vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second. Remote address: http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
+        if (v==="Browser view"){
+            vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+        }
+    });});
     return handMap;
 };
  
@@ -138,7 +143,6 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             );
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
             context.subscriptions.push(watcher);
-       
             // 监听文件更改事件
             watcher.onDidChange(uri => { 
                 let name = path.relative(
@@ -152,14 +156,18 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 //console.log('文件更改:', uri.fsPath);
                 
                 tmpDate = Date.now();
-                vscode.workspace.fs.readFile(uri).then(db=>{              
-                
+                vscode.workspace.fs.readFile(uri).then(db=>{      
+                    const msg =   {
+                        db:  db.buffer,
+                        name 
+                    };
+                    //clientwsMap.forEach(ws=>{
+                    //    WSSendInit(init,ws);
+                        //ws.send(JSON.stringify({run:true}));
+                    //});
                     createPanel(config).webview.postMessage({  
-                        init:{
-                            db:  db.buffer,
-                            name 
-                        },
-                        run:true,
+                        type:postTypeTag.init|postTypeTag.run ,
+                        msg,
                         
                     });
                 });                
@@ -177,7 +185,8 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                
                 if (panel){
                     panel.webview.postMessage({
-                        del:{
+                        type:postTypeTag.del,
+                        msg:{
                             name:path.basename(uri.fsPath)
                         }
                     });

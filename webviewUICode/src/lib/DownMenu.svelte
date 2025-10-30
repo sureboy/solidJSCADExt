@@ -19,10 +19,20 @@
         return
       }
       //const res = Exporter() 
-      const current =await getCurrent(workermsg.index)  
+      let indexName = workermsg.index;
+      if (!indexName.startsWith("./")){
+        indexName = "./"+indexName;
+      }
+      const csgObj = await getCurrent("./lib/csgChange.js");
+      const current =await getCurrent(indexName)  
       //console.log(current)
       let codeSrc = ""
- 
+      await getCurrentCode(csgObj,(name:string,code:string)=>{
+        codeSrc +=`
+/**${name}*/
+${code}
+`        //codeList.push(code)
+      })
       await getCurrentCode(current,(name:string,code:string)=>{
         codeSrc +=`
 /**${name}*/

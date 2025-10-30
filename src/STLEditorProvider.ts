@@ -4,6 +4,7 @@ import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
+import {postTypeTag} from './util';
 /**
  * Define the type of edits used in paw draw files.
  */
@@ -44,27 +45,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
 				return new Uint8Array(response);
 			}
 		});
-        const listeners: vscode.Disposable[] = [];
         
-        listeners.push(document.onDidChange(e => {
-            // Tell VS Code that the document has been edited by the use.
-            this._onDidChangeCustomDocument.fire({
-                document,
-                ...e,
-            });
-        }));
-
-        listeners.push(document.onDidChangeContent(e => {
-            // Update all webviews when the document changes
-            for (const webviewPanel of this.webviews.get(document.uri)) {
-                this.postMessage(webviewPanel, 'update', {
-                    edits: e.edits,
-                    content: e.content,
-                });
-            }
-        }));
-
-        document.onDidDispose(() => disposeAll(listeners));
 
         return document;
     }
@@ -126,8 +107,9 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             const buffer = await vscode.workspace.fs.readFile(uri);
             webviewPanel.webview.postMessage({
                 //type:"stlData" ,
+                type:postTypeTag.stlData,
                 //time:Date.now(),
-                stlData:  buffer.buffer
+                msg:  buffer.buffer
             });
             //webviewPanel.webview.postMessage({
             //    type:"end"
@@ -146,8 +128,6 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         return p;
     }
 
-    private postMessage(panel: vscode.WebviewPanel, type: string, body: any): void {
-        panel.webview.postMessage({ type, body });
-    }
+ 
  
 }

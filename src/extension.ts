@@ -3,8 +3,7 @@ import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider,newWorkspacePackage } from './gzEditorProvider'; 
 import { watcherServer } from './bundleServer'; 
 import * as path from "path";
- 
-import {   stopHttpServer } from './httpServer';
+import { stopHttpServer } from './httpServer';
 
    
 export function activate(context: vscode.ExtensionContext) {
@@ -27,6 +26,14 @@ export function activate(context: vscode.ExtensionContext) {
                     context,
                     {name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src"},
                     ()=>{
+                        vscode.workspace.fs.copy(
+                            vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
+                            vscode.Uri.joinPath(uri,"src","lib","csgChange.js")
+                        );
+                        vscode.workspace.fs.copy(
+                            vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
+                            vscode.Uri.joinPath(uri,"src","lib","modeling.esm.js")
+                        );
                         vscode.workspace.fs.writeFile(
                             vscode.Uri.joinPath(uri,"src","index.js"),
                         new TextEncoder().encode(
