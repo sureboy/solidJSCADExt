@@ -26,6 +26,7 @@ export const getLocalIp = ()=> {
     }
     return 'localhost'; // 默认回退地址
 };
+const TypeTag = new Map<string,number>();
 const readfile = async( filePaths:vscode.Uri,res:any)=>{
     const ext = path.extname(filePaths.fsPath);
     const contentType = {
@@ -95,14 +96,24 @@ const createHttpServer = (context:vscode.ExtensionContext, config:{name:string,i
                  
     });
 };
-export const WSSendInit = (init:{name:string,db?:string|ArrayBuffer},ws:WS.WebSocket)=>{
-    if (!init.db || typeof init.db ==="string"){
-        ws.send(JSON.stringify(init));
+export const WSSend = (data:{
+    type: number;
+    msg: {
+        db?: string | ArrayBuffer;
+        name?: string;
+        open?: boolean;
+    }},ws:WS.WebSocket)=>{
+
+    const jsonDB = JSON.stringify(data);
+    if (!data.msg.db || typeof data.msg.db==="string"){
+        ws.send(jsonDB);
         return;
     }
-    const head = Buffer.from(JSON.stringify(init)+"\n");
-    const db = Buffer.from(init.db);
+ 
+    const head = Buffer.from(jsonDB+"\n");
+    const db = Buffer.from(data.msg.db);
     const totalLength = head.length + db.length;
+
     const newBuffer = Buffer.alloc(totalLength);
     head.copy(newBuffer, 0); 
     db.copy(newBuffer, head.length);
@@ -128,14 +139,15 @@ export const startHttpServer = (context:vscode.ExtensionContext, config:{name:st
             listenMessage(JSON.parse(data),workerspaceMessageHandMap(
                 config.watchPath,
                 tmpDate,
-                (e:any)=>{
-                    if (e.init){
-                        WSSendInit(e.init,ws);
-                    } else{
-                        ws.send(JSON.stringify(e));
-                    }
-                    
-
+                TypeTag,
+                (e: {
+                    type: number;
+                    msg: {
+                        db?: string | ArrayBuffer;
+                        name?: string;
+                        open?: boolean;
+                    }})=>{
+                    WSSend(e,ws);
                     
                 }));
         });

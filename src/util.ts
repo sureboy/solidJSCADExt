@@ -6,4 +6,4 @@ export function getNonce() {
 	}
 	return text;
 }
-export const postTypeTag ={del:1,run:1<<1,init:1<<2,getSrc:1<<3,gzData:1<<4,stlData:1<<5}; 
+//export const postTypeTag ={del:1,run:1<<1,init:1<<2,getSrc:1<<3,gzData:1<<4,stlData:1<<5}; 

@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
-import {postTypeTag} from './util';
- 
+//import {postTypeTag} from './util';
+const postTypeTag = new Map<string,number>();
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
     //private static newPawDrawFileId = 1;
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -74,17 +74,20 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const myWorkspaceConfig = {name,main,index,date,src:"src"};
 
         const handMap = new Map<string, (e?: any) => void>();
-        handMap.set('loaded',()=>{
+        handMap.set('loaded',(e)=>{
+            (e.msg as string).split("|").forEach((v,i)=>{
+                postTypeTag.set(v,1<<i);
+            });
             this.tmpDate=Date.now();
                 webviewPanel.webview.postMessage({
-                    type:postTypeTag.gzData,
-                    msg:document.documentData.buffer
+                    type:postTypeTag.get("gzData"),
+                    msg:{db:document.documentData.buffer}
                 });
         });
         handMap.set('req',(e)=>{
             console.log(e);
             webviewPanel.webview.postMessage({   
-                type:postTypeTag.init,                      
+                type:postTypeTag.get("init"),                      
                 msg:{name:e.path  } ,                                  
             });
         });
@@ -99,7 +102,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 myWorkspaceConfig, 
                 ()=>{
                     webviewPanel.webview.postMessage({
-                        type:postTypeTag.getSrc 
+                        type:postTypeTag.get("getSrc") 
                     });
                 }
             );

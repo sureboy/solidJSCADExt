@@ -4,11 +4,11 @@ import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import {postTypeTag} from './util';
+//import {postTypeTag} from './util';
 /**
  * Define the type of edits used in paw draw files.
  */
- 
+const postTypeTag = new Map<string,number>();
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -65,7 +65,12 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             enableScripts: true,
         };
         const handMap = new Map<string,(e?:any)=>void>();
-        handMap.set("loaded",()=>{this.loadSTL(document, webviewPanel);});
+        handMap.set("loaded",(e)=>{
+            (e.msg as string).split("|").forEach((v,i)=>{
+                postTypeTag.set(v,1<<i);
+            });
+            this.loadSTL(document, webviewPanel);
+        });
         handMap.set("start",()=>{this.tmpDate = Date.now();});
         handMap.set("end",()=>{
             vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
@@ -107,9 +112,9 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             const buffer = await vscode.workspace.fs.readFile(uri);
             webviewPanel.webview.postMessage({
                 //type:"stlData" ,
-                type:postTypeTag.stlData,
+                type:postTypeTag.get("stlData"),
                 //time:Date.now(),
-                msg:  buffer.buffer
+                msg: {db:buffer.buffer}
             });
             //webviewPanel.webview.postMessage({
             //    type:"end"

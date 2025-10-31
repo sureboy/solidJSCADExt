@@ -6,22 +6,31 @@ import type {messageObj} from "./function/ImportParser"
 import {gzipToString,srcStringToJsFile} from "./function/utils"
 import { addSceneSTL} from "./function/threeScene" 
 import {STLLoader} from "three/addons/loaders/STLLoader.js"
-    import { int } from 'three/tsl';
+
+
 let showMenu = true
-const  del = (msg:{name:string})=>{
-  delCurrentMsg(msg.name);
+type  handlePostMsg = (msg:any,postMessage?: (e: {name:string,db:string|ArrayBuffer,open:boolean}) => void)=>void
+const del:{name:string,fn:handlePostMsg} = {
+  name:"del",
+  fn:(msg:{name:string})=> {    
+    delCurrentMsg(msg.name);
+  }
 }
-type  handlePostMsg = (msg:any,postMessage?: (e: any) => void)=>void
-const init:handlePostMsg = (msg:messageObj&{open:boolean},postMessage?: (e: any) => void) =>{
+
+const init:{name:string,fn:handlePostMsg} = {
+  name:"init",
+  fn:(msg:messageObj&{open:boolean},postMessage?: (e: any) => void) =>{
   handleCurrentMsg(msg,postMessage)
- 
+  }
 }
-const run:handlePostMsg = (msg:{open:boolean},postMessage?: (e: any) => void) =>{
- 
-  runWorker(solidConfig.el,Object.assign({},solidConfig.workermsg,{cameraType:msg.open?solidConfig.workermsg.cameraType:''}),postMessage);
-   
+const run:{name:string,fn:handlePostMsg} ={
+  fn:(msg:{open:boolean},postMessage?: (e: any) => void) =>{ 
+    runWorker(solidConfig.el,Object.assign({},solidConfig.workermsg,{cameraType:msg.open?solidConfig.workermsg.cameraType:''}),postMessage);    
+  },
+  name:"run"
 }
-const getSrc:handlePostMsg = (msg:any,postMessage?: (e: any) => void) =>{
+const getSrc:{name:string,fn:handlePostMsg} = {
+  fn:(msg:any,postMessage?: (e: any) => void) =>{
   let indexName = solidConfig.workermsg.index;
       if (!indexName.startsWith("./")){
         indexName = "./"+indexName;
@@ -54,9 +63,12 @@ const getSrc:handlePostMsg = (msg:any,postMessage?: (e: any) => void) =>{
           
         })
       })
-  }
-const gzData:handlePostMsg = (message:ArrayBuffer,postMessage?: (e: any) => void)=>{
-  gzipToString(message).then(src=>{
+  },
+  name:"getSrc"
+}
+const gzData:{name:string,fn:handlePostMsg} = {
+  fn:(message:{db:ArrayBuffer},postMessage?: (e: any) => void)=>{
+  gzipToString(message.db).then(src=>{
     
     srcStringToJsFile(src,(db)=>{ 
       
@@ -66,20 +78,24 @@ const gzData:handlePostMsg = (message:ArrayBuffer,postMessage?: (e: any) => void
     console.log(solidConfig)
     runWorker(solidConfig.el,solidConfig.workermsg,postMessage);
   }) 
+  },
+  name:'gzData'
 }
-const stlData:handlePostMsg = (message:ArrayBuffer,)=>{
-  addSceneSTL(solidConfig.el,new STLLoader().parse(message));
-  showMenu=false
+const stlData:{name:string,fn:handlePostMsg} = {
+  fn:(message:{db:ArrayBuffer},)=>{
+  addSceneSTL(solidConfig.el,new STLLoader().parse(message.db));
+    showMenu=false
+  },
+name:"stlData"
 }
+export const Direction:{name:string,fn:handlePostMsg}[] =[  del,run,init,getSrc,gzData,stlData ] 
 const getMsgHandle = (type:number )=>{
   function* getTag  () {
-    const Direction:handlePostMsg[] =[del,run,init,getSrc,gzData,stlData] 
-    //const out =[]
-    for (let i = 0; i < Direction.length; i ++) {
     
+    //const out =[]
+    for (let i = 0; i < Direction.length; i ++) {    
       if ((type & (1<<i)) !==0){
         yield Direction[i]
-        //out.push(v)
       }
     }
     //return out 
@@ -92,7 +108,7 @@ export const HandleMessageNew = (
   postMessage?: (e: any) => void)=>{
     console.log("messagepost",message)
     for (const type of getMsgHandle(message.type)) {
-      type(message.msg,postMessage)
+      type.fn(message.msg,postMessage)
     }
 
 }

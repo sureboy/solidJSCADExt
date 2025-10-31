@@ -2,13 +2,13 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {startHttpServer,port,getLocalIp,clientwsMap,WSSendInit} from './httpServer';
-import {postTypeTag} from './util';
+import {startHttpServer,port,getLocalIp} from './httpServer';
+//import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 let tmpDate = Date.now();
-
+const TypeTag = new Map<string,number>();
  
 const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     if (panel){return panel;}
@@ -41,7 +41,7 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
     
     setHtmlForWebview(
         panel.webview,config,
-        workerspaceMessageHandMap(config.watchPath,tmpDate,(db:any)=>{
+        workerspaceMessageHandMap(config.watchPath,tmpDate,TypeTag,(db:any)=>{
            if (panel) {panel.webview.postMessage(db);}
            else {
             console.log(db);
@@ -53,7 +53,9 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
 };
 
  
-export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:number,postMessage:(db:any)=>void)=>{
+export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:number,postTypeTag:Map<string,number>,postMessage:(db:{
+    type:number,
+    msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void)=>{
     const handMap = new Map();
     handMap.set('req',(e:{path:string})=>{ 
         console.log(e);
@@ -63,7 +65,7 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
                     vscode.Uri.joinPath(
                         workerspacePath,e.path
                     )); 
-                postMessage({type:postTypeTag.init,msg:{db:t.buffer,name:e.path }});
+                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer,name:e.path }});
                 // postMessage({                         
                 //    init:{db:t.buffer,name:e.path } ,                                  
                 //});
@@ -71,7 +73,7 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
             }catch(err:any){
                 //console.log(err);
                 //vscode.window.showErrorMessage(err);
-                postMessage({type:postTypeTag.init,msg:{ name:e.path }});
+                postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
                 //postMessage({                         
                 //    init:{name:e.path } ,                                  
                 //});
@@ -87,11 +89,15 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
 			}
 		});
     });
-    handMap.set('loaded',()=>{
+    handMap.set('loaded',(e:any)=>{
         tmpDate = Date.now();
+        //console.log(e.msg.split("|"));
+        (e.msg as string).split("|").forEach((v,i)=>{
+            postTypeTag.set(v,1<<i);
+        });
         postMessage({                    
             msg:{open:true},
-            type:postTypeTag.run             
+            type:postTypeTag.get("run")||0             
         });       
     });    
     handMap.set('start',()=>{tmpDate = Date.now();});
@@ -166,7 +172,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                         //ws.send(JSON.stringify({run:true}));
                     //});
                     createPanel(config).webview.postMessage({  
-                        type:postTypeTag.init|postTypeTag.run ,
+                        type:(TypeTag.get("init")||0)|(TypeTag.get("run") ||0 ),
                         msg,
                         
                     });
@@ -185,7 +191,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                
                 if (panel){
                     panel.webview.postMessage({
-                        type:postTypeTag.del,
+                        type:TypeTag.get("del"),
                         msg:{
                             name:path.basename(uri.fsPath)
                         }
