@@ -3,7 +3,7 @@ import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider,newWorkspacePackage } from './gzEditorProvider'; 
 import { watcherServer } from './bundleServer'; 
 import * as path from "path";
-import { stopHttpServer } from './httpServer';
+//import { stopHttpServer } from './httpServer';
 
    
 export function activate(context: vscode.ExtensionContext) {
@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
     watcherServer(context);
     context.subscriptions.push(
      
-        vscode.commands.registerCommand('mgtoy.stopServer', stopHttpServer),
+        //vscode.commands.registerCommand('mgtoy.stopServer', stopHttpServer),
          
         
         vscode.commands.registerCommand('mgtoy.create', () => {
@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
                 newWorkspacePackage(
                     uri,
                     context,
-                    {name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src"},
+                    {name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src",port:3000},
                     ()=>{
                         vscode.workspace.fs.copy(
                             vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),

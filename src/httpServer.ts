@@ -5,8 +5,9 @@ import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
 import {workerspaceMessageHandMap} from './bundleServer'; 
 import * as os from "os";
-let server: http.Server | null = null;
-export const port = 3000; // 默认端口
+//let server: http.Server | null = null;
+//export const getPort = 3000; // 默认端口
+export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
 let tmpDate = Date.now();
 export const clientwsMap = new Set<WS.WebSocket>();
 export const getLocalIp = ()=> {
@@ -47,9 +48,9 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         res.writeHead(404);
     }
 };
-const createHttpServer = (context:vscode.ExtensionContext, config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+export const createHttpServer = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     
-    const libUri = vscode.Uri.joinPath(context.extensionUri,"myModule");
+    const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
                 // 解析请求路径
@@ -95,6 +96,8 @@ const createHttpServer = (context:vscode.ExtensionContext, config:{name:string,i
                 
                  
     });
+
+    //return server;
 };
 export const WSSend = (data:{
     type: number;
@@ -120,13 +123,9 @@ export const WSSend = (data:{
     ws.binaryType = "arraybuffer";
     ws.send(newBuffer.buffer);
 };
-export const startHttpServer = (context:vscode.ExtensionContext, config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
-    
-    if (server) {
-        vscode.window.showInformationMessage('服务器已在运行');
-        return server;
-    } 
-    server = createHttpServer(context,config);
+export const startWebSocketServer = (
+    server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
+    watchPath:vscode.Uri)=>{
     const wss = new WS.Server({ server }); 
     wss.on('connection', (ws,req) => {
         console.log("wss open",ws,req); 
@@ -137,7 +136,7 @@ export const startHttpServer = (context:vscode.ExtensionContext, config:{name:st
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
             listenMessage(JSON.parse(data),workerspaceMessageHandMap(
-                config.watchPath,
+                watchPath,
                 tmpDate,
                 TypeTag,
                 (e: {
@@ -151,8 +150,28 @@ export const startHttpServer = (context:vscode.ExtensionContext, config:{name:st
                     
                 }));
         });
- 
+    
     });
+    return wss;
+};
+export const startHttpServer = ( 
+    server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, 
+    Handle:()=>void,errHandle:(err:Error)=>void,port=3000)=>{
+    /*
+    if (server.listening) {
+        vscode.window.showInformationMessage( `Remote browsing address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
+            if (v==="Browser view"){
+                vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+            }
+        }); 
+        return server;
+    } else{
+        
+        server.close();
+    }
+   */
+    //const port = 3000; 
+    
     server.listen(port, () => {
         //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
         
@@ -161,15 +180,18 @@ export const startHttpServer = (context:vscode.ExtensionContext, config:{name:st
                 vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
             }
         }); 
+        Handle();
         
-    });
-
-    server.on('error', (err) => {
-        vscode.window.showErrorMessage(`服务器启动失败: ${err.message}`);
-        server = null;
-    });
-
+    }).on('error',(err)=>{
+        console.log(err);
+        //server.close();
+        errHandle(err);
+    } );
+    //server.listening
+    //console.log(server.address());
+    //return server;
 }; 
+/*
 export const stopHttpServer = ()=>{
     if (server) {
         server.close();
@@ -177,3 +199,4 @@ export const stopHttpServer = ()=>{
         vscode.window.showInformationMessage('服务器已停止');
     }
 };
+*/

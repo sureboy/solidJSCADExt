@@ -2,16 +2,46 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {startHttpServer,port,getLocalIp} from './httpServer';
+import {startWebSocketServer,WSSend,httpServer,clientwsMap,startHttpServer,createHttpServer,getLocalIp} from './httpServer';
+import { AddressInfo } from 'net';
 //import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
+let httpPort = 3000;
 let tmpDate = Date.now();
 const TypeTag = new Map<string,number>();
- 
+let Server:httpServer|null = null;
+
+const RunHttpServer = (config:{port?:number,name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+    if (!Server){
+        Server = createHttpServer(config);
+    }
+    httpPort = config.port||3000;
+    let errNumber = 10;
+    const runHttp = ()=>{
+        startHttpServer(Server!,()=>{
+            startWebSocketServer(Server!,config.watchPath);
+        },err=>{
+            if (err.message.startsWith("listen EADDRINUSE:")){
+                httpPort++;
+                errNumber--;
+                if (errNumber===0){
+                    return;
+                }
+                runHttp();
+            }
+        },httpPort);
+    };
+    runHttp();
+    return Server;
+};
 const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+
     if (panel){return panel;}
+
+ 
+
     if (!config.index){
         config.index = "index.js";
     }else if (!config.index.endsWith(".js")){
@@ -53,7 +83,10 @@ const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vs
 };
 
  
-export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:number,postTypeTag:Map<string,number>,postMessage:(db:{
+export const workerspaceMessageHandMap = (
+    workerspacePath:vscode.Uri,
+    tmpDate:number,
+    postTypeTag:Map<string,number>,postMessage:(db:{
     type:number,
     msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void)=>{
     const handMap = new Map();
@@ -65,7 +98,7 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
                     vscode.Uri.joinPath(
                         workerspacePath,e.path
                     )); 
-                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer,name:e.path }});
+                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});
                 // postMessage({                         
                 //    init:{db:t.buffer,name:e.path } ,                                  
                 //});
@@ -83,11 +116,23 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
         
     }); 
     handMap.set('initError',(message:{msg:string})=>{
-		vscode.window.showErrorMessage("err" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${port}` },"Browser view").then(v=>{
-		    if (v==="Browser view"){
-                 vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
-			}
-		});
+        vscode.window.showErrorMessage(message.msg);
+        if (Server){
+            const addr = Server.address();
+            console.log(addr);
+            if (!addr || typeof addr ==="string" ){
+                return;
+            }
+            const port  = addr.port;
+            vscode.window.showInformationMessage("info" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${port}` },"Browser view").then(v=>{
+                if (v==="Browser view"){
+                     vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+                }
+            });
+        } 
+           
+        
+		
     });
     handMap.set('loaded',(e:any)=>{
         tmpDate = Date.now();
@@ -101,11 +146,24 @@ export const workerspaceMessageHandMap = (workerspacePath:vscode.Uri,tmpDate:num
         });       
     });    
     handMap.set('start',()=>{tmpDate = Date.now();});
-    handMap.set('end',()=>{vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second. Remote address: http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
-        if (v==="Browser view"){
-            vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+    handMap.set('end',()=>{
+        vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second`);
+        if (Server){
+            const addr = Server.address();
+            console.log(addr);
+            if (!addr || typeof addr ==="string" ){
+                return;
+            }
+
+            const port  = addr.port;
+            vscode.window.showInformationMessage( `Remote address: http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
+                if (v==="Browser view"){
+                    vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+                }
+            });
         }
-    });});
+        
+   });
     return handMap;
 };
  
@@ -122,6 +180,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 name: string,
                 index: string,
                 main: string,
+                port?:number,
                 } = JSON.parse(v.toString());
             if (!conf.src){
                 return;
@@ -134,6 +193,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 main: string;
                 watchPath: vscode.Uri;
                 extensionUri: vscode.Uri;
+                port?:number
             } = {
                 watchPath : vscode.Uri.joinPath(
                     workspacePath,
@@ -141,9 +201,9 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 extensionUri : context.extensionUri,
                 ...conf
             };
-            startHttpServer(context,config);
             createPanel(config);
-            
+            RunHttpServer(config);
+            //Server = createHttpServer({...config,port:3000});
             const watcher = vscode.workspace.createFileSystemWatcher(
                 new vscode.RelativePattern(config.watchPath, '**/*.js')
             );
@@ -163,19 +223,18 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 
                 tmpDate = Date.now();
                 vscode.workspace.fs.readFile(uri).then(db=>{      
-                    const msg =   {
-                        db:  db.buffer,
-                        name 
-                    };
-                    //clientwsMap.forEach(ws=>{
-                    //    WSSendInit(init,ws);
-                        //ws.send(JSON.stringify({run:true}));
-                    //});
-                    createPanel(config).webview.postMessage({  
+                    const data = {  
                         type:(TypeTag.get("init")||0)|(TypeTag.get("run") ||0 ),
-                        msg,
-                        
+                        msg:{
+                            db:  db.buffer as ArrayBuffer,
+                            name 
+                        }                        
+                    };
+                    clientwsMap.forEach(ws=>{
+                        WSSend(data,ws);
+                        //ws.send(JSON.stringify({run:true}));
                     });
+                    createPanel(config).webview.postMessage(data);
                 });                
             });        
             // 监听文件删除事件

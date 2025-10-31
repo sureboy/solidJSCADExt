@@ -71,7 +71,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const NewWorkspace =  vscode.Uri.joinPath(
             vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
             [name,main].join("_"));
-        const myWorkspaceConfig = {name,main,index,date,src:"src"};
+        const myWorkspaceConfig = {name,main,index,date,src:"src",port:3000};
 
         const handMap = new Map<string, (e?: any) => void>();
         handMap.set('loaded',(e)=>{
@@ -180,7 +180,9 @@ export const newWorkspacePackage= async(
         index:string,
         main:string,
         date:string,
-        src:string},
+        src:string,
+        port:number,
+    },
         handleEnd?:()=>void)=>{
             
     await vscode.workspace.fs.writeFile(
@@ -244,6 +246,7 @@ const createWorkspacePackage = async(
     NewWorkspace:vscode.Uri,
     context: vscode.ExtensionContext,
     myWorkspaceConfig:{
+        port:number,
         name:string,
         index:string,
         main:string,
