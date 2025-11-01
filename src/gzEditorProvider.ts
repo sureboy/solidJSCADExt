@@ -71,7 +71,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const NewWorkspace =  vscode.Uri.joinPath(
             vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
             [name,main].join("_"));
-        const myWorkspaceConfig = {name,main,index,date,src:"src",port:3000};
+        const myWorkspaceConfig = {name,main,index,date,src:"src",port:3000,webview:true};
 
         const handMap = new Map<string, (e?: any) => void>();
         handMap.set('loaded',(e)=>{
@@ -182,6 +182,7 @@ export const newWorkspacePackage= async(
         date:string,
         src:string,
         port:number,
+        webview:boolean,
     },
         handleEnd?:()=>void)=>{
             
@@ -203,7 +204,8 @@ export const newWorkspacePackage= async(
     );*/
     //return handleEnd;
     //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
-    const cf = await vscode.workspace.fs.readFile(vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));
+    const cf = await vscode.workspace.fs.readFile(
+        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));
     
     const cf_ = JSON.parse(cf.toString());
     //console.log(cf_);
@@ -246,6 +248,7 @@ const createWorkspacePackage = async(
     NewWorkspace:vscode.Uri,
     context: vscode.ExtensionContext,
     myWorkspaceConfig:{
+        webview:boolean,
         port:number,
         name:string,
         index:string,

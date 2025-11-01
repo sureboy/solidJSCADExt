@@ -88,7 +88,7 @@ const stlData:{name:string,fn:handlePostMsg} = {
   },
 name:"stlData"
 }
-export const Direction:{name:string,fn:handlePostMsg}[] =[  del,run,init,getSrc,gzData,stlData ] 
+export const Direction:{name:string,fn:handlePostMsg}[] =[ init, del,run,getSrc,gzData,stlData ] 
 const getMsgHandle = (type:number )=>{
   function* getTag  () {
     

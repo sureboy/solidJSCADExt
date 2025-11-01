@@ -99,7 +99,19 @@ export const createHttpServer = ( config:{name:string,index:string,main:string,w
 
     //return server;
 };
-export const WSSend = (data:{
+export const WSSendUpdate = (type:string[],msg:{ 
+    db?: string | ArrayBuffer,
+    name?: string,
+    open?: boolean},ws:WS.WebSocket) => {
+
+        let tag = 0;
+        for (const t of type){          
+            tag |= TypeTag.get(t)||0;                     
+        }
+        WSSend({type:tag,msg},ws);
+
+};
+const WSSend = (data:{
     type: number;
     msg: {
         db?: string | ArrayBuffer;

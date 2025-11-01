@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
                 newWorkspacePackage(
                     uri,
                     context,
-                    {name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src",port:3000},
+                    {webview:true,name:path.basename(uri.fsPath),index:"index.js",main:"main",date:"",src:"src",port:3000},
                     ()=>{
                         vscode.workspace.fs.copy(
                             vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),

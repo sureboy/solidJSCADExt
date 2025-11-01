@@ -2,8 +2,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {startWebSocketServer,WSSend,httpServer,clientwsMap,startHttpServer,createHttpServer,getLocalIp} from './httpServer';
-import { AddressInfo } from 'net';
+import {startWebSocketServer,WSSendUpdate,httpServer,clientwsMap,startHttpServer,createHttpServer,getLocalIp} from './httpServer';
+
 //import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
@@ -36,8 +36,10 @@ const RunHttpServer = (config:{port?:number,name:string,index:string,main:string
     runHttp();
     return Server;
 };
-const createPanel  = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
-
+const createPanel  = ( config:{webview:boolean,name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+    if (!config.webview){
+        return;
+    }
     if (panel){return panel;}
 
  
@@ -136,10 +138,11 @@ export const workerspaceMessageHandMap = (
     });
     handMap.set('loaded',(e:any)=>{
         tmpDate = Date.now();
-        //console.log(e.msg.split("|"));
+        //console.log(e);
         (e.msg as string).split("|").forEach((v,i)=>{
             postTypeTag.set(v,1<<i);
         });
+        console.log(postTypeTag);
         postMessage({                    
             msg:{open:true},
             type:postTypeTag.get("run")||0             
@@ -180,7 +183,8 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 name: string,
                 index: string,
                 main: string,
-                port?:number,
+                port:number,
+                webview:boolean,
                 } = JSON.parse(v.toString());
             if (!conf.src){
                 return;
@@ -193,7 +197,8 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 main: string;
                 watchPath: vscode.Uri;
                 extensionUri: vscode.Uri;
-                port?:number
+                port:number,
+                webview:boolean,
             } = {
                 watchPath : vscode.Uri.joinPath(
                     workspacePath,
@@ -201,6 +206,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 extensionUri : context.extensionUri,
                 ...conf
             };
+          
             createPanel(config);
             RunHttpServer(config);
             //Server = createHttpServer({...config,port:3000});
@@ -223,18 +229,18 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 
                 tmpDate = Date.now();
                 vscode.workspace.fs.readFile(uri).then(db=>{      
-                    const data = {  
-                        type:(TypeTag.get("init")||0)|(TypeTag.get("run") ||0 ),
-                        msg:{
-                            db:  db.buffer as ArrayBuffer,
-                            name 
-                        }                        
+                    const msg={
+                        db:  db.buffer as ArrayBuffer,
+                        name 
                     };
                     clientwsMap.forEach(ws=>{
-                        WSSend(data,ws);
+                        WSSendUpdate(["init","run"],msg,ws);
                         //ws.send(JSON.stringify({run:true}));
                     });
-                    createPanel(config).webview.postMessage(data);
+                    createPanel(config)?.webview.postMessage( {  
+                        type:(TypeTag.get("init")||0)|(TypeTag.get("run") ||0 ),
+                        msg                   
+                    });
                 });                
             });        
             // 监听文件删除事件

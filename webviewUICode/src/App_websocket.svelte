@@ -16,7 +16,9 @@
     wss.send(JSON.stringify(msg))
   }
   onMount(() => {
-    console.log(window.location.host)
+    
+    console.log("href",window.location.href)
+    //window.localStorage.getItem(window.location.href)
     initSolidPage()
     wss = new WebSocket(`ws://${window.location.host}`);
     //
