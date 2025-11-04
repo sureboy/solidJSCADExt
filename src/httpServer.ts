@@ -8,7 +8,7 @@ import * as os from "os";
 //let server: http.Server | null = null;
 //export const getPort = 3000; // 默认端口
 export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
-let tmpDate = Date.now();
+//let tmpDate = Date.now();
 export const clientwsMap = new Set<WS.WebSocket>();
 export const getLocalIp = ()=> {
     const interfaces = os.networkInterfaces();
@@ -137,30 +137,32 @@ const WSSend = (data:{
 };
 export const startWebSocketServer = (
     server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
-    watchPath:vscode.Uri)=>{
+    watchPath:vscode.Uri )=>{
     const wss = new WS.Server({ server }); 
+    
     wss.on('connection', (ws,req) => {
-        console.log("wss open",ws,req); 
+        //console.log("wss open",ws,req); 
+        const handMap = workerspaceMessageHandMap(
+            watchPath,
+            //tmpDate,
+            TypeTag,
+            (e: {
+                type: number;
+                msg: {
+                    db?: string | ArrayBuffer;
+                    name?: string;
+                    open?: boolean;
+                }})=>{
+                WSSend(e,ws);
+                
+            });
         clientwsMap.add(ws);
         ws.onclose = ()=>{
             clientwsMap.delete(ws);
         };
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
-            listenMessage(JSON.parse(data),workerspaceMessageHandMap(
-                watchPath,
-                tmpDate,
-                TypeTag,
-                (e: {
-                    type: number;
-                    msg: {
-                        db?: string | ArrayBuffer;
-                        name?: string;
-                        open?: boolean;
-                    }})=>{
-                    WSSend(e,ws);
-                    
-                }));
+            listenMessage(JSON.parse(data),handMap);
         });
     
     });
@@ -169,21 +171,6 @@ export const startWebSocketServer = (
 export const startHttpServer = ( 
     server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, 
     Handle:()=>void,errHandle:(err:Error)=>void,port=3000)=>{
-    /*
-    if (server.listening) {
-        vscode.window.showInformationMessage( `Remote browsing address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
-            if (v==="Browser view"){
-                vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
-            }
-        }); 
-        return server;
-    } else{
-        
-        server.close();
-    }
-   */
-    //const port = 3000; 
-    
     server.listen(port, () => {
         //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
         
@@ -192,6 +179,7 @@ export const startHttpServer = (
                 vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
             }
         }); 
+
         Handle();
         
     }).on('error',(err)=>{

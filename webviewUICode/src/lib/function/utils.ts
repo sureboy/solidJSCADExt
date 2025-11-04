@@ -1,5 +1,14 @@
 import {regexExec} from "./ImportParser";
-
+export type workerConfigType = {
+  cameraType: 'Perspective' |'Orthographic';
+  module: (modulelist: {
+      list: string[];
+      basename: string;
+  }) => void;
+  main: string;
+  index: string;
+}
+export type sConfig = {el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void}  
 export const gzipToString= async (data: ArrayBuffer )=>{
     const decompressedStream = new DecompressionStream('gzip');
     const writer = decompressedStream.writable.getWriter();

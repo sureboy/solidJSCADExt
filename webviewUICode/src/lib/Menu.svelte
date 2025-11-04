@@ -1,29 +1,61 @@
-<script lang="ts" module>
-     
-export const workermsg = {
-      ...(window as any).myConfig as {name:string,main:string,index:string},
-      cameraType:"Perspective",
-      //solidName : "...",
-      module:(m:{ list: string[];
-        basename: string;})=>{
-        //workermsg.solidName = m.basename
-        moduleInit(m)
-      } 
-    }
-</script>
-
 <script lang="ts">
+import type { sConfig,workerConfigType } from './function/utils';
 import DownMenu from "./DownMenu.svelte";
 import MainMenu,{moduleInit} from "./MainMenu.svelte"; 
-export let Clickhandle:(n:string)=>void;
-//export let cameraType:string = ""
+import Camera,{toggleCamera} from "./Camera.svelte"; 
+import {onWindowResize,switchView } from "./function/threeScene" 
+import { runWorker } from "./function/worker";  
+const { solidConfig }:{ solidConfig:sConfig} = $props();
+const myConfig = (window as any).myConfig as {name:string,main:string,index:string}
+const workermsg:workerConfigType =  {
+    ...myConfig,
+    cameraType:"Perspective", 
+    module:(m:{ list: string[];
+    basename: string;})=>{ 
+        moduleInit(m)
+    }
+}
+solidConfig.workermsg = workermsg
 
+
+
+
+const handleView = new Map<string,()=>void>()
+
+handleView.set("camera",()=>{
+    solidConfig.workermsg.cameraType = toggleCamera()
+    onWindowResize(solidConfig.el!,solidConfig.workermsg.cameraType)
+})
+
+ 
 </script>
-<div id="downMenuList">
-    <div style="position: absolute;right:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto " >     
-        <DownMenu {workermsg} ></DownMenu>     
-    </div>
-    <div style="position:absolute;left:0px;top:5px;z-index:10;width:100%;font-weight: 500;" class="pointer-events-auto">
-        <MainMenu {Clickhandle}    ></MainMenu>
-    </div>
+
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions
+ onclick="{()=>{
+solidConfig.workermsg.cameraType = toggleCamera()
+    onWindowResize(solidConfig.el!,solidConfig.workermsg.cameraType)
+}}" 
+-->
+
+ 
+<div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
+    {#if  (( solidConfig.showMenu & 1) !== 0)}   <MainMenu   Clickhandle = {(n:string)=>{            
+        solidConfig.workermsg.main = n    
+        runWorker(solidConfig )
+            }} ></MainMenu>
+             {/if}
+    {#if (( solidConfig.showMenu & 1<<1) !== 0)}  <Camera   Clickhandle={(n)=>{
+        console.log(n)
+        if (handleView.has(n)){
+            handleView.get(n)();
+        } else{
+            switchView(n)  
+        }
+           
+    }} ></Camera>
+    {/if}
+    {#if  (( solidConfig.showMenu & 1<<2) !== 0)}    <DownMenu workermsg={myConfig} ></DownMenu>   {/if}
 </div>
+
+ 

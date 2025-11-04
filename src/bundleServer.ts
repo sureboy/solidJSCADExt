@@ -9,10 +9,16 @@ let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 let httpPort = 3000;
-let tmpDate = Date.now();
+//let _tmpDate = Date.now();
 const TypeTag = new Map<string,number>();
 let Server:httpServer|null = null;
-
+export const stopHttpServer = ()=>{
+    if (Server) {
+        Server.close();
+        Server = null;
+        vscode.window.showInformationMessage('服务器已停止');
+    }
+};
 const RunHttpServer = (config:{port?:number,name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
     if (!Server){
         Server = createHttpServer(config);
@@ -73,7 +79,7 @@ const createPanel  = ( config:{webview:boolean,name:string,index:string,main:str
     
     setHtmlForWebview(
         panel.webview,config,
-        workerspaceMessageHandMap(config.watchPath,tmpDate,TypeTag,(db:any)=>{
+        workerspaceMessageHandMap(config.watchPath,TypeTag,(db:any)=>{
            if (panel) {panel.webview.postMessage(db);}
            else {
             console.log(db);
@@ -87,11 +93,12 @@ const createPanel  = ( config:{webview:boolean,name:string,index:string,main:str
  
 export const workerspaceMessageHandMap = (
     workerspacePath:vscode.Uri,
-    tmpDate:number,
+    //setTmpDate:(d:number)=>void,
     postTypeTag:Map<string,number>,postMessage:(db:{
     type:number,
     msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void)=>{
     const handMap = new Map();
+    let tmpDate = Date.now();
     handMap.set('req',(e:{path:string})=>{ 
         console.log(e);
         const fn = async ()=>{
@@ -114,8 +121,7 @@ export const workerspaceMessageHandMap = (
                 //});
             }
         };
-        fn();
-        
+        fn();        
     }); 
     handMap.set('initError',(message:{msg:string})=>{
         vscode.window.showErrorMessage(message.msg);
@@ -151,12 +157,13 @@ export const workerspaceMessageHandMap = (
     handMap.set('start',()=>{tmpDate = Date.now();});
     handMap.set('end',()=>{
         vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second`);
-        if (Server){
+        if (Server && clientwsMap.size===0){
             const addr = Server.address();
             console.log(addr);
-            if (!addr || typeof addr ==="string" ){
+            if (!addr || typeof addr ==="string"  ){
                 return;
             }
+            //console.log(clientwsMap.size);
 
             const port  = addr.port;
             vscode.window.showInformationMessage( `Remote address: http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
@@ -168,6 +175,18 @@ export const workerspaceMessageHandMap = (
         
    });
     return handMap;
+};
+export const reload = ()=>{
+    console.log(vscode.workspace.getConfiguration().get("title"));
+    /*
+    if (!vscode.workspace.workspaceFolders){
+        return;
+    }
+    for (const f of vscode.workspace.workspaceFolders){
+        vscode.Uri.joinPath(f.uri,"mgtoy.json")
+    }
+        */
+    //vscode.workspace.workspaceFolders?[0]
 };
  
 export const watcherServer = (context: vscode.ExtensionContext)=>{
@@ -227,7 +246,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 vscode.window.showInformationMessage(`Change: ${name}`);
                 //console.log('文件更改:', uri.fsPath);
                 
-                tmpDate = Date.now();
+                //tmpDate = Date.now();
                 vscode.workspace.fs.readFile(uri).then(db=>{      
                     const msg={
                         db:  db.buffer as ArrayBuffer,

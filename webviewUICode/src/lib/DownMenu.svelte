@@ -1,7 +1,7 @@
 <script lang="ts" >
     import { Exporter} from "./function/threeScene" 
-    import {getCurrent,getCurrentCode,regexExec} from "./function/ImportParser"  
-    export let workermsg:{name:string,index:string,main:string}
+    import {getCurrent,getCurrentCode} from "./function/ImportParser"  
+    let {workermsg}:{workermsg:{name:string,index:string,main:string} } = $props()
  
     const downSTLclick = ()=>{
       const res = Exporter() 
@@ -73,82 +73,18 @@ ${code}
   }
     
 </script>
-<details name="downMenu"  >
-    <summary class="download-summary" >
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M24 32L24 16M24 32L18 26M24 32L30 26" stroke="#3498db" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 38H38" stroke="#3498db" stroke-width="3" stroke-linecap="round"/>
-      </svg>
+
+<details    >
+    <summary style="cursor:pointer;height:48px;text-align:left;line-height: 48px;" >
+       Download
     </summary>
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="download-options">
-        <div class="download-option"    >
-            <div class="option-text" onclick="{downSTLclick}" >STL</div> 
-        </div>        
-        <div class="download-option"   > 
-            <div class="option-text" onclick={downCodeclick} >Gzip</div> 
-        </div>        
+ 
+    <div >
+       
+            <button style="height:48:px;line-height:48px;cursor: pointer;" onclick="{downSTLclick}" >STL</button> 
+         
+            <button style="height:48:px;line-height:48px;cursor: pointer;" onclick={downCodeclick} >Gzip</button> 
+              
     </div>
 </details>
-
-<style>
-
-    .download-summary {   
-      cursor: pointer;
-        list-style: none; /* 移除默认箭头 */
-    }        
-    /* 自定义下拉箭头 */
-    .download-summary::-webkit-details-marker {
-      cursor: pointer;
-        display: none; /* 隐藏默认箭头 */
-    }
-    /* 下拉菜单样式 */
-    .download-options {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        background: white;
-        border-radius: 15px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-        margin-top: 10px;
-        z-index: 100;
-        overflow: hidden;
-        animation: slideDown 0.3s ease forwards;
-    }
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .download-option {
-        padding: 16px 0px;
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    .download-option:last-child {
-        border-bottom: none;
-    }
-    .download-option:hover {
-        background: #f8f9fa;
-        transform: translateX(5px);
-    }   
-    .option-text {
-        flex: 1;
-        text-align: center;
-        font-weight: 500;
-        color: #2c3e50;
-    }
-    
-    
-     
-    </style>
+ 

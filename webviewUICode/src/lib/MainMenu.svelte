@@ -19,20 +19,17 @@ export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
 </script>
 <script lang="ts" >
    // import { runWorker } from "./function/worker"; 
-   export let Clickhandle:(name:string)=>void
-
-   //$: showName = solidName
-
-   
+  // export let Clickhandle:(name:string)=>void
+  let {Clickhandle}:{Clickhandle:(name:string)=>void } = $props()
 </script>
-<details name="moduleMenu"  >
-    <summary bind:this={solidName} style="cursor: pointer;height:48px;text-align: center;line-height: 48px;"  >
+<details    >
+    <summary bind:this={solidName} style="cursor: pointer;height:48px;text-align: left;line-height: 48px;"  >
 ...
 </summary>
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div  style="color:white;text-align: center;" id="module_list" bind:this={menu}    onclick="{(e)=>{
- const button = (e.target  as HTMLInputElement).closest('button');
+  const button = (e.target  as HTMLInputElement).closest('button');
       console.log(button.textContent)
       if (button.textContent==="..."){
         return;
@@ -41,12 +38,9 @@ export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
       //solidName = button.textContent
       solidName.textContent = "..."
       Clickhandle(button.textContent);
-}}" >
- 
-    <button bind:this={tmpDiv} onclick="{e=>{console.log(e); }}" class="option-text" style="height:48:px;line-height:48px;cursor: pointer;" >
-      ...
-    </button>
- 
- 
-</div>
+}}" > 
+  <button bind:this={tmpDiv}  style="height:48:px;line-height:48px;cursor: pointer;" >
+    ...
+  </button> 
+</div> 
 </details>

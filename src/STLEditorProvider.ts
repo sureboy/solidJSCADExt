@@ -132,7 +132,5 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         panel.webview.postMessage({ type, requestId, body });
         return p;
     }
-
- 
- 
+     
 }

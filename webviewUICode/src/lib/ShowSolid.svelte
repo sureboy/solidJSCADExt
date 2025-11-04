@@ -1,53 +1,27 @@
 <script lang="ts" module >
 import { createCanvasElement } from "three";
 import {onWindowResize } from "./function/threeScene" 
-import Camera,{toggleCamera} from "./Camera.svelte"; 
-import Menu,{workermsg} from "./Menu.svelte";
+import type { sConfig } from './function/utils';
 
 let container:HTMLElement;  
-//export let cameraType:string=""
-// let el:HTMLCanvasElement|null;  
-export const solidConfig:{el?:HTMLCanvasElement,workermsg:any} = { workermsg}
 
-//workermsg.cameraType = cameraType
-export const initSolidPage = ()=>{
+export const initSolidPage = (solidConfig:sConfig)=>{
     solidConfig.el = createCanvasElement() ;   
     solidConfig.el.width = document.body.clientWidth;
     solidConfig.el.height = document.body.clientHeight;
     container.innerHTML=""
     container.appendChild(solidConfig.el)  
     window.addEventListener('resize', ()=>{
-        solidConfig.el!.width = document.body.clientWidth;
-        solidConfig.el!.height = document.body.clientHeight; 
-      onWindowResize(solidConfig.el!,workermsg.cameraType)
+      solidConfig.el!.width = document.body.clientWidth;
+      solidConfig.el!.height = document.body.clientHeight; 
+      onWindowResize(solidConfig.el!,solidConfig.workermsg.cameraType)
     });   
 }
 </script>
-<script lang="ts">
-  import { runWorker } from "./function/worker";
-    export let postMessage:(db:any)=>void;
-    export let showMenu = true
 
-</script>
 
 <div bind:this={container}  style="position: absolute;left:0;top:0;z-index: 1;" > 
 </div> 
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-<div onclick="{()=>{
-     workermsg.cameraType = toggleCamera()
-        console.log(workermsg)
-        onWindowResize(solidConfig.el!,workermsg.cameraType)
-}}" style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
-    <Camera  ></Camera>
-</div>
-{#if showMenu}
-<Menu   Clickhandle={(n)=>{
-    workermsg.main = n
-    
-    //console.log(workermsg) 
-    runWorker(solidConfig.el,workermsg,postMessage)
-}}></Menu>
-{/if}
+
  

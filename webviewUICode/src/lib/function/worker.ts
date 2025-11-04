@@ -1,17 +1,8 @@
 import {getCurrent} from "./ImportParser";
 import {onWindowResize,startSceneOBJ,addSceneOBJ} from "./threeScene" ;
 import { CSG2Three } from "./csg2Three";
-//import { vscode } from './vscodeApi';
-type workerConfigType = {
-  cameraType: string;
-  module: (modulelist: {
-      list: string[];
-      basename: string;
-  }) => void;
-  main: string;
-  index: string;
-}
- 
+import type { sConfig } from './utils';
+
 const consoleLog = `
 const originalLog = console.log;
 console.log = (...e)=>{
@@ -72,29 +63,30 @@ export const runWorkerInVscode = (el:HTMLCanvasElement,message:workerConfigType 
    
 };
 */
-export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMessage?:(e:any)=>void )=>{
+export const runWorker =( conf:sConfig  )=>{
   if (worker){
     worker.terminate();
     worker = null;
   }
-  postMessage({
+  conf.postMessage({
     type:'start'
   });
-  getBaseUrl(message,postMessage).then(baseUrl=>{
+  conf.showMenu = 1;
+  getBaseUrl(conf.workermsg,conf.postMessage).then(baseUrl=>{
     //const baseUrl =await getBaseUrl(message,postMessage);
  
     worker = new Worker(baseUrl,{type: "module"});
     //console.log(worker)  
     worker.onerror = e=>{
       console.error("error", e );
-      postMessage({
+      conf.postMessage({
         type:'error',
         msg:"Code syntax error"
       });
     };
     worker.onmessageerror = e=>{
       console.error("messageErr",e);
-      postMessage({
+      conf.postMessage({
         type:'error',
         msg:e.data
       });
@@ -106,41 +98,43 @@ export const runWorker =( el:HTMLCanvasElement,message:workerConfigType,postMess
       console.log(e,msg);
       if (msg.start ){
         try{
-          startSceneOBJ(el);
+          startSceneOBJ(conf.el);
         }catch(err){
-          postMessage({
+          conf.postMessage({
             type:'initError',
             msg:err.error
           });
         }
         
       }
-       if (msg.ver){
-        addSceneOBJ(el, CSG2Three(msg.ver,{}) );
+      if (msg.ver){
+        addSceneOBJ(conf.el, CSG2Three(msg.ver,{}) );
         //console.log("update",(Date.now()-tmpDate) /1000)
       }
       if (msg.end ){
         if (msg.module){
-            message.module(msg.module);
+          conf.workermsg.module(msg.module);
+
         }
-        console.log("cameraType",message.cameraType);
-        onWindowResize(el!,message.cameraType )	;
+        console.log("cameraType",conf.workermsg.cameraType);
+        onWindowResize(conf.el!,conf.workermsg.cameraType )	;
         worker?.terminate();
         URL.revokeObjectURL(baseUrl);
         worker= null;
         //console.log("end",(Date.now()-tmpDate) /1000)
-        postMessage({
+        conf.postMessage({
           type:'end'
         });
+        conf.showMenu = 1 | 1<<1 | 1<<2;
       }
        if (msg.log){
-        postMessage({
+        conf.postMessage({
           type:'log',
           msg:msg.log
         });
       }
        if (msg.error){
-        postMessage({
+        conf.postMessage({
           type:'error',
           msg:msg.error
         });

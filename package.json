@@ -14,18 +14,52 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "package-explorer",
+          "title": "test1111",
+          "icon": "myModule/logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "package-explorer": [
+        {
+          "id": "package-dependencies",
+          "name": "create",
+          "icon": "webviewCode/logo.svg",
+          "contextualTitle": "Package Explorer"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "package-dependencies", 
+        "contents": "## Welcome MGToy！\n\n[create](command:mgtoy.create)"
+      }
+    ],
+    "configuration": {
+      "title": "Setting",
+      "properties": {
+      }
+    },
     "commands": [
       {
         "command": "mgtoy.create",
         "title": "mgtoy create"
       },
       {
-        "command": "mgtoy.startServer",
-        "title": "mgtoy http"
+        "command": "mgtoy.open",
+        "title": "mgtoy open"
       },
       {
-        "command": "mgtoy.stopServer",
-        "title": "mgtoy stop"
+        "command": "mgtoy.reload",
+        "title": "mgtoy reload"
+      },
+      {
+        "command": "mgtoy.stopHttp",
+        "title": "mgtoy stophttp"
       }
     ],
     "customEditors": [

@@ -13,15 +13,15 @@ import {
     Object3D,
 	Mesh,
 	MeshPhongMaterial,
-	AxesHelper
+	AxesHelper,  
 } from "three"; 
 //import { WebGPURenderer } from '';
 //import {	
 //  WebGPURenderer
 //} from "three/webgpu"
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import {STLExporter} from "three/addons/exporters/STLExporter.js" 
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import {STLExporter} from "three/addons/exporters/STLExporter.js" ;
 //const cube = new Mesh();
 //const loader = new STLLoader()
 
@@ -34,7 +34,7 @@ const hemisphereLight = new HemisphereLight(
 	0xffffbb, // 地面颜色
 	0.6 // 强度
   );
-  scene.add(hemisphereLight);
+scene.add(hemisphereLight,);
 const directionalLight = new DirectionalLight(0xffffff, 1);
 directionalLight.position.set(5, 10, 7);
 directionalLight.castShadow = true;
@@ -54,15 +54,15 @@ LightGroup.add(fillLight);
 // 4. 边缘光/轮廓光 - 增强物体轮廓
 const rimLight = new DirectionalLight(0xffffff, 0.4);
 rimLight.position.set(0, 5, -10);
-LightGroup.add(rimLight)
+LightGroup.add(rimLight);
 
 const axes = new AxesHelper(20);
-LightGroup.add(axes)
+LightGroup.add(axes);
 
 scene.background = null; 
 
 const cameraP = new PerspectiveCamera(40, 1, 0.1, 2000);// new PerspectiveCamera(50, 1, 0.1, 2000); 
-const camerak = new OrthographicCamera(0,0,0,0,0.1,2000)
+const camerak = new OrthographicCamera(0,0,0,0,0.1,2000);
 let camera:OrthographicCamera|PerspectiveCamera =cameraP ; 
 let renderer:WebGLRenderer;
 let OrbControls:OrbitControls;
@@ -76,75 +76,121 @@ const hemisphereLight = new HemisphereLight(0xffffff, 0x444444);
 const axes = new AxesHelper(20);
 LightGroup.add(directionalLight,axes,hemisphereLight)
 */
-scene.add(group)
-scene.add(LightGroup)
-const getSize = (obj:Object3D)=>{
-	const fobj = new Box3().setFromObject(obj)
-	const sceneSize = fobj.getSize(new Vector3())
-	let size =   sceneSize.length();
-	if (!size) size= getSize(axes)
-	return size
-}
-const ExporterSTL =new STLExporter()
-export const Exporter  = ()=> ExporterSTL.parse(group,{binary: true})
-	
-
  
+scene.add(group);
+scene.add(LightGroup);
+const getSceneSize = (obj:Object3D)=>{
+	const fobj = new Box3().setFromObject(obj);
+	return fobj.getSize(new Vector3());
+	 
+};
+const getSize = (obj:Object3D)=>{
+	 
+	const sceneSize = getSceneSize(obj);
+	let size =   sceneSize.length();
+	console.log(sceneSize,size);
+	if (!size) {size= getSize(axes);}
+	return size;
+};
+const ExporterSTL =new STLExporter();
+export const Exporter  = ()=> ExporterSTL.parse(group,{binary: true});
+//let viewDistance = 1;
+let QviewDistance = 15;
+let isOrthographic = false;
+let cameraFov:number =cameraP.fov;
+const perspectiveViews = {
+	front:  { position: new  Vector3(0, 0, 1), up: new Vector3(0, 1, 0) },
+	back:   { position: new Vector3(0, 0, -1),  up: new Vector3(0, 1, 0) },
+	left:   { position: new Vector3(-1, 0, 0),  up: new Vector3(0, 1, 0) },
+	right:  { position: new Vector3(1, 0, 0),  up: new Vector3(0, 1, 0) },
+	top:    { position: new Vector3(0, 1, 0),  up: new Vector3(0, 0, -1) },
+	bottom: { position: new Vector3(0, -1, 0),  up: new Vector3(0, 0, 1) },
+	isometric: { position: new Vector3(8, 8, 8),  up: new Vector3(0, 1, 0) }
+};
+
+const orthographicViews = {
+	front:  { position: new Vector3(0, 0, QviewDistance), up: new Vector3(0, 1, 0) },
+	back:   { position: new Vector3(0, 0, -QviewDistance), up: new Vector3(0, 1, 0) },
+	left:   { position: new Vector3(-QviewDistance, 0, 0), up: new Vector3(0, 1, 0) },
+	right:  { position: new Vector3(QviewDistance, 0, 0), up: new Vector3(0, 1, 0) },
+	top:    { position: new Vector3(0, QviewDistance, 0), up: new Vector3(0, 0, -1) },
+	bottom: { position: new Vector3(0, -QviewDistance, 0), up: new Vector3(0, 0, 1) },
+	isometric: { position: new Vector3(10, 10, 10), up: new Vector3(0, 1, 0) }
+};
+export function switchView(direction:string) {
+	const views = isOrthographic ? orthographicViews : perspectiveViews;
+	const view = views[direction];
+	console.log(direction,view);
+	if (view) {
+		// 直接设置相机位置和朝向
+		camera.position.copy( isOrthographic?view.position:getPz(group,view.position.clone()) );
+		//camera.up.copy(view.up);
+		camera.lookAt(0, 0, 0);
+		//if (!isOrthographic){cameraP.aspect = el.width/el.height	;}
+		// 更新控制器
+		OrbControls.target.set(0, 0, 0);
+		OrbControls.update();
+	}
+}
+function getPz  (obj: Object3D,position:Vector3){
+	const  sizeM = getSceneSize(obj);
+	const size = sizeM.multiply(position).length();
+	console.log("pz",size,position);
+	const fov =  cameraFov*(Math.PI /180); 	 
+	return position.multiplyScalar(size*2);
+};
+
 export function onWindowResize(el: HTMLCanvasElement, changeCamera:string = "Perspective" ) {
-	if (!renderer)return;
+	if (!renderer){
+		return;
+	}
 	//if (group.children.length===0)return;
 	//console.log(el.width,el.height,orthographic,changeCamera,group)
  
-		if (changeCamera ==="Orthographic"){ 
-			
-			//let  size = getSize(group);
-			const k = el.width/el.height
-			const s = getSize(group)/2;
-			camera = camerak;
-			//camera = new OrthographicCamera( -s *k,s*k,s,-s,0.1,2000)
-			camera.left = -s *k;
-			camera.right = s*k;
-			camera.top = s;
-			camera.bottom = -s;
-			//camera = new OrthographicCamera( -1,1,1,-1,0.1,2000)
-			//console.log(s)
-			camera.position.set(0,0,s); 
-			initOrb(el)
-			//camera.lookAt(scene.position)
-		}else if (changeCamera==="Perspective"){
-		
-			 
-			camera =cameraP
-			const  size = getSize(group);
-			const fov =  camera.fov*(Math.PI /180); 	 
-			camera.position.z = size /2/Math.tan(fov/2); 	 	
-			camera.aspect = el.width/el.height	
-			initOrb(el)		
-		}
- 
-	
-	//OrbControls.object = camera	 
-	camera.updateProjectionMatrix()
-	renderer.setSize(el.width,el.height)	
-	renderer.render(scene, camera)
+	if (changeCamera ==="Orthographic"){  
+		isOrthographic=true;
+		const k = el.width/el.height;
+		const s = getSize(group)/2;
+		camera = camerak; 
+		camera.left = -s *k;
+		camera.right = s*k;
+		camera.top = s;
+		camera.bottom = -s;
+		camera.position.set(0,0,-s); 
+		QviewDistance = s;
+		initOrb(el); 
+	}else if (changeCamera==="Perspective"){
+		isOrthographic=false;
+		camera =cameraP;
+		const  size = getSize(group);
+		//cameraFov = camera.fov;
+		const fov =  camera.fov*(Math.PI /180); 	 
+		camera.position.z = size /2/Math.tan(fov/2); 	
+		//viewDistance =  camera.position.z;	
+		camera.aspect = el.width/el.height	;
+		initOrb(el)	;	
+	} 
+	camera.updateProjectionMatrix();
+	renderer.setSize(el.width,el.height);	
+	renderer.render(scene, camera);
 }
 const AnimationFrame = ()=>{
 	requestAnimationFrame(() => {
-		renderer.render(scene, camera)
+		renderer.render(scene, camera);
 		//OrbControls.update();
 	}); 	
-}
+};
 const initOrb = (el:HTMLCanvasElement)=>{
 	if (OrbControls){
-		OrbControls.object = camera
-		OrbControls.removeEventListener("change",AnimationFrame)
+		OrbControls.object = camera;
+		OrbControls.removeEventListener("change",AnimationFrame);
 		//return;
 		//OrbControls.dispose()
 	}else{
 		OrbControls = new OrbitControls(camera, el); 
 	}
 	
-	OrbControls.addEventListener("change",AnimationFrame)
+	OrbControls.addEventListener("change",AnimationFrame);
 
 	/*
 	OrbControls.addEventListener("start",(e)=>{ 

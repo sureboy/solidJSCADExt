@@ -197,7 +197,7 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 		break;
 	case 'error':
 		console.log(message);
-		vscode.window.showErrorMessage("err" ,{modal:true,detail:message.msg });
+		vscode.window.showErrorMessage( message.msg );
 		break;
 
 	default:
