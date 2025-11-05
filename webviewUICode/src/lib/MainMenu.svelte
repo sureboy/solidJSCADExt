@@ -14,7 +14,7 @@ export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
       
        menu.appendChild(div)
     })
-    menu.appendChild(tmpDiv)
+    //menu.appendChild(tmpDiv)
 }
 </script>
 <script lang="ts" >

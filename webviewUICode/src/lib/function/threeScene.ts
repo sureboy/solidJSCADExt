@@ -61,9 +61,9 @@ LightGroup.add(axes);
 
 scene.background = null; 
 
-const cameraP = new PerspectiveCamera(40, 1, 0.1, 2000);// new PerspectiveCamera(50, 1, 0.1, 2000); 
-const camerak = new OrthographicCamera(0,0,0,0,0.1,2000);
-let camera:OrthographicCamera|PerspectiveCamera =cameraP ; 
+//const cameraP = new PerspectiveCamera(40, 1, 0.1, 2000);// new PerspectiveCamera(50, 1, 0.1, 2000); 
+//const camerak = new OrthographicCamera(0,0,0,0,0.1,2000);
+let camera:OrthographicCamera|PerspectiveCamera =new PerspectiveCamera(40, 1, 0.1, 2000); ; 
 let renderer:WebGLRenderer;
 let OrbControls:OrbitControls;
 let _el: HTMLCanvasElement;
@@ -97,7 +97,7 @@ export const Exporter  = ()=> ExporterSTL.parse(group,{binary: true});
 //let viewDistance = 1;
 let QviewDistance = 15;
 let isOrthographic = false;
-let cameraFov:number =cameraP.fov;
+let cameraFov:number = 1;// =cameraP.fov;
 const perspectiveViews = {
 	front:  { position: new  Vector3(0, 0, 1), up: new Vector3(0, 1, 0) },
 	back:   { position: new Vector3(0, 0, -1),  up: new Vector3(0, 1, 0) },
@@ -105,7 +105,7 @@ const perspectiveViews = {
 	right:  { position: new Vector3(1, 0, 0),  up: new Vector3(0, 1, 0) },
 	top:    { position: new Vector3(0, 1, 0),  up: new Vector3(0, 0, -1) },
 	bottom: { position: new Vector3(0, -1, 0),  up: new Vector3(0, 0, 1) },
-	isometric: { position: new Vector3(8, 8, 8),  up: new Vector3(0, 1, 0) }
+	//isometric: { position: new Vector3(8, 8, 8),  up: new Vector3(0, 1, 0) }
 };
 
 const orthographicViews = {
@@ -115,7 +115,7 @@ const orthographicViews = {
 	right:  { position: new Vector3(QviewDistance, 0, 0), up: new Vector3(0, 1, 0) },
 	top:    { position: new Vector3(0, QviewDistance, 0), up: new Vector3(0, 0, -1) },
 	bottom: { position: new Vector3(0, -QviewDistance, 0), up: new Vector3(0, 0, 1) },
-	isometric: { position: new Vector3(10, 10, 10), up: new Vector3(0, 1, 0) }
+	//isometric: { position: new Vector3(10, 10, 10), up: new Vector3(0, 1, 0) }
 };
 export function switchView(direction:string) {
 	const views = isOrthographic ? orthographicViews : perspectiveViews;
@@ -123,8 +123,8 @@ export function switchView(direction:string) {
 	console.log(direction,view);
 	if (view) {
 		// 直接设置相机位置和朝向
-		camera.position.copy( isOrthographic?view.position:getPz(group,view.position.clone()) );
-		//camera.up.copy(view.up);
+		camera.position.copy( isOrthographic?view.position:getSizeVector(group,view.position.clone()) );
+		camera.up.copy(view.up);
 		camera.lookAt(0, 0, 0);
 		//if (!isOrthographic){cameraP.aspect = el.width/el.height	;}
 		// 更新控制器
@@ -132,12 +132,14 @@ export function switchView(direction:string) {
 		OrbControls.update();
 	}
 }
-function getPz  (obj: Object3D,position:Vector3){
+function getSizeVector  (obj: Object3D,position:Vector3){
+	const p = new Vector3(position[0]&1^1,position[1]&1^1,position[1]&1^1);
 	const  sizeM = getSceneSize(obj);
-	const size = sizeM.multiply(position).length();
-	console.log("pz",size,position);
+	const size = sizeM.multiply(p).length();
+	//console.log("pz",size,position);
 	const fov =  cameraFov*(Math.PI /180); 	 
-	return position.multiplyScalar(size*2);
+	const z = size /2/Math.tan(fov/2); 
+	return position.multiplyScalar(z);
 };
 
 export function onWindowResize(el: HTMLCanvasElement, changeCamera:string = "Perspective" ) {
@@ -151,19 +153,26 @@ export function onWindowResize(el: HTMLCanvasElement, changeCamera:string = "Per
 		isOrthographic=true;
 		const k = el.width/el.height;
 		const s = getSize(group)/2;
-		camera = camerak; 
+		if (camera){
+			camera.clear();
+		}
+		camera = new OrthographicCamera(0,0,0,0,0.1,2000); 
 		camera.left = -s *k;
 		camera.right = s*k;
 		camera.top = s;
 		camera.bottom = -s;
 		camera.position.set(0,0,-s); 
 		QviewDistance = s;
+		
 		initOrb(el); 
 	}else if (changeCamera==="Perspective"){
 		isOrthographic=false;
-		camera =cameraP;
+		if (camera){
+			camera.clear();
+		}
+		camera =new PerspectiveCamera(40, 1, 0.1, 2000);
 		const  size = getSize(group);
-		//cameraFov = camera.fov;
+		cameraFov = camera.fov;
 		const fov =  camera.fov*(Math.PI /180); 	 
 		camera.position.z = size /2/Math.tan(fov/2); 	
 		//viewDistance =  camera.position.z;	
@@ -173,6 +182,7 @@ export function onWindowResize(el: HTMLCanvasElement, changeCamera:string = "Per
 	camera.updateProjectionMatrix();
 	renderer.setSize(el.width,el.height);	
 	renderer.render(scene, camera);
+	switchView("front");
 }
 const AnimationFrame = ()=>{
 	requestAnimationFrame(() => {

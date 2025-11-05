@@ -2,7 +2,7 @@
 import type { sConfig,workerConfigType } from './function/utils';
 import DownMenu from "./DownMenu.svelte";
 import MainMenu,{moduleInit} from "./MainMenu.svelte"; 
-import Camera,{toggleCamera} from "./Camera.svelte"; 
+import Camera,{toggleCamera,initView} from "./Camera.svelte"; 
 import {onWindowResize,switchView } from "./function/threeScene" 
 import { runWorker } from "./function/worker";  
 const { solidConfig }:{ solidConfig:sConfig} = $props();
@@ -42,6 +42,7 @@ solidConfig.workermsg.cameraType = toggleCamera()
 <div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
     {#if  (( solidConfig.showMenu & 1) !== 0)}   <MainMenu   Clickhandle = {(n:string)=>{            
         solidConfig.workermsg.main = n    
+        initView()
         runWorker(solidConfig )
             }} ></MainMenu>
              {/if}
