@@ -4,12 +4,13 @@ import * as WS from 'ws';
 import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
 import {workerspaceMessageHandMap} from './bundleServer'; 
+import type {postTypeStr,SerConfig} from './bundleServer';
 import * as os from "os";
 //let server: http.Server | null = null;
 //export const getPort = 3000; // 默认端口
-export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
+//export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
 //let tmpDate = Date.now();
-export const clientwsMap = new Set<WS.WebSocket>();
+
 export const getLocalIp = ()=> {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
@@ -27,7 +28,7 @@ export const getLocalIp = ()=> {
     }
     return 'localhost'; // 默认回退地址
 };
-const TypeTag = new Map<string,number>();
+const TypeTag = new Map<postTypeStr,number>();
 const readfile = async( filePaths:vscode.Uri,res:any)=>{
     const ext = path.extname(filePaths.fsPath);
     const contentType = {
@@ -48,7 +49,10 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         res.writeHead(404);
     }
 };
-export const createHttpServer = ( config:{name:string,index:string,main:string,watchPath:vscode.Uri,extensionUri: vscode.Uri})=>{
+export const createHttpServer = ( config:{
+    name:string,in:string,func:string, extensionUri: vscode.Uri,
+    pageType:'run'
+})=>{
     
     const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     const rooturi = vscode.Uri.joinPath(libUri,"webui");
@@ -68,7 +72,7 @@ export const createHttpServer = ( config:{name:string,index:string,main:string,w
         <meta charset="UTF-8" /> 
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
-        <title>${config.name||"mgtoy"}</title> 
+        <title>${config.name||"solidJScad"}</title> 
         <link rel="stylesheet" href="/assets/main.css">
         </head>
         <body>
@@ -77,7 +81,7 @@ export const createHttpServer = ( config:{name:string,index:string,main:string,w
         "@jscad/modeling":"./lib/modeling.esm.js",
         "csgChange":"./lib/csgChange.js",
         }
-        window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
+        window.myConfig={pageType:"${config.pageType}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
         </script>
     
         <div id="app" ></div>   
@@ -99,7 +103,7 @@ export const createHttpServer = ( config:{name:string,index:string,main:string,w
 
     //return server;
 };
-export const WSSendUpdate = (type:string[],msg:{ 
+export const WSSendUpdate = (type:postTypeStr[],msg:{ 
     db?: string | ArrayBuffer,
     name?: string,
     open?: boolean},ws:WS.WebSocket) => {
@@ -135,15 +139,21 @@ const WSSend = (data:{
     ws.binaryType = "arraybuffer";
     ws.send(newBuffer.buffer);
 };
+ 
 export const startWebSocketServer = (
-    server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>,
-    watchPath:vscode.Uri )=>{
-    const wss = new WS.Server({ server }); 
+    serv:SerConfig,
+    //handMap:Map<string,(e:any)=>void>,
+    clientwsMap:Set<{ws:WS.WebSocket,handListenMap:Map<string,(e:any)=>void>}>,
+    watchPath?:vscode.Uri 
+)=>{
+    const wss = new WS.Server({ server:serv.Server }); 
     
     wss.on('connection', (ws,req) => {
         //console.log("wss open",ws,req); 
-        const handMap = workerspaceMessageHandMap(
-            watchPath,
+        //wss.listenerCount()
+     
+        const handListenMap = workerspaceMessageHandMap(
+            
             //tmpDate,
             TypeTag,
             (e: {
@@ -155,14 +165,17 @@ export const startWebSocketServer = (
                 }})=>{
                 WSSend(e,ws);
                 
-            });
-        clientwsMap.add(ws);
+            },watchPath,
+            serv);
+        const wsConf = {handListenMap,ws};
+        
+        clientwsMap.add(wsConf);
         ws.onclose = ()=>{
-            clientwsMap.delete(ws);
+            clientwsMap.delete(wsConf);
         };
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
-            listenMessage(JSON.parse(data),handMap);
+            listenMessage(JSON.parse(data),handListenMap);
         });
     
     });
@@ -170,13 +183,15 @@ export const startWebSocketServer = (
 };
 export const startHttpServer = ( 
     server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, 
-    Handle:()=>void,errHandle:(err:Error)=>void,port=3000)=>{
+    Handle:()=>void,
+    errHandle:(err:Error)=>void,port=3000)=>{
+
     server.listen(port, () => {
         //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
         
-        vscode.window.showInformationMessage( `Remote browsing address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
+        vscode.window.showInformationMessage( `Remote address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
             if (v==="Browser view"){
-                vscode.env.openExternal(vscode.Uri.parse(`http://${getLocalIp()}:${port}`));
+                vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
             }
         }); 
 

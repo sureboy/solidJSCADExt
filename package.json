@@ -1,7 +1,7 @@
 {
-  "name": "mgtoy",
-  "displayName": "MGToy",
-  "description": "",
+  "name": "solidjscad",
+  "displayName": "solidJScad",
+  "description": "Using JavaScript and @ jscad/modeling for 3D/2D graphic modeling,Using the ECMAScript Modules standard,Using Threejs to display,Vscode plugin that can be previewed in webview or browser.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.89.0"
@@ -10,10 +10,45 @@
     "Other"
   ],
   "activationEvents": [
-    "workspaceContains:**/mgtoy.json"
+    "workspaceContains:solidjscad.json"
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Init",
+      "properties": {
+        "init.in": {
+          "type": "string",
+          "default": "index.js",
+          "description": "entry file"
+        },
+        "init.src": {
+          "type": "string",
+          "default": "src",
+          "description": "entry folder"
+        },
+        "init.func": {
+          "type": "string",
+          "default": "main",
+          "description": "entry function"
+        },
+        "init.config": {
+          "type": "string",
+          "default": "solidjscad.json",
+          "description": "entry config file"
+        },
+        "init.port": {
+          "type": "number",
+          "default": 3000,
+          "description": "http server port"
+        },
+        "init.webview": {
+          "type": "boolean",
+          "default": true,
+          "description": "open or close webview page"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -36,35 +71,27 @@
     "viewsWelcome": [
       {
         "view": "package-dependencies", 
-        "contents": "## Welcome MGToy！\n\n[create](command:mgtoy.create)"
+        "contents": "Welcome solidJScad\n\n[create](command:solidJScad.create)"
       }
     ],
-    "configuration": {
-      "title": "Setting",
-      "properties": {
-      }
-    },
+ 
     "commands": [
       {
-        "command": "mgtoy.create",
-        "title": "mgtoy create"
+        "command": "solidJScad.create",
+        "title": "solidjscad create"
       },
       {
-        "command": "mgtoy.open",
-        "title": "mgtoy open"
+        "command": "solidJScad.clone",
+        "title": "solidjscad clone"
       },
       {
-        "command": "mgtoy.reload",
-        "title": "mgtoy reload"
-      },
-      {
-        "command": "mgtoy.stopHttp",
-        "title": "mgtoy stophttp"
+        "command": "solidJScad.stopHttp",
+        "title": "solidjscad stophttp"
       }
     ],
     "customEditors": [
       {
-        "viewType": "MGToy.stlPreview",
+        "viewType": "solidJScad.stlPreview",
         "displayName": "STL Preview",
         "selector": [
           {
@@ -73,11 +100,11 @@
         ]
       },
       {
-        "viewType": "MGToy.gzPreview",
+        "viewType": "solidJScad.gzPreview",
         "displayName": "gz Preview",
         "selector": [
           {
-            "filenamePattern": "*.mgtoy.gz"
+            "filenamePattern": "*.solidjscad.gz"
           }
         ]
       }

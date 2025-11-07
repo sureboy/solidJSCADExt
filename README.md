@@ -1,3 +1,3 @@
-# MGToy README
+# solidJScad README
 
 

@@ -1,12 +1,14 @@
 import {regexExec} from "./ImportParser";
 export type workerConfigType = {
+  pageType:'run'|'gzData'|'stlData',
   cameraType: 'Perspective' |'Orthographic';
   module: (modulelist: {
       list: string[];
       basename: string;
   }) => void;
-  main: string;
-  index: string;
+  in: string;
+  func: string;
+  name:string;
 }
 export type sConfig = {el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void}  
 export const gzipToString= async (data: ArrayBuffer )=>{

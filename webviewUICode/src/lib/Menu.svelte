@@ -6,7 +6,11 @@ import Camera,{toggleCamera,initView} from "./Camera.svelte";
 import {onWindowResize,switchView } from "./function/threeScene" 
 import { runWorker } from "./function/worker";  
 const { solidConfig }:{ solidConfig:sConfig} = $props();
-const myConfig = (window as any).myConfig as {name:string,main:string,index:string}
+const myConfig = (window as any).myConfig as {
+    pageType:'run'|'gzData'|'stlData',
+    name:string,
+    in:string,
+    func:string}
 const workermsg:workerConfigType =  {
     ...myConfig,
     cameraType:"Perspective", 
@@ -16,18 +20,11 @@ const workermsg:workerConfigType =  {
     }
 }
 solidConfig.workermsg = workermsg
-
-
-
-
 const handleView = new Map<string,()=>void>()
-
 handleView.set("camera",()=>{
     solidConfig.workermsg.cameraType = toggleCamera()
     onWindowResize(solidConfig.el!,solidConfig.workermsg.cameraType)
-})
-
- 
+}) 
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -40,13 +37,15 @@ solidConfig.workermsg.cameraType = toggleCamera()
 
  
 <div style="position: absolute;left:5px;top:5px;z-index: 11;cursor: pointer;" class="pointer-events-auto" id="camera-toggle">
-    {#if  (( solidConfig.showMenu & 1) !== 0)}   <MainMenu   Clickhandle = {(n:string)=>{            
-        solidConfig.workermsg.main = n    
+    {#if  (solidConfig.showMenu & 1)} 
+     <MainMenu   Clickhandle = {(n:string)=>{            
+        solidConfig.workermsg.func = n    
         initView()
         runWorker(solidConfig )
             }} ></MainMenu>
-             {/if}
-    {#if (( solidConfig.showMenu & 1<<1) !== 0)}  <Camera   Clickhandle={(n)=>{
+    {/if}    
+    {#if  (solidConfig.showMenu & (1<<1))}  
+    <Camera    Clickhandle={(n)=>{
         console.log(n)
         if (handleView.has(n)){
             handleView.get(n)();
@@ -55,8 +54,10 @@ solidConfig.workermsg.cameraType = toggleCamera()
         }
            
     }} ></Camera>
-    {/if}
-    {#if  (( solidConfig.showMenu & 1<<2) !== 0)}    <DownMenu workermsg={myConfig} ></DownMenu>   {/if}
+    {/if}   
+    {#if  (solidConfig.showMenu >= (1<<2) )}   
+    <DownMenu workermsg={{showMenu:solidConfig.showMenu,...solidConfig.workermsg}} ></DownMenu>  
+    {/if} 
 </div>
 
  

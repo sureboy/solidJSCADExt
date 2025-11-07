@@ -209,7 +209,12 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 };
 export const  setHtmlForWebview = (
 	webview: vscode.Webview,
-	config:{name:string,index:string,main:string,extensionUri:vscode.Uri},
+	config:{
+		pageType:'run'|'gzData'|'stlData',
+		name:string,
+		func:string,
+		in:string,
+		extensionUri:vscode.Uri},
 	handleMessageMap:Map<string,(e?:any)=>void>
 )=> {
 	//webview.options.localResourceRoots=[]
@@ -246,7 +251,7 @@ export const  setHtmlForWebview = (
 	   <meta charset="UTF-8" /> 
 	   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		 <meta http-equiv="Content-Security-Policy" content="${csp}">
-	   <title>${config.name||"mgtoy"}</title> 
+	   <title>${config.name||"solidJScad"}</title> 
 	   <link rel="stylesheet" href="${styleUri}">
 	 </head>
 	 <body>
@@ -256,7 +261,7 @@ export const  setHtmlForWebview = (
 	   "@jscad/modeling":"./lib/modeling.esm.js",
 	   "csgChange":"./lib/csgChange.js",
 	 }
-	   window.myConfig={name:"${config.name||"mgtoy"}",index:"${config.index||"index.js"}",main:"${config.main||"main"}"}
+	   window.myConfig={pageType:"${config.pageType||"webview"}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
 	 </script>
    
 	   <div id="app" ></div>   

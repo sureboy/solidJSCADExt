@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 //import * as THREE from 'three';  
-import { disposeAll } from './dispose';
+//import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
+import {workerspaceMessageHandMap,initLoad,RunHttpServer} from './bundleServer';
+import type {postTypeStr} from './bundleServer';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 //import {postTypeTag} from './util';
 /**
  * Define the type of edits used in paw draw files.
  */
-const postTypeTag = new Map<string,number>();
+const postTypeTag = new Map<postTypeStr,number>();
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -24,7 +26,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             });
     }
 
-    private static readonly viewType = 'MGToy.stlPreview';
+    private static readonly viewType = 'solidJScad.stlPreview';
     private readonly webviews = new WebviewCollection();
     constructor(private readonly _context: vscode.ExtensionContext) {  }
 
@@ -49,35 +51,54 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
 
         return document;
     }
-    private tmpDate = 0;
+    //private tmpDate = 0;
     async resolveCustomEditor(
         document: PawDrawDocument,
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken
     ): Promise<void> {
-        this.tmpDate = Date.now();
+        //this.tmpDate = Date.now();
         // Add the webview to our internal set of active webviews
         //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel);
+        const config = {extensionUri:this._context.extensionUri,
+            name:"stlpreview",in:"index.js",func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
 
         // Setup initial content for the webview
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        const handMap = new Map<string,(e?:any)=>void>();
-        handMap.set("loaded",(e)=>{
+        //const serv = RunHttpServer({port:vscode.workspace.getConfiguration("init").get("port"),...config});
+        const handMap =workerspaceMessageHandMap( 
+            postTypeTag,
+            webviewPanel.webview.postMessage,
+            undefined,
+            //serv,
+            //RunHttpServer({port:vscode.workspace.getConfiguration("init").get("port"),...config})
+        );// new Map<string,(e?:any)=>void>();
+        handMap.set("loaded",(e:{msg:string})=>{
+            initLoad(e.msg,postTypeTag,tag=>{
+                webviewPanel.webview.postMessage({
+                    type:postTypeTag.get(tag),
+                    msg:{db:document.documentData.buffer}
+                });
+            });
+            /*
             (e.msg as string).split("|").forEach((v,i)=>{
                 postTypeTag.set(v,1<<i);
             });
             this.loadSTL(document, webviewPanel);
+            */
         });
+        /*
         handMap.set("start",()=>{this.tmpDate = Date.now();});
         handMap.set("end",()=>{
             vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
         });
+        */
         setHtmlForWebview(
             webviewPanel.webview,
-            {extensionUri:this._context.extensionUri,name:"stlpreview",index:"index.js",main:"main"},
+             config,
             handMap
         );
 
@@ -103,7 +124,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
     public backupCustomDocument(document: PawDrawDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
         return document.backup(context.destination, cancellation);
     }
- 
+ /*
     private async loadSTL(document: PawDrawDocument, webviewPanel: vscode.WebviewPanel) {
         try {
             //console.log(document);
@@ -123,6 +144,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             vscode.window.showErrorMessage(`无法读取STL文件: ${error}`);
         }
     } 
+        */
     private _requestId = 1;
     private readonly _callbacks = new Map<number, (response: any) => void>();
 

@@ -3,25 +3,20 @@ let menu:HTMLElement
 let tmpDiv:HTMLButtonElement 
 let solidName:HTMLElement;
 export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
-    menu.innerHTML=""
-    //menu.
-    //console.log(modulelist)
+    menu.innerHTML="" 
     solidName.textContent = modulelist.basename 
     console.log("change Main name",solidName)
     modulelist.list.forEach(m=>{
        const div = tmpDiv.cloneNode(true)
        div.textContent = m;
-      
        menu.appendChild(div)
-    })
-    //menu.appendChild(tmpDiv)
+    }) 
 }
 </script>
-<script lang="ts" >
-   // import { runWorker } from "./function/worker"; 
-  // export let Clickhandle:(name:string)=>void
-  let {Clickhandle}:{Clickhandle:(name:string)=>void } = $props()
+<script lang="ts" > 
+  let {Clickhandle}:{Clickhandle:(name:string)=>void} = $props()
 </script>
+ 
 <details    >
     <summary bind:this={solidName} style="cursor: pointer;height:48px;text-align: left;line-height: 48px;"  >
 ...
@@ -44,3 +39,4 @@ export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
   </button> 
 </div> 
 </details>
+ 

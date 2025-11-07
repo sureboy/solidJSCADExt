@@ -12,7 +12,6 @@ import type { sConfig } from './function/utils';
 
 export const solidConfig:sConfig=$state({ showMenu:1})
 
-//let showMenu = true
 type  handlePostMsg = (msg:any,postMessage?: (e: {name:string,db:string|ArrayBuffer,open:boolean}) => void)=>void
 const del:{name:string,fn:handlePostMsg} = {
   name:"del",
@@ -37,7 +36,7 @@ const run:{name:string,fn:handlePostMsg} ={
 }
 const getSrc:{name:string,fn:handlePostMsg} = {
   fn:(msg:any,postMessage?: (e: any) => void) =>{
-  let indexName = solidConfig.workermsg.index;
+  let indexName = solidConfig.workermsg.in;
       if (!indexName.startsWith("./")){
         indexName = "./"+indexName;
       }
@@ -74,10 +73,8 @@ const getSrc:{name:string,fn:handlePostMsg} = {
 }
 const gzData:{name:string,fn:handlePostMsg} = {
   fn:(message:{db:ArrayBuffer},postMessage?: (e: any) => void)=>{
-  gzipToString(message.db).then(src=>{
-    
-    srcStringToJsFile(src,(db)=>{ 
-      
+  gzipToString(message.db).then(src=>{    
+    srcStringToJsFile(src,(db)=>{       
         handleCurrentMsg(db) 
         //console.log(db.name);
     }) 

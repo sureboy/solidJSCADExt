@@ -1,10 +1,10 @@
 <script lang="ts" module>
 let isPerspective = true;
-let view = $state(["View",""])
+let view = $state(["Perspective [ V ]",""])
 let cameraType:'[ V ]' | '[ U ]' = $state("[ U ]")
 export function initView(){
   
-  view[0] = isPerspective ?'[ V ]' : '[ U ]';
+  view[0] = isPerspective ?'Perspective [ V ]' : 'Orthographic [ U ]';
   view[1] = '[ Z ]'
 }
 export function toggleCamera() {
@@ -16,7 +16,8 @@ export function toggleCamera() {
 <script lang="ts" >
   let {Clickhandle}:{Clickhandle:(name:string)=>void} = $props()
 </script>
-<details>
+ 
+<details >
   <summary style="cursor:pointer;height:48px;text-align:left;line-height: 48px;" >
     {view.join(" ")}
   </summary>
@@ -28,21 +29,20 @@ export function toggleCamera() {
   if (!button.id ){
     return;
   }
+  Clickhandle(button.id)
   if (button.id !== "camera"){
     view[1] = button.textContent
   }else{
-    view[0] = button.textContent
+    view[0] =(isPerspective ? 'Perspective' : 'Orthographic')+" "+ button.textContent
     view[1] = "[ Z ]"
   }
- 
-  Clickhandle(button.id)
 }}" >
-<button id="camera" class="option-text" style="height:48:px;line-height:48px;cursor: pointer;" >{cameraType}</button>
-<button id="front"  class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[ Z ]</button>
-<button id="back"   class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[-Z ]</button>
-<button id="top"    class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[ Y ]</button>
-<button id="bottom" class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[-Y ]</button>
-<button id="left"   class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[ X ]</button>
-<button id="right"  class="option-text" style="height:48:px;line-height:48px;cursor: pointer;">[-X ]</button>
+<button id="camera"   style="height:48:px;line-height:48px;cursor: pointer;" >{cameraType}</button>
+<button id="front"    style="height:48:px;line-height:48px;cursor: pointer;">[ Z ]</button>
+<button id="back"    style="height:48:px;line-height:48px;cursor: pointer;">[-Z ]</button>
+<button id="top"     style="height:48:px;line-height:48px;cursor: pointer;">[ Y ]</button>
+<button id="bottom"   style="height:48:px;line-height:48px;cursor: pointer;">[-Y ]</button>
+<button id="left"     style="height:48:px;line-height:48px;cursor: pointer;">[ X ]</button>
+<button id="right"   style="height:48:px;line-height:48px;cursor: pointer;">[-X ]</button>
 </div>
 </details>

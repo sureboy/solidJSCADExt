@@ -26,11 +26,19 @@
       //console.log(e)
      // wss = this
       WebSocketisOpen = true
+      postMessage({ 
+      msg:JSON.stringify({direction:Direction.map(v=>{ 
+        return v.name}),pageType:solidConfig.workermsg.pageType}),
+    //  supportsWebGPU: hasWebGPU,
+      type:'loaded'
+    });
+    /*
       postMessage({
         msg:Direction.map(v=>{ 
           return v.name}).join("|"),
         type:'loaded'
-      })       
+      })   
+        */    
     }
     wss.onmessage = (event)=>{
       console.log(typeof event.data ,event.data)

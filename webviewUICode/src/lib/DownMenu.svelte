@@ -1,7 +1,11 @@
 <script lang="ts" >
     import { Exporter} from "./function/threeScene" 
     import {getCurrent,getCurrentCode} from "./function/ImportParser"  
-    let {workermsg}:{workermsg:{name:string,index:string,main:string} } = $props()
+    let {workermsg}:{workermsg:{
+      showMenu:number
+      name:string,
+      in:string,
+      func:string} } = $props()
  
     const downSTLclick = ()=>{
       const res = Exporter() 
@@ -9,7 +13,7 @@
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
       //console.log(workermsg)
-      link.download = `${workermsg.name}_${workermsg.main}_${workermsg.index.split(".").shift()}_${Date.now()}.stl`; 
+      link.download = `${workermsg.func}_${workermsg.in.split(".").shift()}_${workermsg.name}_${Date.now()}.stl`; 
       link.click();
       URL.revokeObjectURL(link.href); 
     } 
@@ -19,7 +23,7 @@
         return
       }
       //const res = Exporter() 
-      let indexName = workermsg.index;
+      let indexName = workermsg.in;
       if (!indexName.startsWith("./")){
         indexName = "./"+indexName;
       }
@@ -44,7 +48,7 @@ ${code}
       const compressedBlob = new Blob(chunks, { type: 'application/gzip' });
       const link = document.createElement('a');
       link.href = URL.createObjectURL(compressedBlob);
-      link.download = `${workermsg.name}_${workermsg.main}_${workermsg.index.split(".").shift()}_${Date.now()}.mgtoy.gz`; 
+      link.download = `${workermsg.func}_${workermsg.in.split(".").shift()}_${workermsg.name}_${Date.now()}.solidjscad.gz`; 
       link.click();
       URL.revokeObjectURL(link.href); 
     }   
@@ -72,19 +76,20 @@ ${code}
 
   }
     
+ 
+ 
 </script>
-
 <details    >
     <summary style="cursor:pointer;height:48px;text-align:left;line-height: 48px;" >
        Download
     </summary>
- 
     <div >
-       
-            <button style="height:48:px;line-height:48px;cursor: pointer;" onclick="{downSTLclick}" >STL</button> 
-         
-            <button style="height:48:px;line-height:48px;cursor: pointer;" onclick={downCodeclick} >Gzip</button> 
-              
+      {#if (workermsg.showMenu & (1<<2))}
+      <button style="height:48:px;line-height:48px;cursor: pointer;" onclick="{downSTLclick}" >STL</button>  
+      {/if}
+      {#if (workermsg.showMenu & (1<<3))}
+      <button style="height:48:px;line-height:48px;cursor: pointer;" onclick={downCodeclick} >Gzip</button>      
+      {/if}
     </div>
 </details>
  

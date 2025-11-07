@@ -8,8 +8,8 @@
   onMount(() => {
     initSolidPage(solidConfig) 
     vscode.postMessage({ 
-      msg:Direction.map(v=>{ 
-        return v.name}).join("|"),
+      msg:JSON.stringify({direction:Direction.map(v=>{ 
+        return v.name}),pageType:solidConfig.workermsg.pageType}),
     //  supportsWebGPU: hasWebGPU,
       type:'loaded'
     });

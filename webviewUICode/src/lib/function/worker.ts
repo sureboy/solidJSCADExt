@@ -23,14 +23,17 @@ const consoleLogEnd=`}catch(error){
 let worker: Worker|null; 
 
  
-const getBaseUrl =async (config:{main:string,index:string},postMessage?:(e:any)=>void)=>{
+const getBaseUrl =async (config:{in:string,func:string},postMessage?:(e:any)=>void)=>{
  
   const csgObj = await getCurrent("./lib/csgChange.js",postMessage);
  
   const csgUri = await csgObj.getUri();
-  let indexName = config.index;
+  let indexName = config.in;
   if (!indexName.startsWith("./")){
     indexName = "./"+indexName;
+  }
+  if (!indexName.endsWith(".js")){
+    indexName += ".js";
   }
   const indexObj =await getCurrent(indexName,postMessage);
  
@@ -39,7 +42,7 @@ const getBaseUrl =async (config:{main:string,index:string},postMessage?:(e:any)=
   const src = `import * as csg  from '${csgUri}'
 import * as src  from '${indexuri}'
   ${consoleLog} 
-  const main = "${config.main}";
+  const main = "${config.func}";
   const list = Object.keys(src)
   const module = {list,basename:main?main:list[0]}
   csg.getCsgObjArray(src[module.basename](),(msg)=>{
@@ -125,7 +128,7 @@ export const runWorker =( conf:sConfig  )=>{
         conf.postMessage({
           type:'end'
         });
-        conf.showMenu = 1 | 1<<1 | 1<<2;
+        conf.showMenu = 1 | (1<<1) | (1<<2) | (1<<3);
       }
        if (msg.log){
         conf.postMessage({
