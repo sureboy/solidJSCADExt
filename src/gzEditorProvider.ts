@@ -2,9 +2,11 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
-import {RunHttpServer} from './httpServer';
+import {RunHttpServer,WSSend,startWebSocketServer,httpindexHtml} from './httpServer';
 import type {postTypeStr} from './bundleServer';
+import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
+let serv:SerConfig|null = null;
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
     //private static newPawDrawFileId = 1;
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -22,7 +24,10 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 
     private static readonly viewType = 'solidJScad.gzPreview';
     private readonly webviews = new WebviewCollection();
-    constructor(private readonly _context: vscode.ExtensionContext) { }
+    constructor(private readonly _context: vscode.ExtensionContext) {
+
+        this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:""};
+     }
 
     async openCustomDocument(
         uri: vscode.Uri,
@@ -47,7 +52,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         return document;
     }
     //private tmpDate = 0;
-  
+    private httpConfig:{extensionUri: vscode.Uri, indexHtml:string};
     async resolveCustomEditor(
         document: PawDrawDocument,
         webviewPanel: vscode.WebviewPanel,
@@ -63,7 +68,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
         const [func,in_,name,date] =packageName.split("_");
         const config = {extensionUri:this._context.extensionUri,
-            name:"GzipPreview",in:"index.js",func:"main",
+            name:"GzipPreview",in:in_,func:func,
             //pageName:"GzipViewer",
             pageType:'gzData' as "run" | "gzData" | "stlData",};
         /*
@@ -72,26 +77,37 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             [func,in_,name].join("_"));
             */
         //const myWorkspaceConfig = {name,in:in_,func,date,src:"src",port:3000,webview:true};
-        const serv = RunHttpServer({hook:(ws,listenMap)=>{
-            //const load = listenMap.get("loaded");
+        this.httpConfig.indexHtml = httpindexHtml(config);
+        if (!serv){
+            serv = RunHttpServer(this.httpConfig,
+                 vscode.workspace.getConfiguration("init").get("port")||0                
+            );
+        }
+        
+        startWebSocketServer(serv,ws=>{
+            const listenMap = workerspaceMessageHandMap(
+                postTypeTag,
+                (e: {
+                    type: number;
+                    msg: {
+                        db?: string | ArrayBuffer;
+                        name?: string;
+                        open?: boolean;
+                    }})=>{
+                    WSSend(e,ws);                
+                },
+            );
             listenMap.set("loaded",(e:{msg:string})=>{
-                //load(e)     
-
                 initLoad(e.msg,postTypeTag,tag=>{
                     ws.send(JSON.stringify({
                         type:postTypeTag.get(tag)!,
                         msg:{len:document.documentData.buffer.byteLength}
                     }));
                     ws.send(document.documentData.buffer);
-                    /*
-                    WSSend({
-                        type:postTypeTag.get(tag)!,
-                        msg:{len:document.documentData.buffer.byteLength}
-                    },ws);
-                    */
                 });
             });
-        },port:vscode.workspace.getConfiguration("init").get("port"),...config});
+            return listenMap;
+        });
         const handMap = workerspaceMessageHandMap(postTypeTag,webviewPanel.webview.postMessage);
         //const _h =  new Map<string, (e?: any) => void>();
         handMap.set('loaded',(e:{msg:string})=>{

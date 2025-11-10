@@ -6,12 +6,13 @@ import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEdit
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 import type {postTypeStr} from './bundleServer';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import {RunHttpServer} from './httpServer';
+import {RunHttpServer,WSSend,httpindexHtml,startWebSocketServer} from './httpServer';
+import type {SerConfig} from './httpServer';
 /**
  * Define the type of edits used in paw draw files.
  */
 const postTypeTag = new Map<postTypeStr,number>();
- 
+let serv:SerConfig|null = null;
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -29,7 +30,9 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
 
     private static readonly viewType = 'solidJScad.stlPreview';
     private readonly webviews = new WebviewCollection();
-    constructor(private readonly _context: vscode.ExtensionContext) {  }
+    constructor(private readonly _context: vscode.ExtensionContext) { 
+        this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:""};
+    }
 
     async openCustomDocument(
         uri: vscode.Uri,
@@ -53,6 +56,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         return document;
     }
     //private tmpDate = 0;
+    private httpConfig:{extensionUri: vscode.Uri, indexHtml:string};
     async resolveCustomEditor(
         document: PawDrawDocument,
         webviewPanel: vscode.WebviewPanel,
@@ -62,16 +66,38 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         // Add the webview to our internal set of active webviews
         //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel);
-        const config = {extensionUri:this._context.extensionUri,
+        const config = {
+            extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
-            name:"STLViewer",in:"index.js",func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
-
+            name:"STLViewer",
+            in:"index.js",
+            func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
+        
         // Setup initial content for the webview
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        const serv = RunHttpServer({hook:(ws,listenMap)=>{
+        this.httpConfig.indexHtml = httpindexHtml(config);
+        if (!serv){
+            serv = RunHttpServer(this.httpConfig,
+                vscode.workspace.getConfiguration("init").get("port") ||0
+            );
+        }
+        
+        startWebSocketServer(serv,(ws)=>{
             //const load = listenMap.get("loaded");
+            const listenMap = workerspaceMessageHandMap(
+                postTypeTag,
+                (e: {
+                    type: number;
+                    msg: {
+                        db?: string | ArrayBuffer;
+                        name?: string;
+                        open?: boolean;
+                    }})=>{
+                    WSSend(e,ws);                
+                },
+            );
             listenMap.set("loaded",(e:{msg:string})=>{
                 initLoad(e.msg,postTypeTag,tag=>{
                     ws.send(JSON.stringify({
@@ -82,7 +108,8 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                
                 });
             });
-        },port:vscode.workspace.getConfiguration("init").get("port"),...config});
+            return listenMap;
+        });
         const handMap =workerspaceMessageHandMap( 
             postTypeTag,
             webviewPanel.webview.postMessage,

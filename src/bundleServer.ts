@@ -4,20 +4,15 @@ import * as WS from 'ws';
 import * as http from 'http'; 
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {WSSendUpdate,RunHttpServer} from './httpServer';
-
+import {WSSendUpdate,RunHttpServer,WSSend,startWebSocketServer, httpindexHtml} from './httpServer';
+import type {SerConfig} from './httpServer';
 //import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
 //let httpPort = 3000;
 //let _tmpDate = Date.now();
-export type SerConfig = {
-    clientwsMap:Set< WS.WebSocket >,
-    httpPort:number,
-    //isConn:()=>boolean,
-    Server?: http.Server
-}
+
 const TypeTag = new Map<postTypeStr,number>();
 
 let config:{
@@ -47,7 +42,7 @@ const createPanel  = ( config:{
     name:string,
     in:string,
     func:string,
-    watchPath:vscode.Uri,
+    //watchPath:vscode.Uri,
     extensionUri: vscode.Uri},handMap:Map<string,(e:any)=>void>)=>{
     if (!config.webview){
         return;
@@ -283,7 +278,26 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 //pageType:"run",
                 extensionUri : context.extensionUri,
             });
-            const serv = RunHttpServer({pageType:"run",...config});
+            const serv = RunHttpServer( {extensionUri:context.extensionUri,
+                indexHtml:httpindexHtml({pageType:"run",...config})},config.port);
+            startWebSocketServer(
+                serv,ws=>{
+                    return workerspaceMessageHandMap(
+                        TypeTag,
+                        (e: {
+                            type: number;
+                            msg: {
+                                db?: string | ArrayBuffer;
+                                name?: string;
+                                open?: boolean;
+                            }})=>{
+                            WSSend(e,ws);                
+                        },config?.watchPath,
+                    );
+                    //return handListenMap;
+                }
+                //config.watchPath
+            );
             const handMap = workerspaceMessageHandMap(TypeTag,(db:any)=>{
                 if (panel) {panel.webview.postMessage(db);}
                 else {

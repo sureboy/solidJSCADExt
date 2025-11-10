@@ -4,7 +4,7 @@ import * as WS from 'ws';
 import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
 import {workerspaceMessageHandMap} from './bundleServer'; 
-import type {postTypeStr,SerConfig} from './bundleServer';
+import type {postTypeStr} from './bundleServer';
 import * as os from "os";
 //let server: http.Server | null = null;
 //export const getPort = 3000; // 默认端口
@@ -49,24 +49,12 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         res.writeHead(404);
     }
 };
-const createHttpServer = ( config:{
-    name:string,in:string,func:string, extensionUri: vscode.Uri,
+export const httpindexHtml = (config:{
+    name:string,
     pageType:"run" | "gzData" | "stlData",
-    //pageName:string,
-})=>{
-    
-    const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
-    const rooturi = vscode.Uri.joinPath(libUri,"webui");
-    return http.createServer((req, res) => {
-                // 解析请求路径
-                console.log("begin http server",req.url);
-               
-                let filepath = req.url?.split("/").slice(1)||[];
-                let file =  filepath.pop();
-                if (!file){
-                    //file = "index.html";
-                    res.writeHead(200, { 'Content-Type': 'text/html' });
-                    res.end(`
+    in:string,
+    func:string})=>{
+return `
     <!doctype html>
     <html lang="en">
         <head>
@@ -89,11 +77,24 @@ const createHttpServer = ( config:{
     <script type="module" src="/webview.js"> </script>    
         </body>
     </html>   
-                        `);
-                    return;
-                }
+`;
+};
+const createHttpServer = (config:{extensionUri: vscode.Uri, indexHtml:string})=>{
     
-               
+    const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
+    const rooturi = vscode.Uri.joinPath(libUri,"webui");
+    return http.createServer((req, res) => {
+                // 解析请求路径
+        console.log("begin http server",req.url);
+        
+        let filepath = req.url?.split("/").slice(1)||[];
+        let file =  filepath.pop();
+        if (!file){
+            //file = "index.html";
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(config.indexHtml);
+            return;
+        }        
                     
         readfile(vscode.Uri.joinPath(filepath[0]==="lib"?libUri:rooturi,...filepath,file) ,res);
                 
@@ -117,7 +118,7 @@ export const WSSendUpdate = (type:postTypeStr[],msg:{
 
 };
  
-const WSSend = (data:{
+export const WSSend = (data:{
     type: number;
     msg: {
         db?: string | ArrayBuffer;
@@ -143,16 +144,26 @@ const WSSend = (data:{
     ws.binaryType = "arraybuffer";
     ws.send(newBuffer.buffer);
 };
- 
-const startWebSocketServer = (
+export type SerConfig = {
+    clientwsMap:Set< WS.WebSocket >,
+    httpPort:number,
+    //isConn:()=>boolean,
+    Server?: http.Server
+    wss?:WS.Server
+}
+export const startWebSocketServer = (
     serv:SerConfig,
     //handMap:Map<string,(e:any)=>void>,
-    clientwsMap:Set< WS.WebSocket >,
-    hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
-    watchPath?:vscode.Uri ,    
+    //clientwsMap:Set< WS.WebSocket >,
+    setMsgHandleMap:(ws:WS.WebSocket )=> Map<string, (e: any) => void>,
+    //watchPath?:vscode.Uri ,    
 )=>{
-    const wss = new WS.Server({ server:serv.Server }); 
-    wss.on('connection', (ws,req) => {
+    if (serv.wss){
+        serv.wss.close();
+    }
+    serv.wss = new WS.Server({ server:serv.Server }); 
+    serv.wss.on('connection', (ws,req) => {
+        /*
         const handListenMap = workerspaceMessageHandMap(
             TypeTag,
             (e: {
@@ -165,12 +176,13 @@ const startWebSocketServer = (
                 WSSend(e,ws);                
             },watchPath,
         );
+        */
         //const wsConf = {handListenMap,ws};
-        if (hook){hook(ws,handListenMap );}
-        clientwsMap.add(ws);
+        const handListenMap = setMsgHandleMap(ws );
+        serv.clientwsMap.add(ws);
         
         ws.onclose = ()=>{
-            clientwsMap.delete(ws);
+            serv.clientwsMap.delete(ws);
         };
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
@@ -178,7 +190,7 @@ const startWebSocketServer = (
         });
     
     });
-    return wss;
+    //return wss;
 };
  
 /*
@@ -190,29 +202,28 @@ export const stopHttpServer = ()=>{
     }
 };
 */
+
 export const RunHttpServer = (
-    config:{
-        pageType:"run" | "gzData" | "stlData",
-        hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
-        port?:number,name:string,in:string,func:string,
-        watchPath?:vscode.Uri,extensionUri: vscode.Uri
-    },
+    config:{extensionUri: vscode.Uri,
+    indexHtml:string},
+    port:number,
     errNumber = 10
     ):SerConfig=>{
     const clientwsMap = new Set< WS.WebSocket >();
-    let httpPort = config.port ||0 ;
+    let httpPort = port ||0 ;
     const serv:SerConfig = {
         clientwsMap,httpPort,
     };
     if (httpPort){       
         //serv.Server= createHttpServer({pageType:"run",...config});
-        serv.Server= createHttpServer( config);
+        serv.Server= createHttpServer(config);
+
         //let Number = 0;
         const runHttp = ()=>{
             serv.Server!.listen(httpPort, () => {
             //startHttpServer(serv.Server!,()=>{
-                startWebSocketServer(serv,clientwsMap,config.hook,config.watchPath);
-                vscode.window.showInformationMessage( `${config.name} address:http://${getLocalIp()}:${httpPort}`,"Browser view").then(v=>{
+
+                vscode.window.showInformationMessage( `  address:http://${getLocalIp()}:${httpPort}`,"Browser view").then(v=>{
                     if (v==="Browser view"){
                         vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${httpPort}`));
                     }
@@ -221,7 +232,7 @@ export const RunHttpServer = (
                 if (err.message.startsWith("listen EADDRINUSE:")){
                     httpPort++;
                     //errNumber--;
-                    if (errNumber===(httpPort-config.port!)){
+                    if (errNumber===(httpPort-port!)){
                         return;
                     }
                     runHttp();
@@ -229,6 +240,17 @@ export const RunHttpServer = (
             });
         };
         runHttp();
+        
     }
     return serv;
 };
+/*
+export const HttpServer = (config:{
+    pageType:"run" | "gzData" | "stlData",
+    
+    port?:number,name:string,in:string,func:string,
+    //watchPath?:vscode.Uri,
+    extensionUri: vscode.Uri
+})=>(setMsgHandleMap:(ws:WS.WebSocket)=>Map<string, (e: any) => void>)=>{
+    return RunHttpServer(config,setMsgHandleMap);
+};*/
