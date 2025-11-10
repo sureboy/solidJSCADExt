@@ -51,13 +51,10 @@ solidConfig.workermsg.cameraType = toggleCamera()
             handleView.get(n)();
         } else{
             switchView(n)  
-        }
-           
+        }           
     }} ></Camera>
     {/if}   
-    {#if  (solidConfig.showMenu >= (1<<2) )}   
+    {#if  ((solidConfig.showMenu >>2 )!==0 )}   
     <DownMenu workermsg={{showMenu:solidConfig.showMenu,...solidConfig.workermsg}} ></DownMenu>  
     {/if} 
 </div>
-
- 

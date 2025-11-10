@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
-//import {postTypeTag} from './util';
+import {RunHttpServer} from './httpServer';
 import type {postTypeStr} from './bundleServer';
 const postTypeTag = new Map<postTypeStr,number>();
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
@@ -62,13 +62,36 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         };
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
         const [func,in_,name,date] =packageName.split("_");
+        const config = {extensionUri:this._context.extensionUri,
+            name:"GzipPreview",in:"index.js",func:"main",
+            //pageName:"GzipViewer",
+            pageType:'gzData' as "run" | "gzData" | "stlData",};
         /*
         const NewWorkspace =  vscode.Uri.joinPath(
             vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
             [func,in_,name].join("_"));
             */
         //const myWorkspaceConfig = {name,in:in_,func,date,src:"src",port:3000,webview:true};
+        const serv = RunHttpServer({hook:(ws,listenMap)=>{
+            //const load = listenMap.get("loaded");
+            listenMap.set("loaded",(e:{msg:string})=>{
+                //load(e)     
 
+                initLoad(e.msg,postTypeTag,tag=>{
+                    ws.send(JSON.stringify({
+                        type:postTypeTag.get(tag)!,
+                        msg:{len:document.documentData.buffer.byteLength}
+                    }));
+                    ws.send(document.documentData.buffer);
+                    /*
+                    WSSend({
+                        type:postTypeTag.get(tag)!,
+                        msg:{len:document.documentData.buffer.byteLength}
+                    },ws);
+                    */
+                });
+            });
+        },port:vscode.workspace.getConfiguration("init").get("port"),...config});
         const handMap = workerspaceMessageHandMap(postTypeTag,webviewPanel.webview.postMessage);
         //const _h =  new Map<string, (e?: any) => void>();
         handMap.set('loaded',(e:{msg:string})=>{

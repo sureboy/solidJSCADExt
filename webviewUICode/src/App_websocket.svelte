@@ -3,7 +3,7 @@
  
   import { initSolidPage} from './lib/ShowSolid.svelte';
   import HandlePage,{ HandleMessage,Direction,solidConfig} from './lib/HandleMessagePage.svelte';
- 
+  type dbMsgType = {type:number,msg:{db?:string|ArrayBuffer,name?:string,len?:number}}
  
   let wss:WebSocket
   let WebSocketisOpen = false
@@ -22,14 +22,18 @@
     initSolidPage(solidConfig)
     wss = new WebSocket(`ws://${window.location.host}`);
     //
+    const  waitBlobMsg = (msg:dbMsgType)  => (db:ArrayBuffer)=>{
+      msg.msg.db = db
+      HandleMessage(msg,postMessage)
+    }
+    let  lastWaitMsg :((db:ArrayBuffer)=>void)|null = null
     wss.onopen = (e)=>{
       //console.log(e)
      // wss = this
       WebSocketisOpen = true
       postMessage({ 
       msg:JSON.stringify({direction:Direction.map(v=>{ 
-        return v.name}),pageType:solidConfig.workermsg.pageType}),
-    //  supportsWebGPU: hasWebGPU,
+        return v.name}),pageType:solidConfig.workermsg.pageType}), 
       type:'loaded'
     });
     /*
@@ -41,23 +45,37 @@
         */    
     }
     wss.onmessage = (event)=>{
-      console.log(typeof event.data ,event.data)
+      //console.log(typeof event.data ,event.data)
       
       if (event.data instanceof Blob ){
-        event.data.text().then(db=>{
-          const index = db.indexOf('\n');
-          //console.log(index,db.substring(0,index),db.substring(index+1))
-          const data = JSON.parse(db.substring(0,index))
-          data.msg.db = db.substring(index+1)
-          HandleMessage(data,postMessage)
-        })
+        if (lastWaitMsg){
+          event.data.arrayBuffer().then(db=>{
+            lastWaitMsg(db)
+          })
+          
+        }else{
+          event.data.text().then(db=>{
+            const index = db.indexOf('\n');
+            //console.log(index,db.substring(0,index),db.substring(index+1))
+            const data = JSON.parse(db.substring(0,index))
+            data.msg.db = db.substring(index+1)
+            HandleMessage(data,postMessage)
+          })
+        }
+        
          return
       }
       if (typeof event.data !== "string"){ 
         return
       }
-      const message = JSON.parse(event.data);
-      HandleMessage(message,postMessage)
+      const message = JSON.parse(event.data) as dbMsgType;
+      if (message.msg.len){
+        lastWaitMsg = waitBlobMsg(message)
+         
+      }else{
+        HandleMessage(message,postMessage)
+      }
+      
       
 
     }

@@ -11,7 +11,7 @@ import * as os from "os";
 //export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
 //let tmpDate = Date.now();
 
-export const getLocalIp = ()=> {
+const getLocalIp = ()=> {
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
         if (!interfaces[name]){
@@ -49,9 +49,10 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         res.writeHead(404);
     }
 };
-export const createHttpServer = ( config:{
+const createHttpServer = ( config:{
     name:string,in:string,func:string, extensionUri: vscode.Uri,
-    pageType:'run'
+    pageType:"run" | "gzData" | "stlData",
+    //pageName:string,
 })=>{
     
     const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
@@ -115,12 +116,14 @@ export const WSSendUpdate = (type:postTypeStr[],msg:{
         WSSend({type:tag,msg},ws);
 
 };
+ 
 const WSSend = (data:{
     type: number;
     msg: {
         db?: string | ArrayBuffer;
         name?: string;
         open?: boolean;
+        len?:number;
     }},ws:WS.WebSocket)=>{
 
     const jsonDB = JSON.stringify(data);
@@ -128,6 +131,7 @@ const WSSend = (data:{
         ws.send(jsonDB);
         return;
     }
+    console.log("wssend",data);
  
     const head = Buffer.from(jsonDB+"\n");
     const db = Buffer.from(data.msg.db);
@@ -140,21 +144,16 @@ const WSSend = (data:{
     ws.send(newBuffer.buffer);
 };
  
-export const startWebSocketServer = (
+const startWebSocketServer = (
     serv:SerConfig,
     //handMap:Map<string,(e:any)=>void>,
-    clientwsMap:Set<{ws:WS.WebSocket,handListenMap:Map<string,(e:any)=>void>}>,
-    watchPath?:vscode.Uri 
+    clientwsMap:Set< WS.WebSocket >,
+    hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
+    watchPath?:vscode.Uri ,    
 )=>{
     const wss = new WS.Server({ server:serv.Server }); 
-    
     wss.on('connection', (ws,req) => {
-        //console.log("wss open",ws,req); 
-        //wss.listenerCount()
-     
         const handListenMap = workerspaceMessageHandMap(
-            
-            //tmpDate,
             TypeTag,
             (e: {
                 type: number;
@@ -163,15 +162,15 @@ export const startWebSocketServer = (
                     name?: string;
                     open?: boolean;
                 }})=>{
-                WSSend(e,ws);
-                
+                WSSend(e,ws);                
             },watchPath,
-            serv);
-        const wsConf = {handListenMap,ws};
+        );
+        //const wsConf = {handListenMap,ws};
+        if (hook){hook(ws,handListenMap );}
+        clientwsMap.add(ws);
         
-        clientwsMap.add(wsConf);
         ws.onclose = ()=>{
-            clientwsMap.delete(wsConf);
+            clientwsMap.delete(ws);
         };
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
@@ -181,31 +180,7 @@ export const startWebSocketServer = (
     });
     return wss;
 };
-export const startHttpServer = ( 
-    server:http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>, 
-    Handle:()=>void,
-    errHandle:(err:Error)=>void,port=3000)=>{
-
-    server.listen(port, () => {
-        //vscode.window.createTerminal().sendText("http://localhost:${port}",true);
-        
-        vscode.window.showInformationMessage( `Remote address:http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
-            if (v==="Browser view"){
-                vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
-            }
-        }); 
-
-        Handle();
-        
-    }).on('error',(err)=>{
-        console.log(err);
-        //server.close();
-        errHandle(err);
-    } );
-    //server.listening
-    //console.log(server.address());
-    //return server;
-}; 
+ 
 /*
 export const stopHttpServer = ()=>{
     if (server) {
@@ -215,3 +190,45 @@ export const stopHttpServer = ()=>{
     }
 };
 */
+export const RunHttpServer = (
+    config:{
+        pageType:"run" | "gzData" | "stlData",
+        hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
+        port?:number,name:string,in:string,func:string,
+        watchPath?:vscode.Uri,extensionUri: vscode.Uri
+    },
+    errNumber = 10
+    ):SerConfig=>{
+    const clientwsMap = new Set< WS.WebSocket >();
+    let httpPort = config.port ||0 ;
+    const serv:SerConfig = {
+        clientwsMap,httpPort,
+    };
+    if (httpPort){       
+        //serv.Server= createHttpServer({pageType:"run",...config});
+        serv.Server= createHttpServer( config);
+        //let Number = 0;
+        const runHttp = ()=>{
+            serv.Server!.listen(httpPort, () => {
+            //startHttpServer(serv.Server!,()=>{
+                startWebSocketServer(serv,clientwsMap,config.hook,config.watchPath);
+                vscode.window.showInformationMessage( `${config.name} address:http://${getLocalIp()}:${httpPort}`,"Browser view").then(v=>{
+                    if (v==="Browser view"){
+                        vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${httpPort}`));
+                    }
+                }); 
+            }).on('error',(err)=>{
+                if (err.message.startsWith("listen EADDRINUSE:")){
+                    httpPort++;
+                    //errNumber--;
+                    if (errNumber===(httpPort-config.port!)){
+                        return;
+                    }
+                    runHttp();
+                }
+            });
+        };
+        runHttp();
+    }
+    return serv;
+};

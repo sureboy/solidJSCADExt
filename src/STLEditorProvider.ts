@@ -3,14 +3,15 @@ import * as vscode from 'vscode';
 //import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad,RunHttpServer} from './bundleServer';
+import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 import type {postTypeStr} from './bundleServer';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-//import {postTypeTag} from './util';
+import {RunHttpServer} from './httpServer';
 /**
  * Define the type of edits used in paw draw files.
  */
 const postTypeTag = new Map<postTypeStr,number>();
+ 
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -62,13 +63,26 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel);
         const config = {extensionUri:this._context.extensionUri,
-            name:"stlpreview",in:"index.js",func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
+            //pageName:"STLViewer",
+            name:"STLViewer",in:"index.js",func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
 
         // Setup initial content for the webview
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        //const serv = RunHttpServer({port:vscode.workspace.getConfiguration("init").get("port"),...config});
+        const serv = RunHttpServer({hook:(ws,listenMap)=>{
+            //const load = listenMap.get("loaded");
+            listenMap.set("loaded",(e:{msg:string})=>{
+                initLoad(e.msg,postTypeTag,tag=>{
+                    ws.send(JSON.stringify({
+                        type:postTypeTag.get(tag)!,
+                        msg:{len:document.documentData.buffer.byteLength}
+                    }));
+                    ws.send(document.documentData.buffer);
+               
+                });
+            });
+        },port:vscode.workspace.getConfiguration("init").get("port"),...config});
         const handMap =workerspaceMessageHandMap( 
             postTypeTag,
             webviewPanel.webview.postMessage,
@@ -124,27 +138,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
     public backupCustomDocument(document: PawDrawDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
         return document.backup(context.destination, cancellation);
     }
- /*
-    private async loadSTL(document: PawDrawDocument, webviewPanel: vscode.WebviewPanel) {
-        try {
-            //console.log(document);
-            const uri = document.uri;
  
-            const buffer = await vscode.workspace.fs.readFile(uri);
-            webviewPanel.webview.postMessage({
-                //type:"stlData" ,
-                type:postTypeTag.get("stlData"),
-                //time:Date.now(),
-                msg: {db:buffer.buffer}
-            });
-            //webviewPanel.webview.postMessage({
-            //    type:"end"
-            //});
-        } catch (error) {
-            vscode.window.showErrorMessage(`无法读取STL文件: ${error}`);
-        }
-    } 
-        */
     private _requestId = 1;
     private readonly _callbacks = new Map<number, (response: any) => void>();
 

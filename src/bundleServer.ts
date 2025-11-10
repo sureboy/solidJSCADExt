@@ -4,7 +4,7 @@ import * as WS from 'ws';
 import * as http from 'http'; 
 //import * as os from 'os';
 import { setHtmlForWebview} from './pawDrawEditor';
-import {startWebSocketServer,WSSendUpdate,startHttpServer,createHttpServer,getLocalIp} from './httpServer';
+import {WSSendUpdate,RunHttpServer} from './httpServer';
 
 //import {postTypeTag} from './util';
 let panel:vscode.WebviewPanel|null = null;
@@ -13,7 +13,7 @@ let panel:vscode.WebviewPanel|null = null;
 //let httpPort = 3000;
 //let _tmpDate = Date.now();
 export type SerConfig = {
-    clientwsMap:Set<{ws:WS.WebSocket,handListenMap:Map<string,(e:any)=>void>}>,
+    clientwsMap:Set< WS.WebSocket >,
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
@@ -21,6 +21,8 @@ export type SerConfig = {
 const TypeTag = new Map<postTypeStr,number>();
 
 let config:{
+    //pageName:string,
+    //pageType:"run" | "gzData" | "stlData",
     name: string;
     in: string;
     func: string;
@@ -28,6 +30,7 @@ let config:{
     extensionUri: vscode.Uri;
     port:number,
     webview:boolean,
+    hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
 }|null = null ;
 /*
 export const stopHttpServer = ()=>{
@@ -38,40 +41,7 @@ export const stopHttpServer = ()=>{
     }
 };
 */
-export const RunHttpServer = (
-    config:{
-        port?:number,name:string,in:string,func:string,
-        watchPath?:vscode.Uri,extensionUri: vscode.Uri},
-    errNumber = 10
-    ):SerConfig=>{
-    const clientwsMap = new Set<{ws:WS.WebSocket,handListenMap:Map<string,(e:any)=>void>}>();
-    let httpPort = config.port ||0 ;
-    const serv:SerConfig = {
-        clientwsMap,httpPort,
-         };
-    if (httpPort){
-      
-        
-        serv.Server= createHttpServer({pageType:"run",...config});
-        //let Number = 0;
-        const runHttp = ()=>{
-            startHttpServer(serv.Server!,()=>{
-                startWebSocketServer(serv,clientwsMap,config.watchPath);
-            },err=>{
-                if (err.message.startsWith("listen EADDRINUSE:")){
-                    httpPort++;
-                    //errNumber--;
-                    if (errNumber===(httpPort-config.port!)){
-                        return;
-                    }
-                    runHttp();
-                }
-            },httpPort);
-        };
-        runHttp();
-    }
-    return serv;
-};
+ 
 const createPanel  = ( config:{
     webview:boolean,
     name:string,
@@ -134,7 +104,7 @@ export const workerspaceMessageHandMap = (
     type:number,
     msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
     workerspacePath?:vscode.Uri,
-    serv?:SerConfig,
+    //serv?:SerConfig,
 )=>{
     const handListenMsg = new Map<string,(e:any)=>void>();
     let tmpDate = Date.now();
@@ -168,6 +138,7 @@ export const workerspaceMessageHandMap = (
     }); 
     handListenMsg.set('initError',(message:{msg:string})=>{
         vscode.window.showErrorMessage(message.msg);
+        /*
         if (serv&&serv.Server){
  
             vscode.window.showInformationMessage("info" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${serv.httpPort}` },"Browser view").then(v=>{
@@ -176,6 +147,7 @@ export const workerspaceMessageHandMap = (
                 }
             });
         } 		
+            */
     });
     handListenMsg.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
@@ -190,6 +162,7 @@ export const workerspaceMessageHandMap = (
     handListenMsg.set('start',()=>{tmpDate = Date.now();});
     handListenMsg.set('end',()=>{
         vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second`);
+        /*
         if (serv && serv.Server && serv.clientwsMap.size===0){
  
             const port  = serv.httpPort;
@@ -198,7 +171,7 @@ export const workerspaceMessageHandMap = (
                     vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
                 }
             });
-        }        
+        }   */     
     });
     return handListenMsg;
 };
@@ -261,8 +234,8 @@ const watchInit = (conf:{
                 db:  db.buffer as ArrayBuffer,
                 name 
             };
-            serv.clientwsMap.forEach(wsConf=>{
-                WSSendUpdate(["init","run"],msg,wsConf.ws);
+            serv.clientwsMap.forEach(ws=>{
+                WSSendUpdate(["init","run"],msg,ws);
                 //ws.send(JSON.stringify({run:true}));
             });
             createPanel(conf,handMap)?.webview.postMessage( {  
@@ -306,14 +279,17 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         //console.log(files);
         const u = files[0];
         loadConfig(u).then(conf=>{
-            config =  Object.assign(config?config:{},conf,{extensionUri : context.extensionUri,});
-            const serv = RunHttpServer(config);
+            config =  Object.assign(config?config:{},conf,{
+                //pageType:"run",
+                extensionUri : context.extensionUri,
+            });
+            const serv = RunHttpServer({pageType:"run",...config});
             const handMap = workerspaceMessageHandMap(TypeTag,(db:any)=>{
                 if (panel) {panel.webview.postMessage(db);}
                 else {
                  console.log(db);
                 }
-             },config.watchPath,serv);
+             },config.watchPath);
           
             createPanel(config,handMap);
             
