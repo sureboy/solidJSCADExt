@@ -3,13 +3,14 @@ import * as vscode from 'vscode';
 import * as WS from 'ws';
 import * as path from "path";
 import {listenMessage} from "./pawDrawEditor";
-import {workerspaceMessageHandMap} from './bundleServer'; 
+//import {workerspaceMessageHandMap} from './bundleServer'; 
 import type {postTypeStr} from './bundleServer';
 import * as os from "os";
 //let server: http.Server | null = null;
 //export const getPort = 3000; // 默认端口
 //export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
 //let tmpDate = Date.now();
+export const ServPool:Map<string,SerConfig> = new Map();
 
 const getLocalIp = ()=> {
     const interfaces = os.networkInterfaces();
@@ -28,7 +29,7 @@ const getLocalIp = ()=> {
     }
     return 'localhost'; // 默认回退地址
 };
-const TypeTag = new Map<postTypeStr,number>();
+//const TypeTag = new Map<postTypeStr,number>();
 const readfile = async( filePaths:vscode.Uri,res:any)=>{
     const ext = path.extname(filePaths.fsPath);
     const contentType = {
@@ -105,7 +106,7 @@ const createHttpServer = (config:{extensionUri: vscode.Uri, indexHtml:string})=>
 
     //return server;
 };
-export const WSSendUpdate = (type:postTypeStr[],msg:{ 
+export const WSSendUpdate = (type:postTypeStr[],TypeTag: Map<postTypeStr,number>,msg:{ 
     db?: string | ArrayBuffer,
     name?: string,
     open?: boolean},ws:WS.WebSocket) => {
@@ -145,11 +146,17 @@ export const WSSend = (data:{
     ws.send(newBuffer.buffer);
 };
 export type SerConfig = {
-    clientwsMap:Set< WS.WebSocket >,
+    //clientwsMap:Set< WS.WebSocket >,
+    //name:string,
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
     wss?:WS.Server
+    config:{
+        extensionUri: vscode.Uri,
+        indexHtml:string,
+        name:string
+    }
 }
 export const startWebSocketServer = (
     serv:SerConfig,
@@ -159,9 +166,11 @@ export const startWebSocketServer = (
     //watchPath?:vscode.Uri ,    
 )=>{
     if (serv.wss){
-        serv.wss.close();
+        serv.wss.clients.forEach(s=>s.close());
+        serv.wss?.close();
     }
     serv.wss = new WS.Server({ server:serv.Server }); 
+    
     serv.wss.on('connection', (ws,req) => {
         /*
         const handListenMap = workerspaceMessageHandMap(
@@ -179,11 +188,21 @@ export const startWebSocketServer = (
         */
         //const wsConf = {handListenMap,ws};
         const handListenMap = setMsgHandleMap(ws );
-        serv.clientwsMap.add(ws);
-        
-        ws.onclose = ()=>{
-            serv.clientwsMap.delete(ws);
+        //serv.clientwsMap.add(ws);
+        //console.log(serv.wss?.clients,serv.clientwsMap);
+        ws.onerror=(e)=>{
+            console.log(e);
+            //serv.clientwsMap.delete(ws);
         };
+        /*
+        ws.onclose = ()=>{
+            console.log("ws close",serv.wss?.clients.size);
+            if (!serv.wss?.clients.size){
+                serv.wss?.close();
+                serv.wss = undefined;
+            }
+        };
+ */
         ws.on('message', (data:string) => {
             //const message = JSON.parse(data);
             listenMessage(JSON.parse(data),handListenMap);
@@ -201,48 +220,74 @@ export const stopHttpServer = ()=>{
         vscode.window.showInformationMessage('服务器已停止');
     }
 };
+ 
 */
-
 export const RunHttpServer = (
-    config:{extensionUri: vscode.Uri,
+    config:{
+        name:string,
+        extensionUri: vscode.Uri,
     indexHtml:string},
-    port:number,
+    backServ:(ser:SerConfig)=>void,
+    httpPort:number,
     errNumber = 10
-    ):SerConfig=>{
-    const clientwsMap = new Set< WS.WebSocket >();
-    let httpPort = port ||0 ;
-    const serv:SerConfig = {
-        clientwsMap,httpPort,
-    };
-    if (httpPort){       
+    )=>{
+    //const clientwsMap = new Set< WS.WebSocket >();
+    //let httpPort = port ||0 ;
+    
+    if (httpPort){     
+        let serv = ServPool.get(config.name) ;
+        //let serv =getHttpServerFromPool(config);
+        if (serv){
+            Object.assign(serv.config,config);
+            backServ(serv);
+            return;
+        }
+        serv = {
+            config,
+            Server: createHttpServer(config),
+            //name,
+            //clientwsMap:new Set< WS.WebSocket >(),
+            httpPort,
+        }; 
+ 
+        ServPool.set(serv.config.name,serv);
         //serv.Server= createHttpServer({pageType:"run",...config});
-        serv.Server= createHttpServer(config);
+        //serv.Server= createHttpServer(serv.config);
 
         //let Number = 0;
-        const runHttp = ()=>{
-            serv.Server!.listen(httpPort, () => {
+        const runHttp = (p:number)=>{
+            console.log("listen",p);
+            serv.Server?.listen(p, () => {
+                console.log("listen ok",serv);
+                serv.httpPort = p;
+                
+                
+                backServ(serv);
             //startHttpServer(serv.Server!,()=>{
 
-                vscode.window.showInformationMessage( `  address:http://${getLocalIp()}:${httpPort}`,"Browser view").then(v=>{
+                vscode.window.showInformationMessage( `${serv.config.name} address:http://${getLocalIp()}:${serv.httpPort}`,"Browser view").then(v=>{
                     if (v==="Browser view"){
-                        vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${httpPort}`));
+                        vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${serv.httpPort}`));
                     }
                 }); 
             }).on('error',(err)=>{
+                console.log(err.message,p.toString());
                 if (err.message.startsWith("listen EADDRINUSE:")){
-                    httpPort++;
+                    
                     //errNumber--;
-                    if (errNumber===(httpPort-port!)){
+                    if (errNumber===(p-httpPort)){
                         return;
                     }
-                    runHttp();
+                    p++;
+                    runHttp(p);
                 }
             });
+            //serv.Server?.err
         };
-        runHttp();
+        runHttp(httpPort);
         
     }
-    return serv;
+    //return serv;
 };
 /*
 export const HttpServer = (config:{

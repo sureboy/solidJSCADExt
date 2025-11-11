@@ -12,7 +12,7 @@ import type {SerConfig} from './httpServer';
  * Define the type of edits used in paw draw files.
  */
 const postTypeTag = new Map<postTypeStr,number>();
-let serv:SerConfig|null = null;
+//let serv:SerConfig|null = null;
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -31,7 +31,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
     private static readonly viewType = 'solidJScad.stlPreview';
     private readonly webviews = new WebviewCollection();
     constructor(private readonly _context: vscode.ExtensionContext) { 
-        this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:""};
+        //this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:"",name:"STLViewer"};
     }
 
     async openCustomDocument(
@@ -51,12 +51,10 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
 				return new Uint8Array(response);
 			}
 		});
-        
-
         return document;
     }
     //private tmpDate = 0;
-    private httpConfig:{extensionUri: vscode.Uri, indexHtml:string};
+    //private httpConfig:{extensionUri: vscode.Uri, indexHtml:string,name:string};
     async resolveCustomEditor(
         document: PawDrawDocument,
         webviewPanel: vscode.WebviewPanel,
@@ -77,39 +75,45 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        this.httpConfig.indexHtml = httpindexHtml(config);
-        if (!serv){
-            serv = RunHttpServer(this.httpConfig,
-                vscode.workspace.getConfiguration("init").get("port") ||0
-            );
-        }
-        
-        startWebSocketServer(serv,(ws)=>{
-            //const load = listenMap.get("loaded");
-            const listenMap = workerspaceMessageHandMap(
-                postTypeTag,
-                (e: {
-                    type: number;
-                    msg: {
-                        db?: string | ArrayBuffer;
-                        name?: string;
-                        open?: boolean;
-                    }})=>{
-                    WSSend(e,ws);                
-                },
-            );
-            listenMap.set("loaded",(e:{msg:string})=>{
-                initLoad(e.msg,postTypeTag,tag=>{
-                    ws.send(JSON.stringify({
-                        type:postTypeTag.get(tag)!,
-                        msg:{len:document.documentData.buffer.byteLength}
-                    }));
-                    ws.send(document.documentData.buffer);
-               
+        //this.httpConfig.indexHtml = httpindexHtml(config);
+        //this.httpConfig.name = config.name;
+        RunHttpServer({
+            extensionUri: this._context.extensionUri,
+            indexHtml:httpindexHtml(config),
+            name:"STLViewer"},
+            serv=>{
+                startWebSocketServer(serv,(ws)=>{
+                    //const load = listenMap.get("loaded");
+                    const listenMap = workerspaceMessageHandMap(
+                        postTypeTag,
+                        (e: {
+                            type: number;
+                            msg: {
+                                db?: string | ArrayBuffer;
+                                name?: string;
+                                open?: boolean;
+                            }})=>{
+                            WSSend(e,ws);                
+                        },
+                    );
+                    listenMap.set("loaded",(e:{msg:string})=>{
+                        initLoad(e.msg,postTypeTag,tag=>{
+                            ws.send(JSON.stringify({
+                                type:postTypeTag.get(tag)!,
+                                msg:{len:document.documentData.buffer.byteLength}
+                            }));
+                            ws.send(document.documentData.buffer);
+                        
+                        });
+                    });
+                    return listenMap;
                 });
-            });
-            return listenMap;
-        });
+            },
+            vscode.workspace.getConfiguration("init").get("port") ||0
+        );
+         
+        
+        
         const handMap =workerspaceMessageHandMap( 
             postTypeTag,
             webviewPanel.webview.postMessage,

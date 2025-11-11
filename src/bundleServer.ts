@@ -208,7 +208,7 @@ const watchInit = (conf:{
     extensionUri: vscode.Uri;
     port:number,
     webview:boolean,
-},handMap:Map<string,(e:any)=>void>,serv:SerConfig)=>{
+},handMap:Map<string,(e:any)=>void>,serv?:SerConfig)=>{
     const watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(conf.watchPath, '**/*.js')
     );
@@ -229,8 +229,8 @@ const watchInit = (conf:{
                 db:  db.buffer as ArrayBuffer,
                 name 
             };
-            serv.clientwsMap.forEach(ws=>{
-                WSSendUpdate(["init","run"],msg,ws);
+            serv?.wss?.clients.forEach(ws=>{
+                WSSendUpdate(["init","run"],TypeTag,msg,ws);
                 //ws.send(JSON.stringify({run:true}));
             });
             createPanel(conf,handMap)?.webview.postMessage( {  
@@ -278,26 +278,30 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 //pageType:"run",
                 extensionUri : context.extensionUri,
             });
-            const serv = RunHttpServer( {extensionUri:context.extensionUri,
-                indexHtml:httpindexHtml({pageType:"run",...config})},config.port);
-            startWebSocketServer(
-                serv,ws=>{
-                    return workerspaceMessageHandMap(
-                        TypeTag,
-                        (e: {
-                            type: number;
-                            msg: {
-                                db?: string | ArrayBuffer;
-                                name?: string;
-                                open?: boolean;
-                            }})=>{
-                            WSSend(e,ws);                
-                        },config?.watchPath,
+            let Serv:SerConfig|undefined = undefined;
+              RunHttpServer( {name:config.name,extensionUri:context.extensionUri,
+                indexHtml:httpindexHtml({pageType:"run",...config})},serv=>{
+                    Serv =  serv;
+                    startWebSocketServer(
+                        serv,ws=>{
+                            return workerspaceMessageHandMap(
+                                TypeTag,
+                                (e: {
+                                    type: number;
+                                    msg: {
+                                        db?: string | ArrayBuffer;
+                                        name?: string;
+                                        open?: boolean;
+                                    }})=>{
+                                    WSSend(e,ws);                
+                                },config?.watchPath,
+                            );
+                            //return handListenMap;
+                        }
+                        //config.watchPath
                     );
-                    //return handListenMap;
-                }
-                //config.watchPath
-            );
+                },config.port);
+            
             const handMap = workerspaceMessageHandMap(TypeTag,(db:any)=>{
                 if (panel) {panel.webview.postMessage(db);}
                 else {
@@ -308,7 +312,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             createPanel(config,handMap);
             
             //Server = createHttpServer({...config,port:3000});
-            const watcher = watchInit(config,handMap,serv);
+            const watcher = watchInit(config,handMap,Serv);
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
             context.subscriptions.push(watcher);
            

@@ -44,6 +44,10 @@
       })   
         */    
     }
+    wss.onclose=(e)=>{
+      console.log("close",e)
+      setTimeout(()=>window.location.reload(),1000)      
+    }
     wss.onmessage = (event)=>{
       //console.log(typeof event.data ,event.data)
       
