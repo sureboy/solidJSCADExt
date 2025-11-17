@@ -1,12 +1,53 @@
 <script lang="ts" >
     import { Exporter} from "./function/threeScene" 
     import {getCurrent,getCurrentCode} from "./function/ImportParser"  
-    let {workermsg}:{workermsg:{
+    let {workermsg}:{
+      
+      workermsg:{     
+      postMessage: (m: any) => void, 
       showMenu:number
       name:string,
       in:string,
       func:string} } = $props()
- 
+    const downSrcClick = ()=>{
+      console.log("down src")
+      workermsg.postMessage({
+            type:"downSrc"
+        }) 
+        return;
+      let indexName = workermsg.in;
+      if (!indexName.startsWith("./")){
+        indexName = "./"+indexName;
+      }
+      getCurrent(indexName,workermsg.postMessage).then(
+        current=>{   
+          console.log(current)     
+        getCurrentCode(current,(name:string,code:string)=>{
+          workermsg.postMessage({
+            type:"src",
+            name,
+            code
+            //code:new TextEncoder().encode(code)
+          }) 
+        }).then(()=>{
+          getCurrent("./lib/csgChange.js",workermsg.postMessage).then(c=>{
+            getCurrentCode(c,(name:string,code:string)=>{
+              workermsg.postMessage({
+                type:"src",
+                name,
+                code
+                //code:new TextEncoder().encode(code)
+              }) 
+            }).then(()=>{
+              workermsg.postMessage({
+            type:"src"
+          }) 
+            })
+          });
+          
+        })
+      })
+    }
     const downSTLclick = ()=>{
       const res = Exporter() 
       const blob = new Blob([res.buffer as ArrayBuffer], { type: 'application/octet-stream' })
@@ -89,6 +130,9 @@ ${code}
       {/if}
       {#if (workermsg.showMenu & (1<<3))}
       <button style="height:48:px;line-height:48px;cursor: pointer;" onclick={downCodeclick} >Gzip</button>      
+      {/if}
+      {#if (workermsg.showMenu & (1<<4))}
+      <button style="height:48:px;line-height:48px;cursor: pointer;" onclick={downSrcClick} >Src</button>      
       {/if}
     </div>
 </details>

@@ -3,9 +3,9 @@ import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider,newWorkspacePackage } from './gzEditorProvider'; 
 import { watcherServer } from './bundleServer'; 
 import * as path from "path";
-//import { stopHttpServer } from './httpServer';
-
-   
+//import { treeDataProvider } from './httpServer';
+//import type {SerConfig} from './httpServer';
+ 
 export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
     console.log(vscode.workspace.getConfiguration("init").get("in"));
@@ -18,14 +18,14 @@ export function activate(context: vscode.ExtensionContext) {
                 const conf = vscode.workspace.getConfiguration("init");
                 newWorkspacePackage(
                     uri,
-                    context,
+                    context.extensionUri,
                     { name:path.basename(uri.fsPath),
                         in:conf.get("in")||"index.js",
                         func:conf.get("func")||"main",
                         date:"",
                         src:conf.get("src")||"src",
                         port:conf.get("port")||3000,
-                        webview:conf.get("webview")||true,
+                        //webview:conf.get("webview")||true,
                     },
                     ()=>{
                         vscode.workspace.fs.copy(
@@ -50,5 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
         gzEditorProvider.register(context),
         STLEditorProvider.register(context)
     );
+    //const treeDataProvider = new PackageDependenciesProvider();
+    //vscode.window.registerTreeDataProvider('package-dependencies', treeDataProvider);
 }
 export function deactivate() {}

@@ -35,7 +35,8 @@ const run:{name:string,fn:handlePostMsg} ={
   name:"run"
 }
 const getSrc:{name:string,fn:handlePostMsg} = {
-  fn:(msg:any,postMessage?: (e: any) => void) =>{
+  fn:(msg:{name?:string},postMessage?: (e: any) => void) =>{
+  //let indexName =msg.name?msg.name: solidConfig.workermsg.in;
   let indexName = solidConfig.workermsg.in;
       if (!indexName.startsWith("./")){
         indexName = "./"+indexName;
@@ -44,6 +45,7 @@ const getSrc:{name:string,fn:handlePostMsg} = {
         current=>{   
           console.log(current)     
         getCurrentCode(current,(name:string,code:string)=>{
+          console.log(name);
           postMessage({
             type:"src",
             name,

@@ -41,40 +41,10 @@
           "type": "number",
           "default": 3000,
           "description": "http server port"
-        },
-        "init.webview": {
-          "type": "boolean",
-          "default": true,
-          "description": "open or close webview page"
-        }
+        } 
       }
     },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "package-explorer",
-          "title": "test1111",
-          "icon": "myModule/logo.svg"
-        }
-      ]
-    },
-    "views": {
-      "package-explorer": [
-        {
-          "id": "package-dependencies",
-          "name": "create",
-          "icon": "webviewCode/logo.svg",
-          "contextualTitle": "Package Explorer"
-        }
-      ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "package-dependencies", 
-        "contents": "Welcome solidJScad\n\n[create](command:solidJScad.create)"
-      }
-    ],
- 
+
     "commands": [
       {
         "command": "solidJScad.create",

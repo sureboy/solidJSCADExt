@@ -4,7 +4,7 @@
   import HandlePage,{ HandleMessage,Direction,solidConfig} from './lib/HandleMessagePage.svelte';
   
   import { vscode } from './lib/function/vscodeApi';
-  
+  solidConfig.showMenu = -1
   onMount(() => {
     initSolidPage(solidConfig) 
     vscode.postMessage({ 

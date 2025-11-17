@@ -1,3 +1,4 @@
+import * as os from "os"; 
 export function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -6,4 +7,20 @@ export function getNonce() {
 	}
 	return text;
 }
-//export const postTypeTag ={del:1,run:1<<1,init:1<<2,getSrc:1<<3,gzData:1<<4,stlData:1<<5}; 
+export const getLocalIp = ()=> {
+	const interfaces = os.networkInterfaces();
+	for (const name of Object.keys(interfaces)) {
+		if (!interfaces[name]){
+			continue;
+		}
+	  for (const netInterface  of interfaces[name]) {
+		// 跳过内部地址和非IPv4地址
+		if (netInterface.internal || netInterface.family !== 'IPv4') {
+		  continue;
+		}
+		// 返回第一个找到的非内部IPv4地址
+		return netInterface.address;
+	  }
+	}
+	return 'localhost'; // 默认回退地址
+};

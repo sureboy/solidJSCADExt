@@ -74,6 +74,7 @@ export const runWorker =( conf:sConfig  )=>{
   conf.postMessage({
     type:'start'
   });
+  const oldMenu = conf.showMenu;
   conf.showMenu = 1;
   getBaseUrl(conf.workermsg,conf.postMessage).then(baseUrl=>{
     //const baseUrl =await getBaseUrl(message,postMessage);
@@ -128,7 +129,7 @@ export const runWorker =( conf:sConfig  )=>{
         conf.postMessage({
           type:'end'
         });
-        conf.showMenu = 1 | (1<<1) | (1<<2) | (1<<3);
+        conf.showMenu =oldMenu;// 1 | (1<<1) | (1<<2) | (1<<3);
       }
        if (msg.log){
         conf.postMessage({

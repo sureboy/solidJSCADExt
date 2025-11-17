@@ -7,7 +7,7 @@ import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 import type {postTypeStr} from './bundleServer';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 import {RunHttpServer,WSSend,httpindexHtml,startWebSocketServer} from './httpServer';
-import type {SerConfig} from './httpServer';
+//import type {SerConfig} from './httpServer';
 /**
  * Define the type of edits used in paw draw files.
  */
@@ -82,7 +82,20 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             indexHtml:httpindexHtml(config),
             name:"STLViewer"},
             serv=>{
+                serv?.Bar.show(); 
+                webviewPanel.onDidChangeViewState(e=>{
+                    
+                    if (webviewPanel?.visible) { 
+                        serv?.Bar.show(); 
+                    } else { 
+                        serv?.Bar.hide(); 
+                    }             
+                });
+                webviewPanel.onDidDispose(()=>{
+                    serv?.Bar.hide();  
+                });
                 startWebSocketServer(serv,(ws)=>{
+
                     //const load = listenMap.get("loaded");
                     const listenMap = workerspaceMessageHandMap(
                         postTypeTag,
@@ -148,7 +161,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         );
 
          
- 
+
     }
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();

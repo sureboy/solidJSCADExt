@@ -2,33 +2,21 @@ import * as http from 'http';
 import * as vscode from 'vscode'; 
 import * as WS from 'ws';
 import * as path from "path";
-import {listenMessage} from "./pawDrawEditor";
-//import {workerspaceMessageHandMap} from './bundleServer'; 
+import {listenMessage} from "./pawDrawEditor"; 
 import type {postTypeStr} from './bundleServer';
-import * as os from "os";
-//let server: http.Server | null = null;
-//export const getPort = 3000; // 默认端口
-//export type httpServer = http.Server<typeof http.IncomingMessage, typeof http.ServerResponse>
-//let tmpDate = Date.now();
-export const ServPool:Map<string,SerConfig> = new Map();
-
-const getLocalIp = ()=> {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        if (!interfaces[name]){
-            continue;
-        }
-      for (const netInterface  of interfaces[name]) {
-        // 跳过内部地址和非IPv4地址
-        if (netInterface.internal || netInterface.family !== 'IPv4') {
-          continue;
-        }
-        // 返回第一个找到的非内部IPv4地址
-        return netInterface.address;
-      }
+import { getLocalIp } from './util';
+//const portBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+const HttpPoolClass = class {
+    ServPool  = new Map<string,SerConfig>();
+    //portBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
+    set(serv:SerConfig) {
+        this.ServPool.set(serv.config.name,serv);
+    };
+    get(name:string){
+        return this.ServPool.get(name);
     }
-    return 'localhost'; // 默认回退地址
 };
+export const ServPool  = new HttpPoolClass(); 
 //const TypeTag = new Map<postTypeStr,number>();
 const readfile = async( filePaths:vscode.Uri,res:any)=>{
     const ext = path.extname(filePaths.fsPath);
@@ -148,6 +136,7 @@ export const WSSend = (data:{
 export type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     //name:string,
+    Bar:vscode.StatusBarItem,
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
@@ -220,7 +209,6 @@ export const stopHttpServer = ()=>{
         vscode.window.showInformationMessage('服务器已停止');
     }
 };
- 
 */
 export const RunHttpServer = (
     config:{
@@ -245,12 +233,13 @@ export const RunHttpServer = (
         serv = {
             config,
             Server: createHttpServer(config),
+            Bar:vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right),
             //name,
             //clientwsMap:new Set< WS.WebSocket >(),
             httpPort,
         }; 
  
-        ServPool.set(serv.config.name,serv);
+        
         //serv.Server= createHttpServer({pageType:"run",...config});
         //serv.Server= createHttpServer(serv.config);
 
@@ -258,10 +247,14 @@ export const RunHttpServer = (
         const runHttp = (p:number)=>{
             console.log("listen",p);
             serv.Server?.listen(p, () => {
-                console.log("listen ok",serv);
+                //console.log("listen ok",serv);
+                serv.Bar.text = `http://${getLocalIp()}:${p.toString()}`;
+                serv.Bar.show();
+                //portBar.show();
+                
                 serv.httpPort = p;
                 
-                
+                ServPool.set( serv);
                 backServ(serv);
             //startHttpServer(serv.Server!,()=>{
 
@@ -285,9 +278,10 @@ export const RunHttpServer = (
             //serv.Server?.err
         };
         runHttp(httpPort);
+        return serv;
         
     }
-    //return serv;
+    
 };
 /*
 export const HttpServer = (config:{

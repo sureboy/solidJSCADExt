@@ -6,7 +6,8 @@ import * as http from 'http';
 import { setHtmlForWebview} from './pawDrawEditor';
 import {WSSendUpdate,RunHttpServer,WSSend,startWebSocketServer, httpindexHtml} from './httpServer';
 import type {SerConfig} from './httpServer';
-//import {postTypeTag} from './util';
+import {downSrcHandMap} from './gzEditorProvider';
+ 
 let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
@@ -24,7 +25,7 @@ let config:{
     watchPath: vscode.Uri;
     extensionUri: vscode.Uri;
     port:number,
-    webview:boolean,
+    //webview:boolean,
     hook?:(ws:WS.WebSocket,listenMap: Map<string, (e: any) => void>)=>void,
 }|null = null ;
 /*
@@ -38,15 +39,13 @@ export const stopHttpServer = ()=>{
 */
  
 const createPanel  = ( config:{
-    webview:boolean,
+    //webview:boolean,
     name:string,
     in:string,
     func:string,
     //watchPath:vscode.Uri,
-    extensionUri: vscode.Uri},handMap:Map<string,(e:any)=>void>)=>{
-    if (!config.webview){
-        return;
-    }
+    extensionUri: vscode.Uri},handMap:Map<string,(e:any)=>void>,Serv?:SerConfig)=>{
+ 
     if (panel){return panel;}
     if (!config.in){
         config.in = "index.js";
@@ -60,6 +59,7 @@ const createPanel  = ( config:{
         {
             enableScripts: true,
             retainContextWhenHidden: true,
+ 
             localResourceRoots: [ 
                 //outPath,
                 //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
@@ -68,18 +68,35 @@ const createPanel  = ( config:{
             ]
         }
     );
+    //panel
     //panel.options=
     //initPanelTmpDir(watchPath,outPath,context);
     panel.onDidDispose(e=>{
-        console.log(e);
+        console.log("close",e);
+        //Serv?.Server?.
+        Serv?.Bar.hide();
+        //Serv?.Server?.close();
         panel=null;
     });
+    panel.onDidChangeViewState(e=>{
+        if (panel?.visible) {
+            // 面板变为可见，可以恢复更新等操作
+            Serv?.Bar.show();
+            //console.log('面板可见');
+        } else {
+            // 面板隐藏，暂停一些操作以节省资源
+            Serv?.Bar.hide();
+            //console.log('面板隐藏');
+        }
+ 
+    });
+ 
     
     setHtmlForWebview(
         panel.webview,{pageType:"run",...config},
         handMap
     );
-    
+    Serv?.Bar.show();
     return panel;
 };
 
@@ -115,34 +132,15 @@ export const workerspaceMessageHandMap = (
                     vscode.Uri.joinPath(
                         workerspacePath,e.path
                     )); 
-                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});
-                // postMessage({                         
-                //    init:{db:t.buffer,name:e.path } ,                                  
-                //});
-                    
+                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                    
             }catch(err:any){
-                //console.log(err);
-                //vscode.window.showErrorMessage(err);
                 postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
-                //postMessage({                         
-                //    init:{name:e.path } ,                                  
-                //});
             }
         };
         fn();        
     }); 
     handListenMsg.set('initError',(message:{msg:string})=>{
         vscode.window.showErrorMessage(message.msg);
-        /*
-        if (serv&&serv.Server){
- 
-            vscode.window.showInformationMessage("info" ,{modal:true,detail:`Remote browsing address:http://${getLocalIp()}:${serv.httpPort}` },"Browser view").then(v=>{
-                if (v==="Browser view"){
-                     vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${serv.httpPort}`));
-                }
-            });
-        } 		
-            */
     });
     handListenMsg.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
@@ -168,6 +166,8 @@ export const workerspaceMessageHandMap = (
             });
         }   */     
     });
+
+
     return handListenMsg;
 };
 export const reload = ()=>{
@@ -183,10 +183,11 @@ const loadConfig =async (u:vscode.Uri)=>{
             func: string,
             in: string,
             port:number,
-            webview:boolean,
+            //webview:boolean,
             } = JSON.parse(v.toString());
         if (!conf.src){
-            return;
+            //return;
+            conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
         }  
         //console.log(config);  
         const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
@@ -196,9 +197,7 @@ const loadConfig =async (u:vscode.Uri)=>{
                 conf.src),
             //extensionUri : context.extensionUri,
             ...conf
-        };
- 
- 
+        }; 
 };
 const watchInit = (conf:{
     name: string;
@@ -207,7 +206,7 @@ const watchInit = (conf:{
     watchPath: vscode.Uri;
     extensionUri: vscode.Uri;
     port:number,
-    webview:boolean,
+    //webview:boolean,
 },handMap:Map<string,(e:any)=>void>,serv?:SerConfig)=>{
     const watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(conf.watchPath, '**/*.js')
@@ -233,7 +232,7 @@ const watchInit = (conf:{
                 WSSendUpdate(["init","run"],TypeTag,msg,ws);
                 //ws.send(JSON.stringify({run:true}));
             });
-            createPanel(conf,handMap)?.webview.postMessage( {  
+            createPanel(conf,handMap,serv)?.webview.postMessage( {  
                 type:(TypeTag.get("init")||0)|(TypeTag.get("run") ||0 ),
                 msg                   
             },);
@@ -263,7 +262,7 @@ const watchInit = (conf:{
 
     return watcher;
 };
- 
+
 export const watcherServer = (context: vscode.ExtensionContext)=>{
     
     vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
@@ -274,14 +273,14 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         //console.log(files);
         const u = files[0];
         loadConfig(u).then(conf=>{
+            
             config =  Object.assign(config?config:{},conf,{
                 //pageType:"run",
                 extensionUri : context.extensionUri,
             });
-            let Serv:SerConfig|undefined = undefined;
-              RunHttpServer( {name:config.name,extensionUri:context.extensionUri,
+            const  Serv = RunHttpServer( {name:config.name,extensionUri:context.extensionUri,
                 indexHtml:httpindexHtml({pageType:"run",...config})},serv=>{
-                    Serv =  serv;
+                    //Serv =  serv;
                     startWebSocketServer(
                         serv,ws=>{
                             return workerspaceMessageHandMap(
@@ -307,10 +306,79 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 else {
                  console.log(db);
                 }
-             },config.watchPath);
+            },config.watchPath);          
           
-            createPanel(config,handMap);
-            
+            createPanel(config,handMap,Serv );
+            //let NewWorkspace : vscode.Uri|null = null;
+            //const downSrc = {src:conf!.src, ...config};
+            downSrcHandMap(handMap,
+                (db:any)=>{
+                if (panel) {panel.webview.postMessage(db);}
+                else {
+                 console.log(db);
+                }
+            },
+                {src:conf.src,
+                    
+                    TypeTag, ...config});
+            /*
+            handMap.set('downSrc',(e:any)=>{
+                vscode.window.showOpenDialog({
+                    canSelectFolders:true,
+                    canSelectFiles:false,
+                    canSelectMany:false,
+                }).then(u=>{
+                    if (!u){
+                        return;
+                    }
+                    NewWorkspace = u[0];
+                    newWorkspacePackage(NewWorkspace,
+                        //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
+                        config!.extensionUri,  {
+                            in:config!.in,
+                            func:config!.func,
+                            port:config!.port,
+                            date:Date().toString(),
+                            src:conf!.src,
+                            name:path.basename(NewWorkspace.fsPath)
+                        }, ()=>{
+                            //console.log("begin get src",panel,TypeTag);
+                            panel?.webview.postMessage({
+                                type:TypeTag.get("getSrc") ,
+                                //msg:{name:config!.in}
+                            });
+                    });  
+                             
+                });            
+            });
+              handMap.set('src',(message:{name:string,code:string,start?:boolean,end?:boolean})=>{
+                        console.log(message);
+                        if (!NewWorkspace){
+                            return;
+                        }
+                        if (!message.name){
+                            vscode.window.showWarningMessage("Workspace change",{
+                                modal:true,
+                                detail: `Do you need to move the workspace to the ${NewWorkspace} Folder`
+                            },                   
+                            "OK").then(v=>{
+                                if (v!=="OK"){return;}
+                                vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
+                            });
+                            return;
+                        }
+                        if (message.start){
+                            return;
+                        }
+                       // vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src)).then(()=>{
+                            vscode.workspace.fs.writeFile(
+                                vscode.Uri.joinPath(NewWorkspace,conf!.src,message.name),
+                                new TextEncoder().encode(message.code)).then(res=>{
+                                    console.log(res);
+                            }); 
+                        //});
+                      
+                    });*/
             //Server = createHttpServer({...config,port:3000});
             const watcher = watchInit(config,handMap,Serv);
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");

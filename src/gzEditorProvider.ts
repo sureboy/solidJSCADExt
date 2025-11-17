@@ -4,7 +4,7 @@ import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEdit
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 import {RunHttpServer,WSSend,startWebSocketServer,httpindexHtml} from './httpServer';
 import type {postTypeStr} from './bundleServer';
-import type {SerConfig} from './httpServer';
+//import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
@@ -71,12 +71,12 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             name:"GzipPreview",in:in_,func:func,
             //pageName:"GzipViewer",
             pageType:'gzData' as "run" | "gzData" | "stlData",};
-        /*
-        const NewWorkspace =  vscode.Uri.joinPath(
-            vscode.workspace.getWorkspaceFolder(document.uri)!.uri,
-            [func,in_,name].join("_"));
-            */
-        //const myWorkspaceConfig = {name,in:in_,func,date,src:"src",port:3000,webview:true};
+      
+        let NewWorkspace : vscode.Uri|null = null;
+           
+        const myWorkspaceConfig = {name,in:in_,func,date,
+            src:vscode.workspace.getConfiguration("init").get("src") as string || "src",
+            port:vscode.workspace.getConfiguration("init").get("port") as number ||0  };
         //this.httpConfig.indexHtml = httpindexHtml(config);
         //this.httpConfig.name = config.name;
         //if (!serv){
@@ -85,6 +85,17 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             indexHtml:httpindexHtml(config),
             name: config.name
         },serv=>{
+            serv?.Bar.show();
+            webviewPanel.onDidChangeViewState(e=>{
+                if (webviewPanel?.visible) { 
+                    serv?.Bar.show();                     
+                } else { 
+                    serv?.Bar.hide();                    
+                }             
+            });
+            webviewPanel.onDidDispose(()=>{
+                serv?.Bar.hide();  
+            });
             startWebSocketServer(serv,ws=>{
                 const listenMap = workerspaceMessageHandMap(
                     postTypeTag,
@@ -110,13 +121,16 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 return listenMap;
             });
         },
-        vscode.workspace.getConfiguration("init").get("port")||0                
+        myWorkspaceConfig.port
+        //vscode.workspace.getConfiguration("init").get("port")||0                
         );
         
         
-        
+        //const postMsg = webviewPanel.webview.postMessage;
         const handMap = workerspaceMessageHandMap(postTypeTag,webviewPanel.webview.postMessage);
         //const _h =  new Map<string, (e?: any) => void>();
+        downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{ TypeTag:postTypeTag,extensionUri:this._context.extensionUri, ...myWorkspaceConfig});
+ 
         handMap.set('loaded',(e:{msg:string})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({
@@ -134,58 +148,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     msg:{db:document.documentData.buffer}
                 });*/
         });
-        /*
-        handMap.set('req',(e)=>{
-            console.log(e);
-            webviewPanel.webview.postMessage({   
-                type:postTypeTag.get("init"),                      
-                msg:{name:e.path  } ,                                  
-            });
-        });
-        handMap.set('start',()=>{
-            this.tmpDate = Date.now();
-        });
        
-       
-        handMap.set('end',()=>{
-            vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
-           
-            createWorkspacePackage(
-                NewWorkspace,
-                this._context,
-                myWorkspaceConfig, 
-                ()=>{
-                    webviewPanel.webview.postMessage({
-                        type:postTypeTag.get("getSrc") 
-                    });
-                }
-            );
-            
-        });
-      
-        handMap.set('src',(message)=>{
-            console.log(message);
-            if (!message.name){
-                vscode.window.showWarningMessage("Workspace change",{
-                    modal:true,
-                    detail: `Do you need to move the workspace to the ${NewWorkspace} Folder`
-                },                   
-                "OK").then(v=>{
-                    if (v!=="OK"){return;}
-                    vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
-                });
-                return;
-            }
-           // vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src)).then(()=>{
-                vscode.workspace.fs.writeFile(
-                    vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,message.name),
-                    new TextEncoder().encode(message.code)).then(res=>{
-                        console.log(res);
-                }); 
-            //});
-          
-        });
-       */
 
         setHtmlForWebview(webviewPanel.webview,
             {name,in:in_+".js",func,
@@ -226,12 +189,11 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         panel.webview.postMessage({ type, requestId, body });
         return p;
     }
-
-
 }
 export const newWorkspacePackage= async(
     NewWorkspace:vscode.Uri,
-    context: vscode.ExtensionContext,
+    //context: vscode.ExtensionContext,
+    extensionUri:vscode.Uri,
     myWorkspaceConfig:{
         name:string,
         in:string,
@@ -239,17 +201,22 @@ export const newWorkspacePackage= async(
         date:string,
         src:string,
         port:number,
-        webview:boolean,
+        //webview:boolean,
     },
         handleEnd?:()=>void)=>{
             
     await vscode.workspace.fs.writeFile(
         vscode.Uri.joinPath(NewWorkspace,"solidjscad.json"),
         new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
-    );    
-    await vscode.workspace.fs.copy(
-        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling"),
-        vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+    );   
+    try{
+        await vscode.workspace.fs.copy(
+            vscode.Uri.joinPath(extensionUri,"myModule","modeling"),
+            vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+    }catch(e){
+        console.log(e);
+    }
+
         /*
     await vscode.workspace.fs.copy(
         vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
@@ -262,7 +229,7 @@ export const newWorkspacePackage= async(
     //return handleEnd;
     //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
     const cf = await vscode.workspace.fs.readFile(
-        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling","package.json"));
+        vscode.Uri.joinPath(extensionUri,"myModule","modeling","package.json"));
     
     const cf_ = JSON.parse(cf.toString());
     //console.log(cf_);
@@ -332,3 +299,76 @@ const createWorkspacePackage = async(
      }
 };
 */
+export const downSrcHandMap = (handMap:Map<string,(e:any)=>void>,
+postMessage:(db:{
+    type:number,
+    msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
+config:{
+    
+    NewWorkspace?:vscode.Uri,
+    in:string,
+    func:string,
+    port:number,
+    src:string,
+    extensionUri:vscode.Uri,
+    TypeTag : Map<postTypeStr,number>
+})=>{
+    handMap.set('downSrc',()=>{
+        vscode.window.showOpenDialog({
+            canSelectFolders:true,
+            canSelectFiles:false,
+            canSelectMany:false,
+        }).then(u=>{
+            if (!u){
+                return;
+            }
+            config.NewWorkspace = u[0];
+            newWorkspacePackage(config.NewWorkspace,
+                //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
+                config!.extensionUri,  {
+                    in:config.in,
+                    func:config.func,
+                    port:config.port,
+                    date:Date.now().toString(),
+                    src:config.src,
+                    name:path.basename(config.NewWorkspace.fsPath)
+                }, ()=>{
+                    //console.log("begin get src",panel,TypeTag);
+                    postMessage({
+                        type:config.TypeTag.get("getSrc")||0  ,
+                        msg:{}
+                    });
+            });  
+                     
+        });            
+    });
+    handMap.set('src',(message:{name:string,code:string,start?:boolean,end?:boolean})=>{
+        //console.log(message);
+        if (!config.NewWorkspace){
+            return;
+        }
+        if (!message.name){
+            vscode.window.showWarningMessage("Workspace change",{
+                modal:true,
+                detail: `Do you need to move the workspace to the ${config.NewWorkspace} Folder`
+            },                   
+            "OK").then(v=>{
+                if (v!=="OK"){return;}
+                vscode.commands.executeCommand('vscode.openFolder', config.NewWorkspace);
+            });
+            return;
+        }
+        if (message.start){
+            return;
+        }
+        // vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src)).then(()=>{
+            vscode.workspace.fs.writeFile(
+                vscode.Uri.joinPath(config.NewWorkspace,config.src,message.name),
+                new TextEncoder().encode(message.code)).then(res=>{
+                    console.log(res);
+            }); 
+        //});
+        
+    });
+    
+};

@@ -15,6 +15,7 @@
 
     wss.send(JSON.stringify(msg))
   }
+  solidConfig.showMenu = 1 | (1<<1) | (1<<2) | (1<<3);
   onMount(() => {
     
     console.log("href",window.location.href)

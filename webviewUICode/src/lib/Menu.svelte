@@ -55,6 +55,6 @@ solidConfig.workermsg.cameraType = toggleCamera()
     }} ></Camera>
     {/if}   
     {#if  ((solidConfig.showMenu >>2 )!==0 )}   
-    <DownMenu workermsg={{showMenu:solidConfig.showMenu,...solidConfig.workermsg}} ></DownMenu>  
+    <DownMenu workermsg={{showMenu:solidConfig.showMenu,postMessage:solidConfig.postMessage,...solidConfig.workermsg}} ></DownMenu>  
     {/if} 
 </div>
