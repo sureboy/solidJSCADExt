@@ -2,8 +2,7 @@
 let isPerspective = true;
 let view = $state(["Perspective [ V ]",""])
 let cameraType:'[ V ]' | '[ U ]' = $state("[ U ]")
-export function initView(){
-  
+export function initView(){  
   view[0] = isPerspective ?'Perspective [ V ]' : 'Orthographic [ U ]';
   view[1] = '[ Z ]'
 }
@@ -26,7 +25,11 @@ export function toggleCamera() {
     "V":"camera"
   }
   const handleKeydown = (e:any) => {
-		console.log(`pressed the ${e.key} key`);
+		//console.log(`pressed the ${e.key} key`);
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            
+      return;
+    }
     const key = kMap[e.key]
     if (key){
       Clickhandle(key)

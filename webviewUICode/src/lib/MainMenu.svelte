@@ -5,7 +5,7 @@ let solidName:HTMLElement;
 export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
     menu.innerHTML="" 
     solidName.textContent = modulelist.basename 
-    console.log("change Main name",solidName)
+    //console.log("change Main name",solidName)
     modulelist.list.forEach(m=>{
        const div = tmpDiv.cloneNode(true)
        div.textContent = m;
@@ -25,13 +25,13 @@ export const moduleInit = (modulelist:{list:string[],basename:string} )=>{
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div  style="color:white;text-align: center;" id="module_list" bind:this={menu}    onclick="{(e)=>{
   const button = (e.target  as HTMLInputElement).closest('button');
-      console.log(button.textContent)
+      //console.log(button.textContent)
       if (button.textContent==="..."){
         return;
       } 
       //solidName="...."
       //solidName = button.textContent
-      solidName.textContent = "..."
+      solidName.textContent =button.textContent;
       Clickhandle(button.textContent);
 }}" > 
   <button bind:this={tmpDiv}  style="height:48:px;line-height:48px;cursor: pointer;" >

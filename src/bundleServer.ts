@@ -154,7 +154,7 @@ export const workerspaceMessageHandMap = (
     });    
     handListenMsg.set('start',()=>{tmpDate = Date.now();});
     handListenMsg.set('end',()=>{
-        vscode.window.showInformationMessage(`time taken:${String((Date.now()-tmpDate)/1000)} second`);
+        vscode.window.showInformationMessage(`${String((Date.now()-tmpDate)/1000)}s`);
         /*
         if (serv && serv.Server && serv.clientwsMap.size===0){
  

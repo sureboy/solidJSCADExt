@@ -9,6 +9,7 @@ export type workerConfigType = {
   in: string;
   func: string;
   name:string;
+  options?:Object;
 }
 export type sConfig = {el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void}  
 export const gzipToString= async (data: ArrayBuffer )=>{

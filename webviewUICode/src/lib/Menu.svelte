@@ -1,10 +1,11 @@
 <script lang="ts">
 import type { sConfig,workerConfigType } from './function/utils';
+import Options from "./OptionsMenu.svelte"
 import DownMenu from "./DownMenu.svelte";
 import MainMenu,{moduleInit} from "./MainMenu.svelte"; 
 import Camera,{toggleCamera,initView} from "./Camera.svelte"; 
 import {onWindowResize,switchView } from "./function/threeScene" 
-import { runWorker } from "./function/worker";  
+import { changeWorker } from "./function/worker";  
 const { solidConfig }:{ solidConfig:sConfig} = $props();
 const myConfig = (window as any).myConfig as {
     pageType:'run'|'gzData'|'stlData',
@@ -41,7 +42,7 @@ solidConfig.workermsg.cameraType = toggleCamera()
      <MainMenu   Clickhandle = {(n:string)=>{            
         solidConfig.workermsg.func = n    
         initView()
-        runWorker(solidConfig )
+        changeWorker(solidConfig )
             }} ></MainMenu>
     {/if}    
     {#if  (solidConfig.showMenu & (1<<1))}  
@@ -57,4 +58,13 @@ solidConfig.workermsg.cameraType = toggleCamera()
     {#if  ((solidConfig.showMenu >>2 )!==0 )}   
     <DownMenu workermsg={{showMenu:solidConfig.showMenu,postMessage:solidConfig.postMessage,...solidConfig.workermsg}} ></DownMenu>  
     {/if} 
+    {#if (solidConfig.workermsg.options)} 
+    <Options name="Options" options={solidConfig.workermsg.options} >
+    <div style="text-align:center" ><input type="submit" onclick={(e)=>{
+        initView()
+        changeWorker(solidConfig )
+    }}/></div>    
+    </Options>
+    
+    {/if}
 </div>
