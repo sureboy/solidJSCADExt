@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as WS from 'ws';
-import * as http from 'http'; 
+//import * as http from 'http'; 
 //import * as os from 'os';
-import { setHtmlForWebview} from './pawDrawEditor';
-import {WSSendUpdate,RunHttpServer,WSSend,startWebSocketServer, httpindexHtml} from './httpServer';
+import { setHtmlForWebview,listenMessage} from './pawDrawEditor';
+import {WSSendUpdate,RunHttpServer,startWebSocketServer} from './httpServer';
+import {httpindexHtml,WSSend} from "./httpLib";
 import type {SerConfig} from './httpServer';
 import {downSrcHandMap} from './gzEditorProvider';
  
@@ -296,7 +297,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                                 },config?.watchPath,
                             );
                             //return handListenMap;
-                        }
+                        },listenMessage,
                         //config.watchPath
                     );
                 },config.port);

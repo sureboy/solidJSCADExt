@@ -2,15 +2,16 @@ import * as http from 'http';
 import * as vscode from 'vscode'; 
 import * as WS from 'ws';
 import * as path from "path";
-import {listenMessage} from "./pawDrawEditor"; 
+//import {listenMessage} from "./pawDrawEditor"; 
 import type {postTypeStr} from './bundleServer';
 import { getLocalIp } from './util';
+import { WSSend} from './httpLib';
 //const portBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 const HttpPoolClass = class {
     ServPool  = new Map<string,SerConfig>();
     //portBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
     set(serv:SerConfig) {
-        this.ServPool.set(serv.config.name,serv);
+        this.ServPool.set(serv.config!.name,serv);
     };
     get(name:string){
         return this.ServPool.get(name);
@@ -37,36 +38,6 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         console.log(e);
         res.writeHead(404);
     }
-};
-export const httpindexHtml = (config:{
-    name:string,
-    pageType:"run" | "gzData" | "stlData",
-    in:string,
-    func:string})=>{
-return `
-    <!doctype html>
-    <html lang="en">
-        <head>
-        <meta charset="UTF-8" /> 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        
-        <title>${config.name||"solidJScad"}</title> 
-        <link rel="stylesheet" href="/assets/main.css">
-        </head>
-        <body>
-        <script> 
-        window.includeImport ={
-        "@jscad/modeling":"./lib/modeling.esm.js",
-        "csgChange":"./lib/csgChange.js",
-        }
-        window.myConfig={pageType:"${config.pageType}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-        </script>
-    
-        <div id="app" ></div>   
-    <script type="module" src="/webview.js"> </script>    
-        </body>
-    </html>   
-`;
 };
 const createHttpServer = (config:{extensionUri: vscode.Uri, indexHtml:string})=>{
     
@@ -104,35 +75,8 @@ export const WSSendUpdate = (type:postTypeStr[],TypeTag: Map<postTypeStr,number>
             tag |= TypeTag.get(t)||0;                     
         }
         WSSend({type:tag,msg},ws);
-
 };
  
-export const WSSend = (data:{
-    type: number;
-    msg: {
-        db?: string | ArrayBuffer;
-        name?: string;
-        open?: boolean;
-        len?:number;
-    }},ws:WS.WebSocket)=>{
-
-    const jsonDB = JSON.stringify(data);
-    if (!data.msg.db || typeof data.msg.db==="string"){
-        ws.send(jsonDB);
-        return;
-    }
-    console.log("wssend",data);
- 
-    const head = Buffer.from(jsonDB+"\n");
-    const db = Buffer.from(data.msg.db);
-    const totalLength = head.length + db.length;
-
-    const newBuffer = Buffer.alloc(totalLength);
-    head.copy(newBuffer, 0); 
-    db.copy(newBuffer, head.length);
-    ws.binaryType = "arraybuffer";
-    ws.send(newBuffer.buffer);
-};
 export type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     //name:string,
@@ -141,8 +85,8 @@ export type SerConfig = {
     //isConn:()=>boolean,
     Server?: http.Server
     wss?:WS.Server
-    config:{
-        extensionUri: vscode.Uri,
+    config?:{
+        extensionUri: vscode.Uri|string,
         indexHtml:string,
         name:string
     }
@@ -152,7 +96,8 @@ export const startWebSocketServer = (
     //handMap:Map<string,(e:any)=>void>,
     //clientwsMap:Set< WS.WebSocket >,
     setMsgHandleMap:(ws:WS.WebSocket )=> Map<string, (e: any) => void>,
-    //watchPath?:vscode.Uri ,    
+    //watchPath?:vscode.Uri ,  
+    listenMessage:  (message:{type:string,msg:string},handMap:Map<string,any>)=>void
 )=>{
     if (serv.wss){
         serv.wss.clients.forEach(s=>s.close());
@@ -226,7 +171,7 @@ export const RunHttpServer = (
         let serv = ServPool.get(config.name) ;
         //let serv =getHttpServerFromPool(config);
         if (serv){
-            Object.assign(serv.config,config);
+            serv.config = Object.assign(serv.config||{},config);
             backServ(serv);
             return;
         }
@@ -261,7 +206,7 @@ export const RunHttpServer = (
                 backServ(serv);
             //startHttpServer(serv.Server!,()=>{
 
-                vscode.window.showInformationMessage( `${serv.config.name} address:http://${getLocalIp()}:${serv.httpPort}`,"Browser view").then(v=>{
+                vscode.window.showInformationMessage( `${serv.config?.name} address:http://${getLocalIp()}:${serv.httpPort}`,"Browser view").then(v=>{
                     if (v==="Browser view"){
                         vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${serv.httpPort}`));
                     }

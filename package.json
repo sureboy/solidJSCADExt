@@ -86,7 +86,8 @@
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "build":"npx npx esbuild ./src/nodeHttpServer.ts --outfile=./myModule/HttpServer.js --minify --bundle --format=esm --platform=node  --external:vscode --external:ws"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",

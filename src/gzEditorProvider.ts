@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
+import {PawDrawDocument,WebviewCollection,setHtmlForWebview,listenMessage} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
-import {RunHttpServer,WSSend,startWebSocketServer,httpindexHtml} from './httpServer';
+import {RunHttpServer,startWebSocketServer} from './httpServer';
+import {WSSend,httpindexHtml}from './httpLib';
 import type {postTypeStr} from './bundleServer';
 //import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
@@ -119,7 +120,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     });
                 });
                 return listenMap;
-            });
+            },listenMessage);
         },
         myWorkspaceConfig.port
         //vscode.workspace.getConfiguration("init").get("port")||0                

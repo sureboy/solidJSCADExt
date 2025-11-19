@@ -2,11 +2,12 @@ import * as vscode from 'vscode';
 //import * as THREE from 'three';  
 //import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
-import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
+import {PawDrawDocument,WebviewCollection,setHtmlForWebview,listenMessage} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 import type {postTypeStr} from './bundleServer';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-import {RunHttpServer,WSSend,httpindexHtml,startWebSocketServer} from './httpServer';
+import {RunHttpServer,startWebSocketServer} from './httpServer';
+import {WSSend,httpindexHtml} from './httpLib';
 //import type {SerConfig} from './httpServer';
 /**
  * Define the type of edits used in paw draw files.
@@ -120,7 +121,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                         });
                     });
                     return listenMap;
-                });
+                },listenMessage);
             },
             vscode.workspace.getConfiguration("init").get("port") ||0
         );
