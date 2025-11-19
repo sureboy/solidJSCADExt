@@ -74,18 +74,18 @@ const createPanel  = ( config:{
     panel.onDidDispose(e=>{
         console.log("close",e);
         //Serv?.Server?.
-        Serv?.Bar.hide();
+        Serv?.Bar?.hide();
         //Serv?.Server?.close();
         panel=null;
     });
     panel.onDidChangeViewState(e=>{
         if (panel?.visible) {
             // 面板变为可见，可以恢复更新等操作
-            Serv?.Bar.show();
+            Serv?.Bar?.show();
             //console.log('面板可见');
         } else {
             // 面板隐藏，暂停一些操作以节省资源
-            Serv?.Bar.hide();
+            Serv?.Bar?.hide();
             //console.log('面板隐藏');
         }
  
@@ -96,7 +96,7 @@ const createPanel  = ( config:{
         panel.webview,{pageType:"run",...config},
         handMap
     );
-    Serv?.Bar.show();
+    Serv?.Bar?.show();
     return panel;
 };
 

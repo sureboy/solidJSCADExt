@@ -29,7 +29,7 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         '.jpg': 'image/jpeg'
     }[ext] || 'text/plain';
     try{
-        await   vscode.workspace.fs.readFile(filePaths).then(db=>{
+        await vscode.workspace.fs.readFile(filePaths).then(db=>{
             res.writeHead(200, { 'Content-Type': contentType });
             res.end(db);
         });
@@ -136,7 +136,7 @@ export const WSSend = (data:{
 export type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     //name:string,
-    Bar:vscode.StatusBarItem,
+    Bar?:vscode.StatusBarItem,
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
@@ -248,8 +248,11 @@ export const RunHttpServer = (
             console.log("listen",p);
             serv.Server?.listen(p, () => {
                 //console.log("listen ok",serv);
-                serv.Bar.text = `http://${getLocalIp()}:${p.toString()}`;
-                serv.Bar.show();
+                if (serv.Bar){
+                    serv.Bar.text = `http://${getLocalIp()}:${p.toString()}`;
+                    serv.Bar.show();
+                }
+                
                 //portBar.show();
                 
                 serv.httpPort = p;

@@ -29,7 +29,7 @@ const init:{name:string,fn:handlePostMsg} = {
 const run:{name:string,fn:handlePostMsg} ={
   fn:(msg:{open:boolean},postMessage?: (e: any) => void) =>{ 
     //solidConfig.workermsg = 
-    Object.assign(solidConfig.workermsg,{cameraType:msg.open?solidConfig.workermsg.cameraType:''})
+    Object.assign(solidConfig.workermsg,{cameraType:msg.open?solidConfig.workermsg.cameraType:'' })
     runWorker(solidConfig );    
   },
   name:"run"

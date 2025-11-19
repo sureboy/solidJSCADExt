@@ -60,7 +60,7 @@ solidConfig.workermsg.cameraType = toggleCamera()
     {/if} 
     {#if (solidConfig.workermsg.options)} 
     <Options name="Options" options={solidConfig.workermsg.options} >
-    <div style="text-align:center" ><input type="submit" onclick={(e)=>{
+    <div style="padding-left:20px;" ><input type="submit" onclick={(e)=>{
         initView()
         changeWorker(solidConfig )
     }}/></div>    

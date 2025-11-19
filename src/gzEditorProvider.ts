@@ -85,16 +85,16 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             indexHtml:httpindexHtml(config),
             name: config.name
         },serv=>{
-            serv?.Bar.show();
+            serv?.Bar?.show();
             webviewPanel.onDidChangeViewState(e=>{
                 if (webviewPanel?.visible) { 
-                    serv?.Bar.show();                     
+                    serv?.Bar?.show();                     
                 } else { 
-                    serv?.Bar.hide();                    
+                    serv?.Bar?.hide();                    
                 }             
             });
             webviewPanel.onDidDispose(()=>{
-                serv?.Bar.hide();  
+                serv?.Bar?.hide();  
             });
             startWebSocketServer(serv,ws=>{
                 const listenMap = workerspaceMessageHandMap(
@@ -212,7 +212,7 @@ export const newWorkspacePackage= async(
     try{
         await vscode.workspace.fs.copy(
             vscode.Uri.joinPath(extensionUri,"myModule","modeling"),
-            vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling"));
+            vscode.Uri.joinPath(NewWorkspace,"node_modules", "@jscad","modeling"));
     }catch(e){
         console.log(e);
     }
@@ -233,8 +233,6 @@ export const newWorkspacePackage= async(
     
     const cf_ = JSON.parse(cf.toString());
     //console.log(cf_);
-    
-
     await vscode.workspace.fs.writeFile(
         vscode.Uri.joinPath(NewWorkspace,"package.json"),
         new TextEncoder().encode(JSON.stringify({
@@ -244,23 +242,29 @@ export const newWorkspacePackage= async(
             version: "1.0.0", 
             description:myWorkspaceConfig.name,
             private: true,
+            scripts: {
+                "build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
+            },
+            devDependencies: {
+                "esbuild": "^0.25.8",
+            },
             dependencies: {
-                "@jscad/modeling": cf_.version
+                "@jscad/modeling": cf_.version,
             }
         }, null, 2))
     );
-    /*
+
     await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"package.json"),
+        vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
         new TextEncoder().encode(JSON.stringify({
             compilerOptions:  {
                 paths: { 
-                "@jscad/modeling":["./types/modeling"]
+                "@jscad/modeling":["./node_modules/@jscad/modeling"]
                 }
             }
         }, null, 2)),
     ); 
-    */
+    
     if (handleEnd){
         handleEnd();
     }

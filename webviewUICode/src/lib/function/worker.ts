@@ -48,7 +48,7 @@ import * as src  from '${indexuri}'
   self.onmessage = (e)=>{
     const {func,options} = e.data
     if ( func){ 
-      csg.getCsgObjArray(src[e.data.func](JSON.parse(options)),(msg)=>{
+      csg.getCsgObjArray(src[e.data.func](options),(msg)=>{
         self.postMessage(msg)
       }) 
     }
@@ -80,7 +80,16 @@ export const changeWorker = (conf:sConfig )=>{
     type:'start'
   });
   conf.showMenu = 1; 
-  worker.postMessage({func:conf.workermsg.func,options:JSON.stringify(conf.workermsg.options)});
+  if (conf.workermsg.options){
+    const options =JSON.parse( JSON.stringify(conf.workermsg.options));
+    conf.workermsg.options=undefined;
+    worker.postMessage({func:conf.workermsg.func,options});
+  }else{
+    worker.postMessage({func:conf.workermsg.func});
+  }
+
+  
+
 };
 export const runWorker = async ( conf:sConfig  )=>{
   if (worker){

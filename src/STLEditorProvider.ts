@@ -82,17 +82,17 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             indexHtml:httpindexHtml(config),
             name:"STLViewer"},
             serv=>{
-                serv?.Bar.show(); 
+                serv?.Bar?.show(); 
                 webviewPanel.onDidChangeViewState(e=>{
                     
                     if (webviewPanel?.visible) { 
-                        serv?.Bar.show(); 
+                        serv?.Bar?.show(); 
                     } else { 
-                        serv?.Bar.hide(); 
+                        serv?.Bar?.hide(); 
                     }             
                 });
                 webviewPanel.onDidDispose(()=>{
-                    serv?.Bar.hide();  
+                    serv?.Bar?.hide();  
                 });
                 startWebSocketServer(serv,(ws)=>{
 
