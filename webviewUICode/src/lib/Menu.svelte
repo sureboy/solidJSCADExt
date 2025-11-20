@@ -12,7 +12,7 @@ const myConfig = (window as any).myConfig as {
     name:string,
     in:string,
     func:string}
-const workermsg:workerConfigType =  {
+const workermsg:workerConfigType ={
     ...myConfig,
     cameraType:"Perspective", 
     module:(m:{ list: string[];
@@ -20,7 +20,8 @@ const workermsg:workerConfigType =  {
         moduleInit(m)
     }
 }
-solidConfig.workermsg = workermsg
+solidConfig.setWorkerMsg(workermsg)
+ 
 const handleView = new Map<string,()=>void>()
 handleView.set("camera",()=>{
     solidConfig.workermsg.cameraType = toggleCamera()

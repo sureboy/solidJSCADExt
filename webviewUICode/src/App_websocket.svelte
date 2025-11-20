@@ -30,7 +30,7 @@
     let  lastWaitMsg :((db:ArrayBuffer)=>void)|null = null
     wss.onopen = (e)=>{
       //console.log(e)
-     // wss = this
+      // wss = this
       WebSocketisOpen = true
       postMessage({ 
       msg:JSON.stringify({direction:Direction.map(v=>{ 
@@ -43,7 +43,7 @@
           return v.name}).join("|"),
         type:'loaded'
       })   
-        */    
+    */    
     }
     wss.onclose=(e)=>{
       console.log("close",e)

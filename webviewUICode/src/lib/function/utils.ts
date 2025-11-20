@@ -11,7 +11,8 @@ export type workerConfigType = {
   name:string;
   options?:Object;
 }
-export type sConfig = {el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void}  
+export type sConfig = {
+  el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void,setWorkerMsg:(db:any)=>void}  
 export const gzipToString= async (data: ArrayBuffer )=>{
     const decompressedStream = new DecompressionStream('gzip');
     const writer = decompressedStream.writable.getWriter();

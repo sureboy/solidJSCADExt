@@ -7,7 +7,14 @@
     <title>Vite + Svelte</title>
   </head>
   <body>
+    <script type="importmap" id="myMap">
+      {
+        "imports": {
+          "@jscad/modeling": "${scriptUri1}"
+      }
+    }
+    </script>
     <div id="app"></div>
-    <script type="module" src="/src/websocketMain.js"></script>
+    <script type="module" src="/src/nodeMain.js"></script>
   </body>
 </html>

@@ -8,10 +8,12 @@ import type {messageObj} from "./function/ImportParser"
 import {gzipToString,srcStringToJsFile} from "./function/utils"
 import { addSceneSTL} from "./function/threeScene" 
 import {STLLoader} from "three/addons/loaders/STLLoader.js" 
-import type { sConfig } from './function/utils';
+import type { sConfig,workerConfigType } from './function/utils';
 
-export const solidConfig:sConfig=$state({ showMenu:1})
-
+//export const solidConfig:sConfig=$state({ showMenu:1})
+export const solidConfig:sConfig=$state({ showMenu:1,setWorkerMsg:(w:workerConfigType)=>{
+  solidConfig.workermsg = w
+ }})
 type  handlePostMsg = (msg:any,postMessage?: (e: {name:string,db:string|ArrayBuffer,open:boolean}) => void)=>void
 const del:{name:string,fn:handlePostMsg} = {
   name:"del",

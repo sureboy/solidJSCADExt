@@ -1,0 +1,8 @@
+{
+  "name": "testPackage",
+  "in": "index.js",
+  "func": "main",
+  "date": "",
+  "src": "src",
+  "port":3000
+}
