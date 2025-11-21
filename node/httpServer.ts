@@ -1,6 +1,7 @@
 import * as http from 'http'; 
 import * as path from 'path'; 
 import * as fs from "fs";
+ 
 type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     //name:string,
@@ -15,6 +16,9 @@ type SerConfig = {
         name:string
     }
 }
+const importmap:{ [key: string]: string } = {
+    "@jscad/modeling":"./lib/modeling.esm.js"
+};
 const httpindexHtml = (config:{
     name:string,
     pageType:"run" | "gzData" | "stlData",
@@ -28,12 +32,11 @@ return `
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
         <title>${config.name||"solidJScad"}</title> 
-        <link rel="stylesheet" href="/dist/assets/main.css">
+        <link rel="stylesheet" href="/dist/assets/main.css"> 
         <script type="importmap">
         {
             "imports": {
-                "@jscad/modeling":"./lib/modeling.esm.js",
-                "uuid": "https://esm.sh/uuid@9.0.0"
+                "@jscad/modeling":"./lib/modeling.esm.js", 
             }
         }
         </script>
@@ -54,6 +57,41 @@ return `
     </html>   
 `;
 };
+const readJS = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
+    req: http.IncomingMessage;
+})=>{
+    try{
+        let db = fs.readFileSync(filePaths,{encoding:'utf8'});
+        res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
+        //console.log(db);
+        Object.keys(importmap).forEach(k=>{
+            //console.log(k,importmap[k]);
+            db = db.replace(k,importmap[k]);
+        });
+        //db.replace("","");
+        //console.log(db);
+        res.end(db); 
+    }catch(e){
+        console.error(e);
+        res.writeHead(404);
+        res.end();
+    }
+};
+const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
+    req: http.IncomingMessage;
+}) =>{
+    try{
+        //binary
+       const db = fs.readFileSync(filePaths,{encoding:'binary'});
+       res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
+       res.end(db); 
+   }catch(e){
+       console.error(e);
+       res.writeHead(404);
+       res.end();
+   }
+};
+
 const readfile = ( filePaths:string,res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
 })=>{
@@ -67,15 +105,15 @@ const readfile = ( filePaths:string,res:http.ServerResponse<http.IncomingMessage
         '.png': 'image/png',
         '.jpg': 'image/jpeg'
     }[ext] || 'text/plain';
-    try{
-        const db = fs.readFileSync(filePaths); 
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(db); 
-    }catch(e){
-        console.log(e);
-        res.writeHead(404);
-        res.end();
+    switch (ext) {
+        case ".js":
+            readJS(filePaths,contentType,res);
+            break;
+        default:
+            readBinaryFile(filePaths,contentType,res);
+
     }
+    
 };
 const createHttpServer = (conf:{
     src:string,

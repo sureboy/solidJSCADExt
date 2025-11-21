@@ -1,9 +1,21 @@
 {
-  "name": "testhttpserver",
+  "name": "solidjscad",
+  "version": "0.0.1",
   "private": true,
-  "version": "0.0.0",
+  "description": "solidJSCAD httpServer",
+  "keywords": [
+    "solidjscad",
+    "http",
+    "server"
+  ],
+  "license": "MIT",
+  "author": "Weijie Zhao",
   "type": "module",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
-    "dev": "node --experimental-strip-types httpServer.ts" 
+    "dev": "node --experimental-strip-types httpServer.ts"
   }
 }

@@ -9,10 +9,16 @@ export type workerConfigType = {
   in: string;
   func: string;
   name:string;
+  src?:string;
   options?:Object;
 }
 export type sConfig = {
-  el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,postMessage?:(m:any)=>void,setWorkerMsg:(db:any)=>void}  
+  worker?: Worker,
+  baseUrl?:string,
+  oldMenu?:number,
+  el?:HTMLCanvasElement,workermsg?:workerConfigType,showMenu:number,
+  postMessage?:(m:any)=>void,
+  setWorkerMsg:(db:any)=>void}  
 export const gzipToString= async (data: ArrayBuffer )=>{
     const decompressedStream = new DecompressionStream('gzip');
     const writer = decompressedStream.writable.getWriter();

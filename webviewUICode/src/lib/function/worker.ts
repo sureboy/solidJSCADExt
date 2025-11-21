@@ -20,20 +20,25 @@ const consoleLogEnd=`}catch(error){
     end:true
     });
 };`;
-let worker: Worker|null; 
-let baseUrl:string;
-let oldMenu:number = 0;
-const getBaseUrl =async (config:{in:string,func:string},postMessage?:(e:any)=>void)=>{
+//let _worker: Worker|null; 
+//let baseUrl:string;
+//let oldMenu:number = 0;
+const getBaseUrl =async (config:{in:string,func:string,src?:string},postMessage?:(e:any)=>void)=>{
  
   const csgObj = await getCurrent("./lib/csgChange.js",postMessage);
  
   const csgUri = await csgObj.getUri();
   let indexName = config.in;
+
   if (!indexName.startsWith("./")){
     indexName = "./"+indexName;
   }
   if (!indexName.endsWith(".js")){
     indexName += ".js";
+  }
+  if (config.src){
+    const li = indexName.split("/");
+    indexName = [li[0], config.src,...li.slice(1)].join("/");
   }
   const indexObj =await getCurrent(indexName,postMessage);
  
@@ -58,6 +63,7 @@ import * as src  from '${indexuri}'
   self.postMessage(msg)
 }) 
 ${consoleLogEnd} `; 
+console.log(src);
   return URL.createObjectURL(
     new Blob([src],{type:'application/javascript'}));
 };
@@ -71,62 +77,71 @@ export const runWorkerInVscode = (el:HTMLCanvasElement,message:workerConfigType 
    
 };
 */
-export const changeWorker = (conf:sConfig )=>{
-  if (!worker){
+export const changeWorker = (conf:sConfig  )=>{
+  if (!conf.worker){
     runWorker(conf);
     return;
   }
-  conf.postMessage({
-    type:'start'
-  });
+  if (conf.postMessage){
+    conf.postMessage({
+      type:'start'
+    });
+  }
+  
   conf.showMenu = 1; 
   if (conf.workermsg.options){
     const options =JSON.parse( JSON.stringify(conf.workermsg.options));
     conf.workermsg.options=undefined;
-    worker.postMessage({func:conf.workermsg.func,options});
+    conf.worker.postMessage({func:conf.workermsg.func,options});
   }else{
-    worker.postMessage({func:conf.workermsg.func});
+    conf.worker.postMessage({func:conf.workermsg.func});
   }
-
-  
-
 };
-export const runWorker = async ( conf:sConfig  )=>{
-  if (worker){
-    worker.terminate();
-    worker = null;
-    URL.revokeObjectURL(baseUrl);
+ 
+export const runWorker =async ( conf:sConfig  )=>{
+  if (conf.worker){
+    conf.worker.terminate();
+    conf.worker = null;
+    URL.revokeObjectURL(conf.baseUrl);
     
   }
-  if (!oldMenu){
-    oldMenu = conf.showMenu;
+  if (!conf.oldMenu){
+    conf.oldMenu = conf.showMenu;
   }
-  conf.postMessage({
-    type:'start'
-  });
+  if (conf.postMessage){
+    conf.postMessage({
+      type:'start'
+    });
+  }
   
   conf.showMenu = 1;
-  baseUrl = await getBaseUrl(conf.workermsg,conf.postMessage) ;
+  if (!conf.baseUrl){
+    conf.baseUrl = await getBaseUrl(conf.workermsg,conf.postMessage) ;
+  }
   //const baseUrl =await getBaseUrl(message,postMessage);
 
-  worker = new Worker(baseUrl,{type: "module"});
+  conf.worker = new Worker(conf.baseUrl,{type: "module"});
   //console.log(worker)  
-  worker.onerror = e=>{
+  conf.worker.onerror = e=>{
     console.error("error", e );
-    conf.postMessage({
-      type:'error',
-      msg:"Code syntax error"
-    });
+    if (conf.postMessage){
+      conf.postMessage({
+        type:'error',
+        msg:"Code syntax error"
+      });
+    }
   };
-  worker.onmessageerror = e=>{
+  conf.worker.onmessageerror = e=>{
     console.error("messageErr",e);
-    conf.postMessage({
-      type:'error',
-      msg:e.data
-    });
+    if (conf.postMessage){
+      conf.postMessage({
+        type:'error',
+        msg:e.data
+      });
+    }
   };
   
-  worker.onmessage = function(e) {
+  conf.worker.onmessage = function(e) {
     
     const msg = e.data;
     //message.msg = msg;
@@ -135,10 +150,12 @@ export const runWorker = async ( conf:sConfig  )=>{
       try{
         startSceneOBJ(conf.el);
       }catch(err){
+        console.error(err);
+        if (conf.postMessage){
         conf.postMessage({
           type:'initError',
           msg:err.error
-        });
+        });}
       }
       
     }
@@ -153,26 +170,30 @@ export const runWorker = async ( conf:sConfig  )=>{
 
       //console.log("cameraType",conf.workermsg.cameraType);
       onWindowResize(conf.el!,conf.workermsg.cameraType )	;
+      if (conf.postMessage){
       conf.postMessage({
         type:'end'
-      });
-      conf.showMenu =oldMenu;// 1 | (1<<1) | (1<<2) | (1<<3);
+      });}
+      conf.showMenu =conf.oldMenu;// 1 | (1<<1) | (1<<2) | (1<<3);
     }
     if (msg.options){
       conf.workermsg.options =Object.assign(conf.workermsg.options||{},msg.options);
       //console.log(msg.options);
     }
     if (msg.log){
+      if (conf.postMessage){
       conf.postMessage({
         type:'log',
         msg:msg.log
       });
     }
+    }
     if (msg.error){
+      if (conf.postMessage){
       conf.postMessage({
         type:'error',
         msg:msg.error
-      });
+      });}
     }    
   };  
 };

@@ -9,6 +9,7 @@ import { changeWorker } from "./function/worker";
 const { solidConfig }:{ solidConfig:sConfig} = $props();
 const myConfig = (window as any).myConfig as {
     pageType:'run'|'gzData'|'stlData',
+    src?:string,
     name:string,
     in:string,
     func:string}

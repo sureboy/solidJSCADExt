@@ -212,11 +212,12 @@ const reloadCurrent = (c:currentObj,msg:messageObj,postMessage?:(e:any)=>void)=>
 
 };
 const toStringCurrent =async (c:currentObj)=>{
+    //console.log(new URL(import.meta.url).origin);
     if (c.url){
         return c.url;
     }
     if (!c.srcList){
-        return c.name;
+        return new URL(c.name,new URL(import.meta.url).origin).toString();
     }
     let code ="";
     for (const src of c.srcList){ 
