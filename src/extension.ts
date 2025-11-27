@@ -10,7 +10,10 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
     console.log(vscode.workspace.getConfiguration("init").get("in"));
     watcherServer(context);
-    context.subscriptions.push(     
+    context.subscriptions.push(  
+        vscode.commands.registerCommand('solidJScad.onload', () => {
+            watcherServer(context);
+        }),   
         //vscode.commands.registerCommand('solidJScad.stopHttp', stopHttpServer),
         vscode.commands.registerCommand('solidJScad.create', () => {
             vscode.window.showSaveDialog({}).then(uri=>{
@@ -19,7 +22,8 @@ export function activate(context: vscode.ExtensionContext) {
                 newWorkspacePackage(
                     uri,
                     context.extensionUri,
-                    { name:path.basename(uri.fsPath),
+                    {
+                        name:path.basename(uri.fsPath),
                         in:conf.get("in")||"index.js",
                         func:conf.get("func")||"main",
                         date:"",

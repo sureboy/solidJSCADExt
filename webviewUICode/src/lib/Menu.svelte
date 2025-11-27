@@ -5,7 +5,8 @@ import DownMenu from "./DownMenu.svelte";
 import MainMenu,{moduleInit} from "./MainMenu.svelte"; 
 import Camera,{toggleCamera,initView} from "./Camera.svelte"; 
 import {onWindowResize,switchView } from "./function/threeScene" 
-import { changeWorker } from "./function/worker";  
+import { changeWorker,runWorker } from "./function/worker";  
+import {cleanCurrentMsg} from "./function/ImportParser";
 const { solidConfig }:{ solidConfig:sConfig} = $props();
 const myConfig = (window as any).myConfig as {
     pageType:'run'|'gzData'|'stlData',
@@ -28,6 +29,12 @@ handleView.set("camera",()=>{
     solidConfig.workermsg.cameraType = toggleCamera()
     onWindowResize(solidConfig.el!,solidConfig.workermsg.cameraType)
 }) 
+handleView.set("refresh",()=>{
+    //window.location.reload();
+    cleanCurrentMsg()
+    runWorker(solidConfig)
+}) 
+
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->

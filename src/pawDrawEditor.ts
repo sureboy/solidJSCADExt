@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Disposable } from './dispose';
+import {getNonce} from './util';
 
 
 /**
@@ -218,9 +219,11 @@ export const  setHtmlForWebview = (
 	handleMessageMap:Map<string,(e?:any)=>void>
 )=> {
 	//webview.options.localResourceRoots=[]
+	const nonce = getNonce();
 	const csp = `
 	   default-src 'none';
-	   script-src 'self' ${webview.cspSource} 'unsafe-inline';
+	   script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
+	   script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   worker-src ${webview.cspSource} blob: data:;
 	   style-src ${webview.cspSource} 'unsafe-inline';
 	   connect-src ${webview.cspSource} 'unsafe-inline';
@@ -239,7 +242,7 @@ export const  setHtmlForWebview = (
 	   const styleUri = webview.asWebviewUri(
 		   vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'assets', 'main.css')
 	   ); 
-	   
+	 
 
 	   	webview.onDidReceiveMessage(message => {
 			listenMessage(message,handleMessageMap);	
@@ -250,12 +253,14 @@ export const  setHtmlForWebview = (
 	 <head>
 	   <meta charset="UTF-8" /> 
 	   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	 
 		 <meta http-equiv="Content-Security-Policy" content="${csp}">
 	   <title>${config.name||"solidJScad"}</title> 
 	   <link rel="stylesheet" href="${styleUri}">
 	 </head>
 	 <body>
-	 <script>
+	 <script nonce="${nonce}" >
+ 
 	 window.vscode = acquireVsCodeApi();
 	 window.includeImport ={
 	   "@jscad/modeling":"./lib/modeling.esm.js",
@@ -265,7 +270,7 @@ export const  setHtmlForWebview = (
 	 </script>
    
 	   <div id="app" ></div>   
-	<script type="module" src="${scriptUri}"> </script>
+	<script type="module"  nonce="${nonce}"  src="${scriptUri}"> </script>
 	
 	 </body>
    </html>   

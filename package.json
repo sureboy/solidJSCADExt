@@ -54,6 +54,10 @@
       {
         "command": "solidJScad.create",
         "title": "solidjscad create"
+      },
+      {
+        "command": "solidJScad.onload",
+        "title": "solidjscad onload"
       }
     ],
     "customEditors": [

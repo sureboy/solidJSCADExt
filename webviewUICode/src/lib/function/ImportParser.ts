@@ -105,9 +105,6 @@ export const getCurrentCode =async ( src:currentObj,back:(name:string,code:strin
     }
 };
 export const getCurrent = (name:string,reqMessage?:(e:{type:"req",path:string})=>void )=>{
-    //this.persons
-
-     
     return new Promise<currentObj|null>((resolve, reject)=>{
         if (!name.startsWith("./")){
             if (includeImport[name]){
@@ -118,8 +115,6 @@ export const getCurrent = (name:string,reqMessage?:(e:{type:"req",path:string})=
             resolve(currentMap.get(name));
             return ;
         }
-
-
         if (!reqMessage ){
             console.log("not reqmsg",name);
             resolve(InitCurrentMap({name}));
@@ -232,7 +227,8 @@ const toStringCurrent =async (c:currentObj)=>{
         }
     };
     if (!code){
-        return c.name;
+        //return c.name;
+        return new URL(c.name,new URL(import.meta.url).origin).toString();
     }
     
     c.url = URL.createObjectURL(new Blob([code],{type:'application/javascript'}));
@@ -253,7 +249,9 @@ const InitCurrentMap = (v:messageObj)=>{
 export const delCurrentMsg = (name:string)=>{
     currentMap.delete(name);
 };
-
+export const cleanCurrentMsg = ()=>{
+    currentMap.clear();
+};
  
 export const handleCurrentMsg = (message:messageObj,postMessage?:(e:any)=>void)=>{
     if (!message.name){         
@@ -271,7 +269,4 @@ export const handleCurrentMsg = (message:messageObj,postMessage?:(e:any)=>void)=
     if (waitGetMap.has(message.name)){
         waitGetMap.get(message.name)(cur);  
     }
-    
-    //msg.reload(message.db);   
-       
 };

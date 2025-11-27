@@ -23,10 +23,10 @@ const consoleLogEnd=`}catch(error){
 //let _worker: Worker|null; 
 //let baseUrl:string;
 //let oldMenu:number = 0;
-const getBaseUrl =async (config:{in:string,func:string,src?:string},postMessage?:(e:any)=>void)=>{
+const getBaseUrl =async (config:{in:string,func:string,src?:string },postMessage?:(e:any)=>void)=>{
  
   const csgObj = await getCurrent("./lib/csgChange.js",postMessage);
- 
+
   const csgUri = await csgObj.getUri();
   let indexName = config.in;
 
@@ -40,13 +40,13 @@ const getBaseUrl =async (config:{in:string,func:string,src?:string},postMessage?
     const li = indexName.split("/");
     indexName = [li[0], config.src,...li.slice(1)].join("/");
   }
-  const indexObj =await getCurrent(indexName,postMessage);
+  const indexObj = await getCurrent(indexName,postMessage);
  
   const indexuri = await indexObj.getUri();
- 
-  const src = `import * as csg  from '${csgUri}'
-import * as src  from '${indexuri}'
+  const src = `
   ${consoleLog} 
+  const csg = await import( '${csgUri}' )
+  const src = await import("${indexuri}")
   const main = "${config.func}";
   const list = Object.keys(src)
   const module = {list,basename:main?main:list[0]}
@@ -103,6 +103,7 @@ export const runWorker =async ( conf:sConfig  )=>{
     conf.worker.terminate();
     conf.worker = null;
     URL.revokeObjectURL(conf.baseUrl);
+    conf.baseUrl = undefined;
     
   }
   if (!conf.oldMenu){

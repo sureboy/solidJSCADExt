@@ -44,8 +44,8 @@ const getSrc:{name:string,fn:handlePostMsg} = {
         indexName = "./"+indexName;
       }
     getCurrent(indexName,postMessage).then(
-        current=>{   
-          console.log(current)     
+      current=>{   
+        console.log(current)     
         getCurrentCode(current,(name:string,code:string)=>{
           console.log(name);
           postMessage({

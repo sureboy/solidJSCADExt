@@ -66,9 +66,8 @@
             data.msg.db = db.substring(index+1)
             HandleMessage(data,postMessage)
           })
-        }
-        
-         return
+        }        
+        return
       }
       if (typeof event.data !== "string"){ 
         return
@@ -80,11 +79,7 @@
       }else{
         HandleMessage(message,postMessage)
       }
-      
-      
-
-    }
-    
+    }    
    
   })
   solidConfig.postMessage  = postMessage

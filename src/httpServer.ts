@@ -30,13 +30,15 @@ const readfile = async( filePaths:vscode.Uri,res:any)=>{
         '.jpg': 'image/jpeg'
     }[ext] || 'text/plain';
     try{
+        console.log(filePaths);
         await vscode.workspace.fs.readFile(filePaths).then(db=>{
             res.writeHead(200, { 'Content-Type': contentType });
             res.end(db);
         });
     }catch(e){
-        console.log(e);
+        //console.log(e);
         res.writeHead(404);
+        res.end();
     }
 };
 const createHttpServer = (config:{extensionUri: vscode.Uri, indexHtml:string})=>{
@@ -44,23 +46,15 @@ const createHttpServer = (config:{extensionUri: vscode.Uri, indexHtml:string})=>
     const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
-                // 解析请求路径
         console.log("begin http server",req.url);
-        
         let filepath = req.url?.split("/").slice(1)||[];
         let file =  filepath.pop();
-        if (!file){
-            //file = "index.html";
+        if (!file){ 
             res.writeHead(200, { 'Content-Type': 'text/html' });
             res.end(config.indexHtml);
             return;
-        }        
-                    
-        readfile(vscode.Uri.joinPath(filepath[0]==="lib"?libUri:rooturi,...filepath,file) ,res);
-                
-              
-                
-                 
+        }
+        readfile(vscode.Uri.joinPath(filepath[0]==="lib"?libUri:rooturi,...filepath,file) ,res);      
     });
 
     //return server;

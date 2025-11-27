@@ -22,7 +22,8 @@ export function toggleCamera() {
     "z":"back",
     "Z":"front",
     "U":"camera",
-    "V":"camera"
+    "V":"camera",
+    "r":"refresh"
   }
   const handleKeydown = (e:any) => {
 		//console.log(`pressed the ${e.key} key`);
@@ -52,18 +53,19 @@ export function toggleCamera() {
   Clickhandle(button.id)
   if (button.id !== "camera"){
     view[1] = button.textContent
-  }else{
+  } else{
     view[0] =(isPerspective ? 'Perspective' : 'Orthographic')+" "+ button.textContent
     view[1] = "[ Z ]"
   }
 }}" >
-<button id="camera"   style="height:48:px;line-height:48px;cursor: pointer;" >{cameraType}</button>
-<button id="front"    style="height:48:px;line-height:48px;cursor: pointer;">[ Z ]</button>
-<button id="back"    style="height:48:px;line-height:48px;cursor: pointer;">[ z ]</button>
-<button id="top"     style="height:48:px;line-height:48px;cursor: pointer;">[ Y ]</button>
-<button id="bottom"   style="height:48:px;line-height:48px;cursor: pointer;">[ y ]</button>
-<button id="left"     style="height:48:px;line-height:48px;cursor: pointer;">[ X ]</button>
-<button id="right"   style="height:48:px;line-height:48px;cursor: pointer;">[ x ]</button>
+<button id="camera" title="camera"   style="height:48:px;line-height:48px;cursor: pointer;" >{cameraType}</button>
+<button id="front" title="front"    style="height:48:px;line-height:48px;cursor: pointer;">[ Z ]</button>
+<button id="back" title="back"    style="height:48:px;line-height:48px;cursor: pointer;">[ z ]</button>
+<button id="top" title="top"     style="height:48:px;line-height:48px;cursor: pointer;">[ Y ]</button>
+<button id="bottom" title="bottom"   style="height:48:px;line-height:48px;cursor: pointer;">[ y ]</button>
+<button id="left" title="left"     style="height:48:px;line-height:48px;cursor: pointer;">[ X ]</button>
+<button id="right" title="right"   style="height:48:px;line-height:48px;cursor: pointer;">[ x ]</button>
+<button id="refresh" title="refresh"   style="height:48:px;line-height:48px;cursor: pointer;" >[ r ]</button>
 </div>
 <div><p>Right-click and drag, or use two-finger touch and drag</p></div>
 </details>

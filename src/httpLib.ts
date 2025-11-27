@@ -17,6 +17,7 @@ export type SerConfig = {
     }
 }
 export const httpindexHtml = (config:{
+    src?:string,
     name:string,
     pageType:"run" | "gzData" | "stlData",
     in:string,
@@ -37,7 +38,7 @@ return `
         "@jscad/modeling":"./lib/modeling.esm.js",
         "csgChange":"./lib/csgChange.js",
         }
-        window.myConfig={pageType:"${config.pageType}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+        window.myConfig={pageType:"${config.pageType}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
         </script>
     
         <div id="app" ></div>   
