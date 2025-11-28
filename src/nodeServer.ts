@@ -199,8 +199,10 @@ const createHttpServer = (conf:{
     port:number,
     rootPath:string,
     srcPath:string,
+    indexHtml:string
     //watchPath:string,
     })=>{  
+    conf.indexHtml = httpindexHtml({pageType:"run",...conf});
     //const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     //const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
@@ -208,13 +210,13 @@ const createHttpServer = (conf:{
         const filepath =path.join( ...pathList) ;
         const handmsg = workerspaceMessageHandMap(TypeTag,(e)=>{
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            console.log(e);
+            //console.log(e);
             res.end(JSON.stringify(e));
         },conf.src);
         switch(pathList[1]){
             case "": 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(httpindexHtml({pageType:"run",...conf}));
+                res.end(conf.indexHtml);
                 break;
             case conf.src:
                 console.log("src",path.join(conf.srcPath,filepath));
@@ -270,6 +272,7 @@ export const RunHttpServer = (conf:{
     port:number,
     rootPath:string,
     srcPath:string,
+    indexHtml:string,
     //watchPath:string,
     //webview:boolean,
     }, backServ:(ser:SerConfig)=>void,errNumber = 10)=>{
@@ -283,7 +286,7 @@ export const RunHttpServer = (conf:{
     const runHttp = (p:number)=>{ 
         serv.listen(p, () => {
             console.log("listen port:",p);
-            backServ({Server:serv,httpPort:p,config:{extensionUri:conf.src,name:"",indexHtml:""}});
+            backServ({Server:serv,httpPort:p,config:{extensionUri:conf.src,name:conf.name,indexHtml:conf.indexHtml}});
         }).on('error',(err)=>{
             console.log(err.message,p.toString());
             if (err.message.startsWith("listen EADDRINUSE:")){ 

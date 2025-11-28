@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as WS from 'ws';
+//import * as WS from 'ws';
 //import * as http from 'http'; 
 //import * as os from 'os';
-import { setHtmlForWebview,listenMessage} from './pawDrawEditor';
+import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import { RunHttpServer } from './nodeServer';
-import {ServPool} from './httpServer';
+//import {ServPool} from './httpLib';
 //import {httpindexHtml,WSSend} from "./httpLib";
-//import type {SerConfig} from './httpServer';
+//import type {SerConfig} from './nodeServer';
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
  
@@ -40,7 +40,8 @@ export const stopHttpServer = ()=>{
     }
 };
 */
- 
+//let httpServerPort: number=0;
+const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 const createPanel  = ( config:{
     webview:boolean,
     name:string,
@@ -244,6 +245,44 @@ const watchInit = (conf:{
 export const watcherServer = (context: vscode.ExtensionContext)=>{
     vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
         if (files.length === 0) {
+            if (!vscode.workspace.workspaceFolders){
+                return;
+            }
+            const uri = vscode.workspace.workspaceFolders[0].uri;
+            const conf = vscode.workspace.getConfiguration("init");
+            newWorkspacePackage(
+            uri,
+            context.extensionUri,
+            {
+                name:path.basename(uri.fsPath),
+                in:conf.get("in")||"index.js",
+                func:conf.get("func")||"main",
+                date:"",
+                src:conf.get("src")||"src",
+                port:conf.get("port")||3000,
+                webview:conf.get("webview")||true,
+            },
+            ()=>{
+                vscode.workspace.fs.copy(
+                    vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
+                    vscode.Uri.joinPath(uri,"src","lib","csgChange.js")
+                );
+                vscode.workspace.fs.copy(
+                    vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
+                    vscode.Uri.joinPath(uri,"src","lib","modeling.esm.js")
+                );
+                vscode.workspace.fs.writeFile(
+                    vscode.Uri.joinPath(uri,"src","index.js"),
+                new TextEncoder().encode(
+                    "import modeling from '@jscad/modeling';\nexport const main=()=>{\n  return modeling.primitives.cube()\n}")
+                ).then(()=>{
+                    watcherServer(context);
+                    //vscode.commands.executeCommand('vscode.openFolder', uri); 
+                });
+            }
+        );
+            
+            //vscode.commands.executeCommand('solidJScad.create').;
             return;
         }
         const u = files[0];
@@ -253,21 +292,29 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                 //pageType:"run",
                 extensionUri : context.extensionUri,
             });
-            const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-            RunHttpServer({
-                rootPath:path.join(context.extensionUri.fsPath,"myModule","node"),
-                srcPath:config.watchPath.fsPath,
-                ...config},(ser)=>{
-                    const serv = { 
-                        Bar ,...ser};
-                ServPool.set(serv);
+            console.log("get",config.name);
+            //const serv = ServPool.get(config.name);
+            
+            if (!Bar.text){
+                 
+                RunHttpServer({
+                    rootPath:path.join(context.extensionUri.fsPath,"myModule","node"),
+                    srcPath:config.watchPath.fsPath,
+                    indexHtml:"",
+                    ...config},(ser)=>{ 
+                       // httpServerPort = ser.httpPort;
+                    //    console.log("set",ser.config?.name);
+                    //ServPool.set(ser);
 
-                if (serv.Bar){
-                    serv.Bar.text = `http://${getLocalIp()}:${ser.httpPort.toString()}`;
-                    serv.Bar.show();
-                }
-                    //const s:SerConfig = ser;
-            });
+                    //if (serv.Bar){
+                    Bar.text = `http://${getLocalIp()}:${ser.httpPort.toString()}`;
+                    Bar.show();
+                    //}
+                        //const s:SerConfig = ser;
+                });
+            }
+            
+            
             /*
             const  Serv = RunHttpServer( {name:config.name,extensionUri:context.extensionUri,
                 indexHtml:httpindexHtml({pageType:"run",src:conf.src,...config})},serv=>{
@@ -307,7 +354,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             },{ TypeTag, ...config});  
             //console.log(1,config);
             const panel = createPanel(config);
-            Bar.show();
+            //Bar.show();
             if (panel){
                 const watcher = watchInit({TypeTag,...config},()=>{
                     //console.log(2,config);
@@ -318,19 +365,14 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     console.log("close",e);
                     //panel?.dispose()
                     //Serv?.Server?.
-                    Bar?.hide();
+                    //Bar?.hide();
                     //Serv?.Server?.close();
                     //panel=null;
                     //config.webview=false;
+                    //Bar.dispose();
                     watcher.dispose();
                 });
-                panel.onDidChangeViewState(e=>{
-                    if (panel?.visible) {
-                        Bar?.show();
-                    } else {
-                        Bar?.hide();
-                    }
-                });
+               
                 setHtmlForWebview(
                     panel.webview,{pageType:"run",...config},
                     handMap

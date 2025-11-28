@@ -8,7 +8,6 @@ const TypeTag = new Map<postTypeStr,number>();
 type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     //name:string,
-   
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
@@ -198,8 +197,12 @@ const createHttpServer = (conf:{
     func: string,
     in: string,
     port:number,
-    //webview:boolean,
+    rootPath:string,
+    srcPath:string,
+    indexHtml:string
+    //watchPath:string,
     })=>{  
+    conf.indexHtml = httpindexHtml({pageType:"run",...conf});
     //const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     //const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
@@ -207,25 +210,25 @@ const createHttpServer = (conf:{
         const filepath =path.join( ...pathList) ;
         const handmsg = workerspaceMessageHandMap(TypeTag,(e)=>{
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            console.log(e);
+            //console.log(e);
             res.end(JSON.stringify(e));
         },conf.src);
         switch(pathList[1]){
             case "": 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(httpindexHtml({pageType:"run",...conf}));
+                res.end(conf.indexHtml);
                 break;
             case conf.src:
-                readfile(filepath, res);
+                console.log("src",path.join(conf.srcPath,filepath));
+                readfile(path.join(conf.srcPath,...pathList.slice(2)), res);
                 break;
-            case "api":      
-                      
+            case "api":                         
                 console.log(filepath,req.method);
                 if (req.method ==="POST"){
                     let body = "";
                     req.addListener("data",(db)=>{
                         //db
-                        body+= db.toString();
+                        body += db.toString();
                         //console.log(db);
                     });                    
                     req.addListener("end",()=>{
@@ -251,8 +254,9 @@ const createHttpServer = (conf:{
                 //handmsg.get(req.d)
                 break;
             default:
+                //const p = path.join(conf.rootPath,filepath);
                 const ext = path.extname(filepath);
-                readBinaryFile(filepath,contentType[ext]|| 'text/plain',res);
+                readBinaryFile(path.join(conf.rootPath,filepath),contentType[ext]|| 'text/plain',res);
                 break;
         }
         return;
@@ -260,22 +264,29 @@ const createHttpServer = (conf:{
     });
 };
 
-const RunHttpServer = (  backServ:(ser:SerConfig)=>void,  
-    errNumber = 10)=>{
-    const db = fs.readFileSync("solidjscad.json");
-    const conf:{
-        src:string,
-        name: string,
-        func: string,
-        in: string,
-        port:number,
-        //webview:boolean,
-        } = JSON.parse(db.toString());
+export const RunHttpServer = (conf:{
+    src:string,
+    name: string,
+    func: string,
+    in: string,
+    port:number,
+    rootPath:string,
+    srcPath:string,
+    indexHtml:string,
+    //watchPath:string,
+    //webview:boolean,
+    }, backServ:(ser:SerConfig)=>void,errNumber = 10)=>{
+    /*
+    if (!conf){
+        const db = fs.readFileSync("solidjscad.json");
+        conf =  JSON.parse(db.toString());
+    }    
+    */
     const serv = createHttpServer(conf);
     const runHttp = (p:number)=>{ 
         serv.listen(p, () => {
             console.log("listen port:",p);
-            backServ({Server:serv,httpPort:p,config:{extensionUri:conf.src,name:"",indexHtml:""}});
+            backServ({Server:serv,httpPort:p,config:{extensionUri:conf.src,name:conf.name,indexHtml:conf.indexHtml}});
         }).on('error',(err)=>{
             console.log(err.message,p.toString());
             if (err.message.startsWith("listen EADDRINUSE:")){ 
@@ -290,6 +301,4 @@ const RunHttpServer = (  backServ:(ser:SerConfig)=>void,
     runHttp(conf.port);
 };
 
-RunHttpServer((ser)=>{
-    
-});
+ 

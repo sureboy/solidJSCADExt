@@ -16,9 +16,9 @@
     "lib": "lib"
   },
   "scripts": {
-    "dev": "node --experimental-strip-types httpServer.ts"
+    "dev": "node --experimental-strip-types ./src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.10.6"
+    "hono": "^4.10.7"
   }
 }

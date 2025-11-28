@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { STLEditorProvider } from './STLEditorProvider';
-import { gzEditorProvider,newWorkspacePackage } from './gzEditorProvider'; 
+import { gzEditorProvider } from './gzEditorProvider'; 
+import {newWorkspacePackage} from './pawDrawEditor';
 import { watcherServer } from './bundleServer'; 
 import * as path from "path";
 //import { treeDataProvider } from './httpServer';
@@ -29,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
                         date:"",
                         src:conf.get("src")||"src",
                         port:conf.get("port")||3000,
-                        //webview:conf.get("webview")||true,
+                        webview:conf.get("webview")||true,
                     },
                     ()=>{
                         vscode.workspace.fs.copy(

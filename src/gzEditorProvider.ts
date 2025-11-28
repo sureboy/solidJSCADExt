@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import {PawDrawDocument,WebviewCollection,setHtmlForWebview,listenMessage} from './pawDrawEditor';
+import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
-import {RunHttpServer,startWebSocketServer} from './httpServer';
-import {WSSend,httpindexHtml}from './httpLib';
+//import {RunHttpServer,startWebSocketServer} from './httpServer';
+//import {WSSend,httpindexHtml}from './httpLib';
 import type {postTypeStr} from './bundleServer';
 //import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
@@ -76,11 +76,13 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         let NewWorkspace : vscode.Uri|null = null;
            
         const myWorkspaceConfig = {name,in:in_,func,date,
+            webview:vscode.workspace.getConfiguration("init").get("webview") as boolean || true,
             src:vscode.workspace.getConfiguration("init").get("src") as string || "src",
             port:vscode.workspace.getConfiguration("init").get("port") as number ||0  };
         //this.httpConfig.indexHtml = httpindexHtml(config);
         //this.httpConfig.name = config.name;
         //if (!serv){
+        /*
         RunHttpServer({
             extensionUri: this._context.extensionUri,
             indexHtml:httpindexHtml(config),
@@ -125,12 +127,13 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         myWorkspaceConfig.port
         //vscode.workspace.getConfiguration("init").get("port")||0                
         );
-        
+        */
         
         //const postMsg = webviewPanel.webview.postMessage;
         const handMap = workerspaceMessageHandMap(postTypeTag,webviewPanel.webview.postMessage);
         //const _h =  new Map<string, (e?: any) => void>();
-        downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{ TypeTag:postTypeTag,extensionUri:this._context.extensionUri, ...myWorkspaceConfig});
+        downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{ 
+            TypeTag:postTypeTag,extensionUri:this._context.extensionUri, ...myWorkspaceConfig});
  
         handMap.set('loaded',(e:{msg:string})=>{
             initLoad(e.msg,postTypeTag,tag=>{
@@ -191,88 +194,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         return p;
     }
 }
-export const newWorkspacePackage= async(
-    NewWorkspace:vscode.Uri,
-    //context: vscode.ExtensionContext,
-    extensionUri:vscode.Uri,
-    myWorkspaceConfig:{
-        name:string,
-        in:string,
-        func:string,
-        date:string,
-        src:string,
-        port:number,
-        //webview:boolean,
-    },
-        handleEnd?:()=>void)=>{
-            
-    await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"solidjscad.json"),
-        new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
-    );   
-    try{
-        await vscode.workspace.fs.copy(
-            vscode.Uri.joinPath(extensionUri,"myModule","modeling"),
-            vscode.Uri.joinPath(NewWorkspace,"node_modules", "@jscad","modeling"));
-    }catch(e){
-        console.log(e);
-    }
 
-        /*
-    await vscode.workspace.fs.copy(
-        vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
-        vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","csgChange.js")
-    );
-    await vscode.workspace.fs.copy(
-        vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
-        vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","modeling.esm.js")
-    );*/
-    //return handleEnd;
-    //vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
-    const cf = await vscode.workspace.fs.readFile(
-        vscode.Uri.joinPath(extensionUri,"myModule","modeling","package.json"));
-    
-    const cf_ = JSON.parse(cf.toString());
-    //console.log(cf_);
-    await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"package.json"),
-        new TextEncoder().encode(JSON.stringify({
-            name:myWorkspaceConfig.name.toLowerCase(),
-            type: "module",
-            main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.in,
-            version: "1.0.0", 
-            description:myWorkspaceConfig.name,
-            private: true,
-            scripts: {
-                "build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
-            },
-            devDependencies: {
-                "esbuild": "^0.25.8",
-            },
-            dependencies: {
-                "@jscad/modeling": cf_.version,
-            }
-        }, null, 2))
-    );
-
-    await vscode.workspace.fs.writeFile(
-        vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
-        new TextEncoder().encode(JSON.stringify({
-            compilerOptions:  {
-                paths: { 
-                "@jscad/modeling":["./node_modules/@jscad/modeling"]
-                }
-            }
-        }, null, 2)),
-    ); 
-    
-    if (handleEnd){
-        handleEnd();
-    }
-    
-                 //vscode.workspace.fs.createDirectory(NewWorkspace);
-            
-};
 /*
 const createWorkspacePackage = async( 
     NewWorkspace:vscode.Uri,
@@ -309,7 +231,7 @@ postMessage:(db:{
     type:number,
     msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
 config:{
-    
+    webview:boolean,
     NewWorkspace?:vscode.Uri,
     in:string,
     func:string,
@@ -331,6 +253,7 @@ config:{
             newWorkspacePackage(config.NewWorkspace,
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
                 config!.extensionUri,  {
+                    webview:config.webview,
                     in:config.in,
                     func:config.func,
                     port:config.port,

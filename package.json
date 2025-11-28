@@ -47,6 +47,11 @@
           "type": "number",
           "default": 3000,
           "description": "http server port"
+        },
+        "init.webview": {
+          "type": "boolean",
+          "default": true,
+          "description": "webview"
         }
       }
     },
