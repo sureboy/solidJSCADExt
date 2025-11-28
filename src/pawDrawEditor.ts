@@ -236,11 +236,11 @@ export const  setHtmlForWebview = (
 		   vscode.Uri.joinPath(config.extensionUri,  'myModule', 'modeling.esm.js')
 		 ); 
 	   const scriptUri = webview.asWebviewUri(
-				vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'webview.js')
+				vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webview', 'webview.js')
 	   ); 
    
 	   const styleUri = webview.asWebviewUri(
-		   vscode.Uri.joinPath(config.extensionUri,  'webviewCode', 'assets', 'main.css')
+		   vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webview',   'assets', 'main.css')
 	   ); 
 	 
 

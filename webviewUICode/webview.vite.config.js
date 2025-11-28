@@ -7,7 +7,7 @@ export default defineConfig({
   build: {
     //minify:false,
    
-    outDir: path.resolve(__dirname, '../webviewCode'),
+    outDir: path.resolve(__dirname, '../myModule/webview'),
     emptyOutDir: true,
     rollupOptions: {
       input: {

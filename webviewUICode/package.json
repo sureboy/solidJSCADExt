@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build --config websocket.vite.config.js && vite build --config webview.vite.config.js",
+    "build": "vite build --config node.vite.config.js && vite build --config webview.vite.config.js",
     "build:node": "vite build --config node.vite.config.js",
     "build:websocket": "vite build --config websocket.vite.config.js",
     "buildbak": "npx esbuild ./src/worker/worker.ts --outfile=./src/worker/worker.js --format=iife --global-name=workerLib --bundle && vite build",

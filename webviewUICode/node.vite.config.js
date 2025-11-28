@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [svelte()],
   build: {
-    outDir: path.resolve(__dirname, '../node/dist'),
+    outDir: path.resolve(__dirname, '../myModule/node/dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: {

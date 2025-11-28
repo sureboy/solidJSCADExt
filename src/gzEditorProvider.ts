@@ -68,13 +68,14 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         };
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
         const [func,in_,name,date] =packageName.split("_");
+        /*
         const config = {extensionUri:this._context.extensionUri,
             name:"GzipPreview",in:in_,func:func,
             //pageName:"GzipViewer",
             pageType:'gzData' as "run" | "gzData" | "stlData",};
       
-        let NewWorkspace : vscode.Uri|null = null;
-           
+        //let NewWorkspace : vscode.Uri|null = null;
+          */ 
         const myWorkspaceConfig = {name,in:in_,func,date,
             webview:vscode.workspace.getConfiguration("init").get("webview") as boolean || true,
             src:vscode.workspace.getConfiguration("init").get("src") as string || "src",

@@ -1,16 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-//import * as WS from 'ws';
-//import * as http from 'http'; 
-//import * as os from 'os';
 import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import { RunHttpServer } from './nodeServer';
-//import {ServPool} from './httpLib';
-//import {httpindexHtml,WSSend} from "./httpLib";
-//import type {SerConfig} from './nodeServer';
+//import { RunHttpServer } from 'solidjscad';
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
- 
 //let panel:vscode.WebviewPanel|null = null;
 //const encoder = new TextEncoder();
 //const decoder = new TextDecoder();
@@ -72,7 +66,7 @@ const createPanel  = ( config:{
                 //outPath,
                 //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
                 vscode.Uri.joinPath (config.extensionUri, 'myModule'),
-                vscode.Uri.joinPath( config.extensionUri, 'webviewCode'),
+                //vscode.Uri.joinPath( config.extensionUri, 'webviewCode'),
             ]
         }
     );
@@ -264,11 +258,11 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             },
             ()=>{
                 vscode.workspace.fs.copy(
-                    vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
+                    vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","csgChange.js"),
                     vscode.Uri.joinPath(uri,"src","lib","csgChange.js")
                 );
                 vscode.workspace.fs.copy(
-                    vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
+                    vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","modeling.esm.js"),
                     vscode.Uri.joinPath(uri,"src","lib","modeling.esm.js")
                 );
                 vscode.workspace.fs.writeFile(
@@ -307,8 +301,15 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     //ServPool.set(ser);
 
                     //if (serv.Bar){
-                    Bar.text = `http://${getLocalIp()}:${ser.httpPort.toString()}`;
+                    const loadIP = getLocalIp();
+                    Bar.text = `http://${loadIP}:${ser.httpPort}`;
                     Bar.show();
+                    vscode.window.showInformationMessage( `Remote address: http://${loadIP}:${ser.httpPort}`,"Browser view").then(v=>{
+                        if (v==="Browser view"){
+                            vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${ser.httpPort}`));
+                        }
+                    });
+                    //vscode.window.showInformationMessage()
                     //}
                         //const s:SerConfig = ser;
                 });

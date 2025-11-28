@@ -34,11 +34,11 @@ export function activate(context: vscode.ExtensionContext) {
                     },
                     ()=>{
                         vscode.workspace.fs.copy(
-                            vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
+                            vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","csgChange.js"),
                             vscode.Uri.joinPath(uri,"src","lib","csgChange.js")
                         );
                         vscode.workspace.fs.copy(
-                            vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
+                            vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","modeling.esm.js"),
                             vscode.Uri.joinPath(uri,"src","lib","modeling.esm.js")
                         );
                         vscode.workspace.fs.writeFile(
