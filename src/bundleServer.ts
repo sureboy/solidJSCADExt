@@ -181,7 +181,7 @@ const watchInit = (conf:{
     port:number,
     TypeTag:Map<postTypeStr,number>
     //webview:boolean,
-}, panelFun:()=>vscode.WebviewPanel|undefined)=>{
+}, panel:vscode.WebviewPanel)=>{
     const watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(conf.watchPath, '**/*.js')
     );
@@ -206,7 +206,7 @@ const watchInit = (conf:{
             //    WSSendUpdate(["init","run"],TypeTag,msg,ws);
                 //ws.send(JSON.stringify({run:true}));
             //});
-            panelFun()?.webview.postMessage( {  
+            panel.webview.postMessage( {  
                 type:(conf.TypeTag.get("init")||0)|(conf.TypeTag.get("run") ||0 ),
                 msg                   
             },);
@@ -224,13 +224,12 @@ const watchInit = (conf:{
         //const name = path.relative(config.watchPath.fsPath,uri.fsPath);
        
         
-        panelFun()?.webview.postMessage({
+        panel.webview.postMessage({
             type:conf.TypeTag.get("del"),
             msg:{
                 name:path.basename(uri.fsPath)
             }
         });
-       
         vscode.window.showInformationMessage(`Delete: ${name}`); 
     });
 
@@ -314,32 +313,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                         //const s:SerConfig = ser;
                 });
             }
-            
-            
-            /*
-            const  Serv = RunHttpServer( {name:config.name,extensionUri:context.extensionUri,
-                indexHtml:httpindexHtml({pageType:"run",src:conf.src,...config})},serv=>{
-                    //Serv =  serv;
-                    startWebSocketServer(
-                        serv,ws=>{
-                            return workerspaceMessageHandMap(
-                                TypeTag,
-                                (e: {
-                                    type: number;
-                                    msg: {
-                                        db?: string | ArrayBuffer;
-                                        name?: string;
-                                        open?: boolean;
-                                    }})=>{
-                                    WSSend(e,ws);                
-                                },config?.watchPath,
-                            );
-                            //return handListenMap;
-                        },listenMessage,
-                        //config.watchPath
-                    );
-                },config.port);
-            */
+             
             const handMap = workerspaceMessageHandMap(TypeTag,(db:any)=>{
                 if (panel) {panel.webview.postMessage(db);}
                 else {
@@ -357,10 +331,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             const panel = createPanel(config);
             //Bar.show();
             if (panel){
-                const watcher = watchInit({TypeTag,...config},()=>{
-                    //console.log(2,config);
-                    return createPanel(config);
-                });
+                const watcher = watchInit({TypeTag,...config},panel );
                 context.subscriptions.push(watcher); 
                 panel.onDidDispose((e)=>{
                     console.log("close",e);
