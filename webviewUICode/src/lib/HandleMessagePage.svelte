@@ -111,6 +111,7 @@ export const HandleMessage = (
   postMessage?: (e: any) => void)=>{
     console.log("messagepost",message)
     for (const type of getMsgHandle(message.type)) {
+      console.log(type.name);
       type.fn(message.msg,postMessage)
     }
 } 
