@@ -47,7 +47,7 @@ return `
         <script type="importmap">
         {
             "imports": {
-                "@jscad/modeling":"http://localhost:3000/lib/modeling.esm.js"
+                "@jscad/modeling":"http://localhost:3001/src/lib/modeling.esm.js"
             }
         }
         </script>
@@ -118,8 +118,8 @@ const readfile = ( filePaths:string,res:http.ServerResponse<http.IncomingMessage
     
 };
 const initLoad = (
-    db:string,postTypeTag:Map<postTypeStr,number>,hand:(pageType:'run'|'gzData'|'stlData')=>void)=>{
-    const msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  = JSON.parse(db);
+    msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'},postTypeTag:Map<postTypeStr,number>,hand:(pageType:'run'|'gzData'|'stlData')=>void)=>{
+    //const msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  = JSON.parse(db);
     msg.direction.forEach((v,i)=>{
         postTypeTag.set(v,1<<i);
     });
@@ -137,58 +137,15 @@ const workerspaceMessageHandMap = (
     const handListenMsg = new Map<string,(e:any)=>void>();
     handListenMsg.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
-        //console.log(e);
+        console.log(e);
         initLoad(e.msg,postTypeTag,t=>{
             postMessage({                    
                 msg:{open:true},
-                type:postTypeTag.get(t)||0             
+                type:postTypeTag.get(t)||0
             });
         });    
     });   
-    handListenMsg.set('req',(e:{path:string})=>{ 
-        
-        //postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
-        //return;
-        let  filePath = path.join(...e.path.split("/"));  
-        fs.stat(filePath,(err,s)=>{
-            if (!err){
-                postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
-                return;
-            }      
-            filePath = path.join(workerspacePath,filePath);        
-            fs.readFile(filePath,{encoding:'utf8'},(err,db)=>{
-                console.log(err);
-                if (!err){
-                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path,db }});
-                }else{
-                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path  }});
-                }            
-            });
-        });
-
-        //const db = fs.readFileSync(e.path);
-        //db.
-        
-        //console.log(e);
-        /*
-        if (!workerspacePath){
-            postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
-            return;
-        }
-        const fn = async ()=>{
-            try{
-                const t = await vscode.workspace.fs.readFile(
-                    vscode.Uri.joinPath(
-                        workerspacePath,e.path
-                    )); 
-                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                    
-            }catch(err:any){
-                postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
-            }
-        };
-        fn();
-        */        
-    });
+     
     return handListenMsg;
 };
 const createHttpServer = (conf:{
@@ -226,10 +183,8 @@ const createHttpServer = (conf:{
                 console.log(filepath,req.method);
                 if (req.method ==="POST"){
                     let body = "";
-                    req.addListener("data",(db)=>{
-                        //db
-                        body += db.toString();
-                        //console.log(db);
+                    req.addListener("data",(db)=>{ 
+                        body += db.toString(); 
                     });                    
                     req.addListener("end",()=>{
                         console.log(body);

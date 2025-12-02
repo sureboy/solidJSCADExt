@@ -68,6 +68,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         const config = {
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
+            src:"",
             name:"STLViewer",
             in:"index.js",
             func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
@@ -129,13 +130,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
          
         */
         
-        const handMap =workerspaceMessageHandMap( 
-            postTypeTag,
-            webviewPanel.webview.postMessage,
-            undefined,
-            //serv,
-            //RunHttpServer({port:vscode.workspace.getConfiguration("init").get("port"),...config})
-        );// new Map<string,(e?:any)=>void>();
+        const handMap =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
         handMap.set("loaded",(e:{msg:string})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({

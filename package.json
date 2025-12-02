@@ -52,6 +52,13 @@
           "type": "boolean",
           "default": true,
           "description": "webview"
+        },
+        "init.includeImport": {
+          "type": "object",
+          "default": {
+            "@jscad/modeling":"./src/lib/modeling.esm.js"
+          },
+          "description": "webview"
         }
       }
     },

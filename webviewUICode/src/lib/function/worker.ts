@@ -23,11 +23,9 @@ const consoleLogEnd=`}catch(error){
 //let _worker: Worker|null; 
 //let baseUrl:string;
 //let oldMenu:number = 0;
-const getBaseUrl =async (config:{in:string,func:string,src?:string },postMessage?:(e:any)=>void)=>{
+const getBaseUrl =async (config:{in:string,func:string,src:string },postMessage?:(e:any)=>void)=>{
  
-  const csgObj = await getCurrent("./lib/csgChange.js",postMessage);
 
-  const csgUri = await csgObj.getUri();
   let indexName = config.in;
 
   if (!indexName.startsWith("./")){
@@ -36,10 +34,15 @@ const getBaseUrl =async (config:{in:string,func:string,src?:string },postMessage
   if (!indexName.endsWith(".js")){
     indexName += ".js";
   }
-  if (config.src){
+  let csgObjUrl = "./lib/csgChange.js";
+  if (!postMessage){
+    csgObjUrl = `./${config.src}/lib/csgChange.js`;
     const li = indexName.split("/");
     indexName = [li[0], config.src,...li.slice(1)].join("/");
   }
+  const csgObj = await getCurrent(csgObjUrl,postMessage);
+
+  const csgUri = await csgObj.getUri();
   const indexObj = await getCurrent(indexName,postMessage);
  
   const indexuri = await indexObj.getUri();

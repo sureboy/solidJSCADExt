@@ -215,6 +215,7 @@ export const  setHtmlForWebview = (
 		name:string,
 		func:string,
 		in:string,
+		src:string,
 		extensionUri:vscode.Uri},
 	handleMessageMap:Map<string,(e?:any)=>void>
 )=> {
@@ -262,11 +263,8 @@ export const  setHtmlForWebview = (
 	 <script nonce="${nonce}" >
  
 	 window.vscode = acquireVsCodeApi();
-	 window.includeImport ={
-	   "@jscad/modeling":"./lib/modeling.esm.js",
-	   "csgChange":"./lib/csgChange.js",
-	 }
-	   window.myConfig={pageType:"${config.pageType||"webview"}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+	 
+	   window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
 	 </script>
    
 	   <div id="app" ></div>   
@@ -289,6 +287,9 @@ export const newWorkspacePackage= async(
 		src:string,
 		port:number,
 		webview:boolean,
+		includeImport: {
+			[key: string]: string;
+		};
 	},
 		handleEnd?:()=>void)=>{
 			

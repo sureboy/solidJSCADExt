@@ -15,7 +15,7 @@
   }
   solidConfig.oldMenu = 1 | (1<<1) | (1<<2) | (1<<3);
   //let oldMenu:number =1 | (1<<1) | (1<<2) | (1<<3);
- 
+ /*
   solidConfig.postMessage = (e:{type:string,path?:string,msg?:any})=>{
     fetch("/api",{
       method:"POST",
@@ -29,14 +29,35 @@
       })
     })
   }
+    */
+  const loadedFetch = ()=>{
+    fetch("/api",{
+      method:"POST",
+      headers: {
+        "Content-Type": "application/json", 
+      },
+      body:JSON.stringify({ 
+      msg: {direction:Direction.map(v=>{ 
+        return v.name}),pageType:solidConfig.workermsg.pageType||"run"}, 
+      type:'loaded'
+    })
+    }).then(data=>{
+      data.json().then(db=>{
+        HandleMessage(db,solidConfig.postMessage)
+      })
+    })
+  }
 
   onMount(() => {
     initSolidPage(solidConfig)
+    loadedFetch();
+    /*
     solidConfig.postMessage({ 
       msg:JSON.stringify({direction:Direction.map(v=>{ 
         return v.name}),pageType:solidConfig.workermsg.pageType||"run"}), 
       type:'loaded'
     });
+    */
     //runWorker(solidConfig)
   })
    

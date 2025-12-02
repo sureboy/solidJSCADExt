@@ -2,16 +2,17 @@ import * as vscode from 'vscode';
 import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider } from './gzEditorProvider'; 
 import {newWorkspacePackage} from './pawDrawEditor';
-import { watcherServer } from './bundleServer'; 
+import { watcherServer,CreateSolidjscadPackage } from './bundleServer'; 
 import * as path from "path";
 //import { treeDataProvider } from './httpServer';
 //import type {SerConfig} from './httpServer';
  
 export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
-    console.log(vscode.workspace.getConfiguration("init").get("in"));
+    //console.log(vscode.workspace.getConfiguration("init").get("in"));
     watcherServer(context);
-    context.subscriptions.push(  
+ 
+    context.subscriptions.push(   
         vscode.commands.registerCommand('solidJScad.onload', () => {
             watcherServer(context);
         }),   
@@ -19,6 +20,10 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('solidJScad.create', () => {
             vscode.window.showSaveDialog({}).then(uri=>{
                 if (!uri){return;}
+                CreateSolidjscadPackage(uri,context).then(()=>{
+                    vscode.commands.executeCommand('vscode.openFolder', uri);  
+                });
+                /*
                 const conf = vscode.workspace.getConfiguration("init");
                 newWorkspacePackage(
                     uri,
@@ -49,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
                             vscode.commands.executeCommand('vscode.openFolder', uri); 
                         });
                     }
-                );
+                );*/
             });
         }),
         gzEditorProvider.register(context),

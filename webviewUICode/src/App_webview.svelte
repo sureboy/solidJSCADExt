@@ -7,6 +7,7 @@
   solidConfig.showMenu = -1
   onMount(() => {
     initSolidPage(solidConfig) 
+    solidConfig.postMessage = vscode.postMessage
     vscode.postMessage({ 
       msg:JSON.stringify({direction:Direction.map(v=>{ 
         return v.name}),pageType:solidConfig.workermsg.pageType}),
@@ -21,7 +22,7 @@
       
     } 
   });
-  solidConfig.postMessage = vscode.postMessage
+  
   
 </script> 
 <HandlePage  ></HandlePage> 

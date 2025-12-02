@@ -9,7 +9,7 @@ export type workerConfigType = {
   in: string;
   func: string;
   name:string;
-  src?:string;
+  src:string;
   options?:Object;
 }
 export type sConfig = {
@@ -47,7 +47,7 @@ export const gzipToString= async (data: ArrayBuffer )=>{
     let codeStart = 0;
     //let codeEnd  = 0
     //console.log(src)
-    regexExec(src,/\/\*\*\s*([\w\.\/]+)\s*\*/g,(r,i)=>{      
+    regexExec(src,/\/\*\*\s*([^\*|\s]+)\s*\*/g,(r,i)=>{      
       if (name){
         //codeEnd = 
         //console.log(r,codeStart,src.slice(r.index,i))

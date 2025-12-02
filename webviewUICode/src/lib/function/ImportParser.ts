@@ -23,7 +23,7 @@ type importType = {
 }
 const currentMap = new Map<string,currentObj>();
 const waitGetMap = new Map<string,(c:currentObj)=>void>();
-const includeImport = (window as any).includeImport;
+//const includeImport = (window as any).includeImport;
 /*
 Object.keys(includeImport).forEach(k=>{
     currentMap.set(k,{
@@ -106,11 +106,12 @@ export const getCurrentCode =async ( src:currentObj,back:(name:string,code:strin
 };
 export const getCurrent = (name:string,reqMessage?:(e:{type:"req",path:string})=>void )=>{
     return new Promise<currentObj|null>((resolve, reject)=>{
+        /*
         if (!name.startsWith("./")){
             if (includeImport[name]){
                 name = includeImport[name];
             }
-        }
+        }*/
         if (currentMap.has(name)){
             resolve(currentMap.get(name));
             return ;
