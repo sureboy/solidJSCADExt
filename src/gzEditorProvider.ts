@@ -192,53 +192,23 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         return p;
     }
 }
-
-/*
-const createWorkspacePackage = async( 
-    NewWorkspace:vscode.Uri,
-    context: vscode.ExtensionContext,
-    myWorkspaceConfig:{
+ 
+export const downSrcHandMap = (
+    handMap:Map<string,(e:any)=>void>,
+    postMessage:(db:{
+        type:number,
+        msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
+    config:{
         webview:boolean,
-        port:number,
-        name:string,
-        func:string,
+        NewWorkspace?:vscode.Uri,
         in:string,
-        date:string,
-        src:string},
-        handleEnd?:()=>void)=>{
-    try{
-        await vscode.workspace.fs.stat(NewWorkspace);
-     }catch(e){
-        vscode.window.showWarningMessage(`Do you need to create a Package from Gzip file '${
-            [myWorkspaceConfig.func,
-            myWorkspaceConfig.in,
-            myWorkspaceConfig.name].join("_")}'`,"OK").then( v=>{
-            if (v!=="OK"){
-                return;
-            }
-            newWorkspacePackage(NewWorkspace,context,myWorkspaceConfig,handleEnd);
-        });
-         //console.log(e); 
-         //vscode.workspace.getWorkspaceFolder()
-      
-     }
-};
-*/
-export const downSrcHandMap = (handMap:Map<string,(e:any)=>void>,
-postMessage:(db:{
-    type:number,
-    msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
-config:{
-    webview:boolean,
-    NewWorkspace?:vscode.Uri,
-    in:string,
-    func:string,
-    port:number,
-    src:string,
-    includeImport:{ [key: string]: string }
-    extensionUri:vscode.Uri,
-    TypeTag : Map<postTypeStr,number>
-})=>{
+        func:string,
+        port:number,
+        src:string,
+        includeImport:{ [key: string]: string }
+        extensionUri:vscode.Uri,
+        TypeTag : Map<postTypeStr,number>
+    })=>{
     handMap.set('downSrc',()=>{
         vscode.window.showOpenDialog({
             canSelectFolders:true,

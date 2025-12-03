@@ -13,7 +13,7 @@ type SerConfig = {
     Server?: http.Server
     //wss?:WebSocketServer
     config?:{
-        extensionUri:  string,
+        extensionUri:string,
         indexHtml:string,
         name:string
     }
@@ -26,9 +26,11 @@ const contentType:{ [key: string]: string } = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg'
 };
+/*
 const importmap:{ [key: string]: string } = {
     "@jscad/modeling":"./lib/modeling.esm.js"
 };
+*/
 const httpindexHtml = (config:{
     src?:string,
     name:string,
@@ -44,20 +46,11 @@ return `
         
         <title>${config.name||"solidJScad"}</title> 
         <link rel="stylesheet" href="/dist/assets/main.css"> 
-        <script type="importmap">
-        {
-            "imports": {
-                "@jscad/modeling":"http://localhost:3001/src/lib/modeling.esm.js"
-            }
-        }
-        </script>
+  
         </head>
         <body>        
         <script> 
-        window.includeImport ={
-            "@jscad/modeling":"./lib/modeling.esm.js",
-            "csgChange":"./lib/csgChange.js",
-        }
+  
         window.myConfig={pageType:"${config.pageType}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
         </script>
     
@@ -67,16 +60,23 @@ return `
     </html>   
 `;
 };
-const readJS = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
-    req: http.IncomingMessage;
-})=>{
+const readJS = (
+    filePaths:string,
+    contentType:string,
+    res:http.ServerResponse<http.IncomingMessage> & {
+    req: http.IncomingMessage;},
+    conf:{src:string,includeImport:{ [key: string]: string }}
+)=>{
     try{
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
         //console.log(db);
-        Object.keys(importmap).forEach(k=>{
+        Object.keys(conf.includeImport).forEach(k=>{
             //console.log(k,importmap[k]);
-            db = db.replace(k,importmap[k]);
+            const p = path.join(res.req.headers.origin||"../",conf.includeImport[k] );
+            //console.log(res.req.headers.origin);
+            //console.log(conf.includeImport[k]);
+            db = db.replace(k,p);
         });
         //db.replace("","");
         //console.log(db);
@@ -102,14 +102,17 @@ const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerRespo
     }
 };
 
-const readfile = ( filePaths:string,res:http.ServerResponse<http.IncomingMessage> & {
+const readfile = ( 
+    filePaths:string,
+    res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
-})=>{
+},conf:{src:string,includeImport:{ [key: string]: string }}
+)=>{
     //console.log(filePaths);
     const ext = path.extname(filePaths);
     switch (ext) {
         case ".js":
-            readJS(filePaths,'text/javascript',res);
+            readJS(filePaths,'text/javascript',res,conf);
             break;
         default:
             readBinaryFile(filePaths,contentType[ext]|| 'text/plain',res);
@@ -137,15 +140,58 @@ const workerspaceMessageHandMap = (
     const handListenMsg = new Map<string,(e:any)=>void>();
     handListenMsg.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
-        console.log(e);
+        //console.log(e);
         initLoad(e.msg,postTypeTag,t=>{
             postMessage({                    
                 msg:{open:true},
-                type:postTypeTag.get(t)||0
+                type:postTypeTag.get(t)||0             
             });
         });    
     });   
-     
+    handListenMsg.set('req',(e:{path:string})=>{ 
+        
+        //postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
+        //return;
+        let  filePath = path.join(...e.path.split("/"));  
+        fs.stat(filePath,(err,s)=>{
+            if (!err){
+                postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
+                return;
+            }      
+            filePath = path.join(workerspacePath,filePath);        
+            fs.readFile(filePath,{encoding:'utf8'},(err,db)=>{
+                console.log(err);
+                if (!err){
+                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path,db }});
+                }else{
+                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path  }});
+                }            
+            });
+        });
+
+        //const db = fs.readFileSync(e.path);
+        //db.
+        
+        //console.log(e);
+        /*
+        if (!workerspacePath){
+            postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
+            return;
+        }
+        const fn = async ()=>{
+            try{
+                const t = await vscode.workspace.fs.readFile(
+                    vscode.Uri.joinPath(
+                        workerspacePath,e.path
+                    )); 
+                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                    
+            }catch(err:any){
+                postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
+            }
+        };
+        fn();
+        */        
+    });
     return handListenMsg;
 };
 const createHttpServer = (conf:{
@@ -156,7 +202,8 @@ const createHttpServer = (conf:{
     port:number,
     rootPath:string,
     srcPath:string,
-    indexHtml:string
+    indexHtml:string,
+    includeImport:{ [key: string]: string }
     //watchPath:string,
     })=>{  
     conf.indexHtml = httpindexHtml({pageType:"run",...conf});
@@ -176,15 +223,17 @@ const createHttpServer = (conf:{
                 res.end(conf.indexHtml);
                 break;
             case conf.src:
-                console.log("src",path.join(conf.srcPath,filepath));
-                readfile(path.join(conf.srcPath,...pathList.slice(2)), res);
+                //console.log("src",path.join(conf.srcPath,filepath));
+                readfile(path.join(conf.srcPath,"../",...pathList), res,conf);
                 break;
             case "api":                         
                 console.log(filepath,req.method);
                 if (req.method ==="POST"){
                     let body = "";
-                    req.addListener("data",(db)=>{ 
-                        body += db.toString(); 
+                    req.addListener("data",(db)=>{
+                        //db
+                        body += db.toString();
+                        //console.log(db);
                     });                    
                     req.addListener("end",()=>{
                         console.log(body);
@@ -219,17 +268,17 @@ const createHttpServer = (conf:{
     });
 };
 
-export const RunHttpServer = (conf:{
-    src:string,
-    name: string,
-    func: string,
-    in: string,
-    port:number,
-    rootPath:string,
-    srcPath:string,
-    indexHtml:string,
-    //watchPath:string,
-    //webview:boolean,
+export const RunHttpServer = (
+    conf:{
+        src:string,
+        name: string,
+        func: string,
+        in: string,
+        port:number,
+        rootPath:string,
+        srcPath:string,
+        indexHtml:string,
+        includeImport:{ [key: string]: string } 
     }, backServ:(ser:SerConfig)=>void,errNumber = 10)=>{
     /*
     if (!conf){
