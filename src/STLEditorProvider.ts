@@ -76,81 +76,18 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         // Setup initial content for the webview
         webviewPanel.webview.options = {
             enableScripts: true,
-        };
-        //this.httpConfig.indexHtml = httpindexHtml(config);
-        //this.httpConfig.name = config.name;
-        /*
-        RunHttpServer({
-            extensionUri: this._context.extensionUri,
-            indexHtml:httpindexHtml(config),
-            name:"STLViewer"},
-            serv=>{
-                serv?.Bar?.show(); 
-                webviewPanel.onDidChangeViewState(e=>{
-                    
-                    if (webviewPanel?.visible) { 
-                        serv?.Bar?.show(); 
-                    } else { 
-                        serv?.Bar?.hide(); 
-                    }             
-                });
-                webviewPanel.onDidDispose(()=>{
-                    serv?.Bar?.hide();  
-                });
-                startWebSocketServer(serv,(ws)=>{
-
-                    //const load = listenMap.get("loaded");
-                    const listenMap = workerspaceMessageHandMap(
-                        postTypeTag,
-                        (e: {
-                            type: number;
-                            msg: {
-                                db?: string | ArrayBuffer;
-                                name?: string;
-                                open?: boolean;
-                            }})=>{
-                            WSSend(e,ws);                
-                        },
-                    );
-                    listenMap.set("loaded",(e:{msg:string})=>{
-                        initLoad(e.msg,postTypeTag,tag=>{
-                            ws.send(JSON.stringify({
-                                type:postTypeTag.get(tag)!,
-                                msg:{len:document.documentData.buffer.byteLength}
-                            }));
-                            ws.send(document.documentData.buffer);
-                        
-                        });
-                    });
-                    return listenMap;
-                },listenMessage);
-            },
-            vscode.workspace.getConfiguration("init").get("port") ||0
-        );
-         
-        */
-        
+        }; 
         const handMap =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
-        handMap.set("loaded",(e:{msg:string})=>{
+        handMap.set("loaded",(e:{msg:any})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({
                     type:postTypeTag.get(tag),
                     msg:{db:document.documentData.buffer}
                 });
             });
-            /*
-            (e.msg as string).split("|").forEach((v,i)=>{
-                postTypeTag.set(v,1<<i);
-            });
-            this.loadSTL(document, webviewPanel);
-            */
+           
         });
-        /*
-        handMap.set("start",()=>{this.tmpDate = Date.now();});
-        handMap.set("end",()=>{
-            vscode.window.showInformationMessage(`waited ${String((Date.now()-this.tmpDate)/1000)} s`);
-        });
-        */
+     
         setHtmlForWebview(
             webviewPanel.webview,
              config,

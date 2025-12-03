@@ -17,6 +17,6 @@
 	 
 	},
 	"exclude": [
-        "./webviewUICode/","./myModule" 
+        "./myModule" 
 	]
 }

@@ -230,26 +230,21 @@ export const  setHtmlForWebview = (
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
  
-	   const csgChange =  webview.asWebviewUri(
-		 vscode.Uri.joinPath( config.extensionUri,  'myModule', 'csgChange.js')
-	   );
-	   const modelingurl = webview.asWebviewUri(
-		   vscode.Uri.joinPath(config.extensionUri,  'myModule', 'modeling.esm.js')
-		 ); 
-	   const scriptUri = webview.asWebviewUri(
-				vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webview', 'webview.js')
-	   ); 
-   
-	   const styleUri = webview.asWebviewUri(
-		   vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webview',   'assets', 'main.css')
-	   ); 
-	 
+ 
+	const scriptUri = webview.asWebviewUri(
+		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui', 'main.js')
+	); 
 
-	   	webview.onDidReceiveMessage(message => {
-			listenMessage(message,handleMessageMap);	
-	   	});
+	const styleUri = webview.asWebviewUri(
+		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'assets', 'main.css')
+	); 
 	
-		   webview.html = `<!doctype html>
+
+	webview.onDidReceiveMessage(message => {
+		listenMessage(message,handleMessageMap);	
+	});
+
+	webview.html = `<!doctype html>
    <html lang="en">
 	 <head>
 	   <meta charset="UTF-8" /> 
@@ -291,18 +286,21 @@ export const newWorkspacePackage= async(
 			[key: string]: string;
 		};
 	},
-		handleEnd?:()=>void)=>{
-			
-	await vscode.workspace.fs.writeFile(
-		vscode.Uri.joinPath(NewWorkspace,"solidjscad.json"),
-		new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
-	);   
+		handleEnd?:()=>Thenable<void>)=>{
+	try{	
+		await vscode.workspace.fs.writeFile(
+			vscode.Uri.joinPath(NewWorkspace,"solidjscad.json"),
+			new TextEncoder().encode(JSON.stringify(myWorkspaceConfig, null, 2)),
+		);  
+	}catch(e){
+		console.error(e);
+	} 
 	try{
 		await vscode.workspace.fs.copy(
 			vscode.Uri.joinPath(extensionUri,"myModule","modeling"),
 			vscode.Uri.joinPath(NewWorkspace,"node_modules", "@jscad","modeling"));
 	}catch(e){
-		console.log(e);
+		console.error(e);
 	}
 
 		/*
@@ -321,40 +319,51 @@ export const newWorkspacePackage= async(
 	
 	const cf_ = JSON.parse(cf.toString());
 	//console.log(cf_);
-	await vscode.workspace.fs.writeFile(
-		vscode.Uri.joinPath(NewWorkspace,"package.json"),
-		new TextEncoder().encode(JSON.stringify({
-			name:myWorkspaceConfig.name.toLowerCase(),
-			type: "module",
-			main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.in,
-			version: "1.0.0", 
-			description:myWorkspaceConfig.name,
-			private: true,
-			scripts: {
-				"build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
-			},
-			devDependencies: {
-				"esbuild": "^0.25.8",
-			},
-			dependencies: {
-				"@jscad/modeling": cf_.version,
-			}
-		}, null, 2))
-	);
-
-	await vscode.workspace.fs.writeFile(
-		vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
-		new TextEncoder().encode(JSON.stringify({
-			compilerOptions:  {
-				paths: { 
-				"@jscad/modeling":["./node_modules/@jscad/modeling"]
+	try{
+		await vscode.workspace.fs.writeFile(
+			vscode.Uri.joinPath(NewWorkspace,"package.json"),
+			new TextEncoder().encode(JSON.stringify({
+				name:myWorkspaceConfig.name.toLowerCase(),
+				type: "module",
+				main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.in,
+				version: "1.0.0", 
+				description:myWorkspaceConfig.name,
+				private: true,
+				scripts: {
+					"build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
+				},
+				devDependencies: {
+					"esbuild": "^0.25.8",
+				},
+				dependencies: {
+					"@jscad/modeling": cf_.version,
 				}
-			}
-		}, null, 2)),
-	); 
-	
+			}, null, 2))
+		);
+	}catch(e){
+		console.error(e);
+	}
+	try{
+		await vscode.workspace.fs.writeFile(
+			vscode.Uri.joinPath(NewWorkspace,"jsconfig.json"),
+			new TextEncoder().encode(JSON.stringify({
+				compilerOptions:  {
+					paths: { 
+					"@jscad/modeling":["./node_modules/@jscad/modeling"]
+					}
+				}
+			}, null, 2)),
+		); 
+	}catch(e){
+		console.error(e);
+	}
 	if (handleEnd){
-		handleEnd();
+		try{
+			await handleEnd();
+		}catch(e){
+			console.error(e);
+		}
+		
 	}
 	
 				 //vscode.workspace.fs.createDirectory(NewWorkspace);

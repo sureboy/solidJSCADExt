@@ -141,7 +141,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             extensionUri:this._context.extensionUri, 
             ...myWorkspaceConfig});
 
-        handMap.set('loaded',(e:{msg:string})=>{
+        handMap.set('loaded',(e:{msg:any})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({
                     type:postTypeTag.get(tag),
@@ -230,7 +230,7 @@ export const downSrcHandMap = (
                     src:config.src,
                     name:path.basename(config.NewWorkspace.fsPath),
                     includeImport:config.includeImport
-                }, ()=>{
+                }, async ()=>{
                     //console.log("begin get src",panel,TypeTag);
                     postMessage({
                         type:config.TypeTag.get("getSrc")||0  ,

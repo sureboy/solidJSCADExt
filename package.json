@@ -63,6 +63,7 @@
       }
     },
     "commands": [
+ 
       {
         "command": "solidJScad.create",
         "title": "solidjscad create"

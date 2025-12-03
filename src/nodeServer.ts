@@ -45,7 +45,7 @@ return `
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         
         <title>${config.name||"solidJScad"}</title> 
-        <link rel="stylesheet" href="/dist/assets/main.css"> 
+        <link rel="stylesheet" href="/assets/main.css"> 
   
         </head>
         <body>        
@@ -55,7 +55,7 @@ return `
         </script>
     
         <div id="app" ></div>   
-    <script type="module" src="/dist/main.js"> </script>    
+    <script type="module" src="/main.js"> </script>    
         </body>
     </html>   
 `;
