@@ -19,6 +19,7 @@
     }
   ],
   "main": "./dist/extension.js",
+  "repository":"https://github.com/sureboy/solidJSCADExt",
   "contributes": {
     "configuration": {
       "title": "Init",

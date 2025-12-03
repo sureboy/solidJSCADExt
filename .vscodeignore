@@ -10,7 +10,8 @@ vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
 **/*.map
-**/*.ts
+myModule/modeling/**/*.js
+**/*.vsix
 **/.vscode-test.*
 webviewUI/**
 webviewUICode/**
