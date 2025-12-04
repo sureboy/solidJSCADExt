@@ -11,7 +11,5 @@ vsc-extension-quickstart.md
 **/eslint.config.mjs
 **/*.map
 myModule/modeling/**/*.js
-**/*.vsix
 **/.vscode-test.*
-webviewUI/**
-webviewUICode/**
+
