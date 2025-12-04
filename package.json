@@ -2,7 +2,7 @@
   "name": "solidjscad",
   "displayName": "solidJScad",
   "description": "Using JavaScript and @ jscad/modeling for 3D/2D graphic modeling,Using the ECMAScript Modules standard,Using Threejs to display,Vscode plugin that can be previewed in webview or browser.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -19,7 +19,9 @@
     }
   ],
   "main": "./dist/extension.js",
-  "repository":"https://github.com/sureboy/solidJSCADExt",
+  "icon": "./myModule/logo.png",
+  "repository": "https://github.com/sureboy/solidJSCADExt",
+  "publisher": "WeijieZhao",
   "contributes": {
     "configuration": {
       "title": "Init",
@@ -57,14 +59,13 @@
         "init.includeImport": {
           "type": "object",
           "default": {
-            "@jscad/modeling":"./src/lib/modeling.esm.js"
+            "@jscad/modeling": "./src/lib/modeling.esm.js"
           },
           "description": "webview"
         }
       }
     },
     "commands": [
- 
       {
         "command": "solidJScad.create",
         "title": "solidjscad create"
