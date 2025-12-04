@@ -227,6 +227,7 @@ export const  setHtmlForWebview = (
 	   script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   worker-src ${webview.cspSource} blob: data:;
 	   style-src ${webview.cspSource} 'unsafe-inline';
+	   img-src   ${webview.cspSource} blob: data:;
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
  
@@ -238,7 +239,9 @@ export const  setHtmlForWebview = (
 	const styleUri = webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'assets', 'main.css')
 	); 
-	
+	const logoUri = webview.asWebviewUri(
+		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'logo.svg')
+	); 
 
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap);	
@@ -249,7 +252,7 @@ export const  setHtmlForWebview = (
 	 <head>
 	   <meta charset="UTF-8" /> 
 	   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	 
+	 <link rel="icon" type="image/svg+xml" href="${logoUri}" />
 		 <meta http-equiv="Content-Security-Policy" content="${csp}">
 	   <title>${config.name||"solidJScad"}</title> 
 	   <link rel="stylesheet" href="${styleUri}">
