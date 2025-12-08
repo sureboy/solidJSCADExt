@@ -69,17 +69,12 @@ const readJS = (
 )=>{
     try{
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
-        res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
-        //console.log(db);
-        Object.keys(conf.includeImport).forEach(k=>{
-            //console.log(k,importmap[k]);
-            const p = path.join(res.req.headers.origin||"../",conf.includeImport[k] );
-            //console.log(res.req.headers.origin);
-            //console.log(conf.includeImport[k]);
+        res.writeHead(200, { 'Content-Type': contentType || 'text/plain' }); 
+        Object.keys(conf.includeImport).forEach(k=>{ 
+            res.req.headers.origin
+            const p = (res.req.headers.origin||"../")+"/"+conf.includeImport[k] ; 
             db = db.replace(k,p);
-        });
-        //db.replace("","");
-        //console.log(db);
+        }); 
         res.end(db); 
     }catch(e){
         console.error(e);
@@ -212,9 +207,9 @@ const createHttpServer = (conf:{
     return http.createServer((req, res) => {
         const pathList = req.url?.split("/")||[];
         const filepath =path.join( ...pathList) ;
-        const handmsg = workerspaceMessageHandMap(TypeTag,(e)=>{
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            //console.log(e);
+        const handmsg = workerspaceMessageHandMap(
+            TypeTag,(e)=>{
+            res.writeHead(200, { 'Content-Type': 'application/json' }); 
             res.end(JSON.stringify(e));
         },conf.src);
         switch(pathList[1]){
