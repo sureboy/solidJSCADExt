@@ -71,8 +71,11 @@ const readJS = (
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' }); 
         Object.keys(conf.includeImport).forEach(k=>{ 
-            res.req.headers.origin
-            const p = (res.req.headers.origin||"../")+"/"+conf.includeImport[k] ; 
+            //res.req.headers.origin
+            console.log( res.req.headers);
+            //const p =new URL(conf.includeImport[k],res.req.headers.origin||`http://${res.req.headers.host}`).href;// 
+            const p =   conf.includeImport[k].replace(/^.\//,"/") ; 
+            
             db = db.replace(k,p);
         }); 
         res.end(db); 
