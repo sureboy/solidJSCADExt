@@ -239,10 +239,11 @@ export const  setHtmlForWebview = (
 	const styleUri = webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'assets', 'main.css')
 	); 
+	/*
 	const logoUri = webview.asWebviewUri(
-		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'logo.svg')
+		vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui', 'assets',   'logo.png')
 	); 
-
+*/
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap);	
 	});
@@ -251,8 +252,7 @@ export const  setHtmlForWebview = (
    <html lang="en">
 	 <head>
 	   <meta charset="UTF-8" /> 
-	   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	 <link rel="icon" type="image/svg+xml" href="${logoUri}" />
+	   <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
 		 <meta http-equiv="Content-Security-Policy" content="${csp}">
 	   <title>${config.name||"solidJScad"}</title> 
 	   <link rel="stylesheet" href="${styleUri}">
