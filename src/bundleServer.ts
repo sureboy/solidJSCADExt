@@ -96,6 +96,14 @@ const loadConfig =async (u:vscode.Uri)=>{
         //return;
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }  
+    Object.keys(conf.includeImport).forEach((k)=>{
+        let uri = conf.includeImport[k];
+        const srcReg =new RegExp(`^\.\/${conf.src}\/`);  
+        if (srcReg.exec(uri)){
+            uri.replace(srcReg,"./");
+        } 
+        conf.includeImport[k] =   uri.replace(srcReg,"./");; 
+    });
     //console.log(config);  
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
     return {
@@ -268,7 +276,7 @@ const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,con
             try{
                 let pathUri = config.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
-                    pathUri =vscode.Uri.joinPath(pathUri,
+                    pathUri =vscode.Uri.joinPath(pathUri,config.src,
                          ...config.includeImport[e.path].split("/")); 
                      
                 }else{

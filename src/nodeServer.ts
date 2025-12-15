@@ -74,7 +74,7 @@ const readJS = (
             //res.req.headers.origin
             console.log( res.req.headers);
             //const p =new URL(conf.includeImport[k],res.req.headers.origin||`http://${res.req.headers.host}`).href;// 
-            const p =   conf.includeImport[k].replace(/^.\//,"/") ; 
+            const p =   conf.includeImport[k]; //.replace(/^\.\//,"/") ; 
             
             db = db.replace(k,p);
         }); 

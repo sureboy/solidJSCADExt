@@ -263,7 +263,7 @@ export const downSrcHandMap = (
         if (message.name.startsWith("./")){
             filePath=vscode.Uri.joinPath(config.NewWorkspace,config.src,message.name);
         }else{
-            filePath=vscode.Uri.joinPath(config.NewWorkspace,config.includeImport[message.name]||message.name);
+            filePath=vscode.Uri.joinPath(config.NewWorkspace,config.src,config.includeImport[message.name]||message.name);
         }
         
  
