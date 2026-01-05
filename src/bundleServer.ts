@@ -202,7 +202,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             });
             console.log("get",config.name);
             //const serv = ServPool.get(config.name);
-            
+            const panel = createPanel(config);
             if (!Bar.text){
                  
                 RunHttpServer({
@@ -210,6 +210,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     srcPath:config.watchPath.fsPath,
                     indexHtml:"",
                     ...config},(ser)=>{  
+                    //ser.Server?.close()
                     const loadIP = getLocalIp();
                     Bar.command="menu";
                     Bar.text = `http://${loadIP}:${ser.httpPort}`;
@@ -222,9 +223,17 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                             }
                             if (v.startsWith("http://")){
                                 vscode.env.openExternal(vscode.Uri.parse(v));
-                            }else {
-                                vscode.commands.executeCommand("solidJScad."+v);
+                                return;
                             }
+                            if (v==="onload"){
+                                Bar.text="";
+                                ser.Server?.close();
+                                //ser.Server?.closeAllConnections();
+                                ser.Server?.closeIdleConnections(); 
+                                panel?.dispose();
+                            }
+                            vscode.commands.executeCommand("solidJScad."+v);
+                            
                         });
                         //vscode.commands.executeCommand
                     }),  
@@ -236,7 +245,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     }); 
                 });
             }
-            const panel = createPanel(config);
+     
             if (panel){
                 initPanel(panel,TypeTag,context,config);
             }          
