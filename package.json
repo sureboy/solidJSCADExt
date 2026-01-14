@@ -41,6 +41,11 @@
           "default": "main",
           "description": "entry function"
         },
+        "init.webui": {
+          "type": "string",
+          "default": "webui",
+          "description": "entry function"
+        },
         "init.config": {
           "type": "string",
           "default": "solidjscad.json",

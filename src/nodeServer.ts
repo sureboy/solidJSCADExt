@@ -200,11 +200,12 @@ const createHttpServer = (conf:{
     port:number,
     rootPath:string,
     srcPath:string,
-    indexHtml:string,
+    //indexHtml:string,
     includeImport:{ [key: string]: string }
     //watchPath:string,
     })=>{  
-    conf.indexHtml = httpindexHtml({pageType:"run",...conf});
+ 
+    
     //const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
     //const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
@@ -218,7 +219,13 @@ const createHttpServer = (conf:{
         switch(pathList[1]){
             case "": 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
-                res.end(conf.indexHtml);
+                let indexHtml = "";
+                try{
+                    indexHtml = fs.readFileSync(path.join(conf.rootPath,"index.html"),{encoding:'utf8'}) ;
+                }catch(e){
+                    indexHtml = httpindexHtml({pageType:"run",...conf});
+                }
+                res.end(indexHtml);
                 break;
             case conf.src:
                 //console.log("src",path.join(conf.srcPath,filepath));

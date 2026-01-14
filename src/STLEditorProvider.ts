@@ -85,17 +85,12 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                     msg:{db:document.documentData.buffer}
                 });
             });
-           
-        });
-     
+        }); 
         setHtmlForWebview(
             webviewPanel.webview,
              config,
             handMap
         );
-
-         
-
     }
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();

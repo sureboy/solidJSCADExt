@@ -208,7 +208,7 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 		handMap.get(message.type)!(message);
 	}		
 };
-export const  setHtmlForWebview = (
+export const  setHtmlForWebview =async (
 	webview: vscode.Webview,
 	config:{
 		pageType:'run'|'gzData'|'stlData',
@@ -216,7 +216,10 @@ export const  setHtmlForWebview = (
 		func:string,
 		in:string,
 		src:string,
-		extensionUri:vscode.Uri},
+		//webUI?:string,
+		//workspacePath?: vscode.Uri,
+		extensionUri: vscode.Uri,
+	},
 	handleMessageMap:Map<string,(e?:any)=>void>
 )=> {
 	//webview.options.localResourceRoots=[]
@@ -230,8 +233,8 @@ export const  setHtmlForWebview = (
 	   img-src   ${webview.cspSource} blob: data:;
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
- 
- 
+	
+	//vscode.workspace.fs.stat()
 	const scriptUri = webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui', 'main.js')
 	); 
@@ -244,6 +247,7 @@ export const  setHtmlForWebview = (
 		vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui', 'assets',   'logo.png')
 	); 
 */
+	 
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap);	
 	});
@@ -271,8 +275,7 @@ export const  setHtmlForWebview = (
 	 </body>
    </html>   
    `; 
-	
-	   };
+};
 export const newWorkspacePackage= async(
 	NewWorkspace:vscode.Uri,
 	//context: vscode.ExtensionContext,
@@ -284,6 +287,7 @@ export const newWorkspacePackage= async(
 		date:string,
 		src:string,
 		port:number,
+		webUI:string,
 		webview:boolean,
 		includeImport: {
 			[key: string]: string;
@@ -302,6 +306,14 @@ export const newWorkspacePackage= async(
 		await vscode.workspace.fs.copy(
 			vscode.Uri.joinPath(extensionUri,"myModule","modeling"),
 			vscode.Uri.joinPath(NewWorkspace,"node_modules", "@jscad","modeling"));
+	}catch(e){
+		console.error(e);
+	}
+	try{
+		await vscode.workspace.fs.copy(
+			vscode.Uri.joinPath(extensionUri,"myModule", "webui" ),
+			vscode.Uri.joinPath(NewWorkspace,"webui" )
+		);
 	}catch(e){
 		console.error(e);
 	}

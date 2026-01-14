@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
+import * as fs from 'fs';
 import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import { RunHttpServer } from './nodeServer'; 
 import {downSrcHandMap} from './gzEditorProvider';
@@ -11,7 +12,9 @@ const createPanel  = ( config:{
     name:string,
     in:string,
     func:string,
-    src:string
+    src:string,
+    //webUI?:string,
+    workspacePath: vscode.Uri;
     //watchPath:vscode.Uri,
     extensionUri: vscode.Uri} 
    )=>{
@@ -36,8 +39,9 @@ const createPanel  = ( config:{
             localResourceRoots: [ 
                 //outPath,
                 //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
+                //config.workspacePath,
                 vscode.Uri.joinPath (config.extensionUri, 'myModule'),
-                //vscode.Uri.joinPath( config.extensionUri, 'webviewCode'),
+               //vscode.Uri.joinPath( config.workspacePath , config.webUI||""),
             ]
         }
     );
@@ -89,9 +93,10 @@ const loadConfig =async (u:vscode.Uri)=>{
         in: string,
         port:number,
         webview:boolean,
+        webUI?:string,
         includeImport:{ [key: string]: string }
         //webview:boolean,
-        } = JSON.parse(v.toString());
+    } = JSON.parse(v.toString());
     if (!conf.src){
         //return;
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
@@ -204,9 +209,15 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             //const serv = ServPool.get(config.name);
             const panel = createPanel(config);
             if (!Bar.text){
-                 
+                let rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
+                try{
+                    fs.statSync(rootPath);
+                }catch(e){
+                    rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
+                }
+               
                 RunHttpServer({
-                    rootPath:path.join(context.extensionUri.fsPath,"myModule","webui"),
+                    rootPath,//:path.join(context.extensionUri.fsPath,"myModule","webui"),
                     srcPath:config.watchPath.fsPath,
                     indexHtml:"",
                     ...config},(ser)=>{  
@@ -262,6 +273,7 @@ const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,con
     in: string;
     port: number;
     webview: boolean;
+    //webUI:string;
     includeImport: {
         [key: string]: string;
     };
@@ -325,7 +337,7 @@ const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,con
         watcher.dispose();
     });
     setHtmlForWebview(
-        panel.webview,{pageType:"run",...config},
+        panel.webview,{pageType:"run" ,...config},
         handMap
     );
 };
@@ -342,6 +354,7 @@ export const CreateSolidjscadPackage =async (
             in:conf.get("in")||"index.js",
             func:conf.get("func")||"main",
             date:"",
+            webUI:conf.get("webui")||"webui", 
             src:conf.get("src")||"src",
             port:conf.get("port")||3000,
             webview:conf.get("webview")||true,
@@ -364,6 +377,32 @@ export const CreateSolidjscadPackage =async (
             }catch(e){
                 console.error(e);
             }
+            /*
+            try{
+                await vscode.workspace.fs.copy(
+                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","main.js"),
+                    vscode.Uri.joinPath(uri,"webui", "main.js")
+                );
+            }catch(e){
+                console.error(e);
+            }
+            try{
+                await vscode.workspace.fs.copy(
+                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","assets","main.css"),
+                    vscode.Uri.joinPath(uri,"webui","assets", "main.js")
+                );
+            }catch(e){
+                console.error(e);
+            }
+            try{
+                await vscode.workspace.fs.copy(
+                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","assets","logo.png"),
+                    vscode.Uri.joinPath(uri,"webui","assets", "logo.png")
+                );
+            }catch(e){
+                console.error(e);
+            }
+            */
             try{
                 await vscode.workspace.fs.writeFile(
                     vscode.Uri.joinPath(uri,"src","index.js"),

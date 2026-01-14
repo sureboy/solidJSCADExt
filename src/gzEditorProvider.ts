@@ -81,61 +81,11 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
+            webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
          };
-        //this.httpConfig.indexHtml = httpindexHtml(config);
-        //this.httpConfig.name = config.name;
-        //if (!serv){
-        /*
-        RunHttpServer({
-            extensionUri: this._context.extensionUri,
-            indexHtml:httpindexHtml(config),
-            name: config.name
-        },serv=>{
-            serv?.Bar?.show();
-            webviewPanel.onDidChangeViewState(e=>{
-                if (webviewPanel?.visible) { 
-                    serv?.Bar?.show();                     
-                } else { 
-                    serv?.Bar?.hide();                    
-                }             
-            });
-            webviewPanel.onDidDispose(()=>{
-                serv?.Bar?.hide();  
-            });
-            startWebSocketServer(serv,ws=>{
-                const listenMap = workerspaceMessageHandMap(
-                    postTypeTag,
-                    (e: {
-                        type: number;
-                        msg: {
-                            db?: string | ArrayBuffer;
-                            name?: string;
-                            open?: boolean;
-                        }})=>{
-                        WSSend(e,ws);                
-                    },
-                );
-                listenMap.set("loaded",(e:{msg:string})=>{
-                    initLoad(e.msg,postTypeTag,tag=>{
-                        ws.send(JSON.stringify({
-                            type:postTypeTag.get(tag)!,
-                            msg:{len:document.documentData.buffer.byteLength}
-                        }));
-                        ws.send(document.documentData.buffer);
-                    });
-                });
-                return listenMap;
-            },listenMessage);
-        },
-        myWorkspaceConfig.port
-        //vscode.workspace.getConfiguration("init").get("port")||0                
-        );
-        */
-        
-        //const postMsg = webviewPanel.webview.postMessage;
-        const handMap = workerspaceMessageHandMap( );
-        //const _h =  new Map<string, (e?: any) => void>();
+         
+        const handMap = workerspaceMessageHandMap( ); 
         downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{
             TypeTag:postTypeTag,
             extensionUri:this._context.extensionUri, 
@@ -205,6 +155,7 @@ export const downSrcHandMap = (
         func:string,
         port:number,
         src:string,
+        webUI?:string,
         includeImport:{ [key: string]: string }
         extensionUri:vscode.Uri,
         TypeTag : Map<postTypeStr,number>
@@ -228,6 +179,7 @@ export const downSrcHandMap = (
                     port:config.port,
                     date:Date.now().toString(),
                     src:config.src,
+                    webUI:config.webUI||"",
                     name:path.basename(config.NewWorkspace.fsPath),
                     includeImport:config.includeImport
                 }, async ()=>{
