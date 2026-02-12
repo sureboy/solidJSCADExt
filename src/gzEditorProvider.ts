@@ -67,7 +67,16 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             enableScripts: true,
         };
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
-        const [func,in_,name,date] =packageName.split("_");
+        const nameConfig = packageName.split("_");
+        const workspaceConf = vscode.workspace.getConfiguration("init");
+         
+        const [func,in_,name,date] =nameConfig.length>=4?nameConfig:[
+            workspaceConf.get<string>("func")||"",
+            workspaceConf.get<string>("in")||"",
+            "solidjscad",
+            Date.now().toString()
+        ];
+       
         /*
         const config = {extensionUri:this._context.extensionUri,
             name:"GzipPreview",in:in_,func:func,
@@ -76,7 +85,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
       
         //let NewWorkspace : vscode.Uri|null = null;
           */ 
-        const workspaceConf = vscode.workspace.getConfiguration("init");
+        
         const myWorkspaceConfig = {name,in:in_,func,date,
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
@@ -100,10 +109,8 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             });
  
         });
-  
-
         setHtmlForWebview(webviewPanel.webview,
-            {name,in:in_+".js",func,src:"",
+            {name,in:in_.endsWith(".js")?in_:(in_+".js"),func,src:"",
                 extensionUri:this._context.extensionUri,pageType:'gzData'
             },
             handMap
