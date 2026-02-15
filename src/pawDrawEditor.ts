@@ -253,28 +253,23 @@ export const  setHtmlForWebview =async (
 	});
 
 	webview.html = `<!doctype html>
-   <html lang="en">
-	 <head>
-	   <meta charset="UTF-8" /> 
-	   <meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-		 <meta http-equiv="Content-Security-Policy" content="${csp}">
-	   <title>${config.name||"solidJScad"}</title> 
-	   <link rel="stylesheet" href="${styleUri}">
-	 </head>
-	 <body>
-	 <script nonce="${nonce}" >
- 
-	 window.vscode = acquireVsCodeApi();
-	 
-	   window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-	 </script>
-   
-	   <div id="app" ></div>   
-	<script type="module"  nonce="${nonce}"  src="${scriptUri}"> </script>
-	
-	 </body>
-   </html>   
-   `; 
+<html lang="en">
+<head>
+	<meta charset="UTF-8" /> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+		<meta http-equiv="Content-Security-Policy" content="${csp}">
+	<title>${config.name||"solidJScad"}</title> 
+	<link rel="stylesheet" href="${styleUri}">
+</head>
+<body>
+<script nonce="${nonce}" >
+	window.vscode = acquireVsCodeApi();	
+	window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+</script>
+<div id="app" ></div>   
+<script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
+</body>
+</html>`; 
 };
 export const newWorkspacePackage= async(
 	NewWorkspace:vscode.Uri,

@@ -11,9 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
     //console.log(vscode.workspace.getConfiguration("init").get("in"));
     watcherServer(context);
- 
     context.subscriptions.push(   
-
         vscode.commands.registerCommand('solidJScad.onload', () => {
             watcherServer(context);
         }),   
@@ -29,39 +27,7 @@ export function activate(context: vscode.ExtensionContext) {
                 const uri = uris[0];
                 CreateSolidjscadPackage(uri,context).then(()=>{
                     vscode.commands.executeCommand('vscode.openFolder', uri);  
-                });
-                /*
-                const conf = vscode.workspace.getConfiguration("init");
-                newWorkspacePackage(
-                    uri,
-                    context.extensionUri,
-                    {
-                        name:path.basename(uri.fsPath),
-                        in:conf.get("in")||"index.js",
-                        func:conf.get("func")||"main",
-                        date:"",
-                        src:conf.get("src")||"src",
-                        port:conf.get("port")||3000,
-                        webview:conf.get("webview")||true,
-                    },
-                    ()=>{
-                        vscode.workspace.fs.copy(
-                            vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","csgChange.js"),
-                            vscode.Uri.joinPath(uri,"src","lib","csgChange.js")
-                        );
-                        vscode.workspace.fs.copy(
-                            vscode.Uri.joinPath(context.extensionUri,"myModule","node","lib","modeling.esm.js"),
-                            vscode.Uri.joinPath(uri,"src","lib","modeling.esm.js")
-                        );
-                        vscode.workspace.fs.writeFile(
-                            vscode.Uri.joinPath(uri,"src","index.js"),
-                        new TextEncoder().encode(
-                            "import modeling from '@jscad/modeling';\nexport const main=()=>{\n  return modeling.primitives.cube()\n}")
-                        ).then(()=>{
-                            vscode.commands.executeCommand('vscode.openFolder', uri); 
-                        });
-                    }
-                );*/
+                }); 
             });
         }),
         gzEditorProvider.register(context),

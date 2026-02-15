@@ -26,11 +26,7 @@ const contentType:{ [key: string]: string } = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg'
 };
-/*
-const importmap:{ [key: string]: string } = {
-    "@jscad/modeling":"./lib/modeling.esm.js"
-};
-*/
+
 const httpindexHtml = (config:{
     src?:string,
     name:string,
@@ -38,27 +34,24 @@ const httpindexHtml = (config:{
     in:string,
     func:string})=>{
 return `
-    <!doctype html>
-    <html lang="en">
-        <head>
+<!doctype html>
+<html lang="en">
+    <head>
         <meta charset="UTF-8" /> 
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
         <title>${config.name||"solidJScad"}</title> 
         <link rel="stylesheet" href="/assets/main.css"> 
-  
-        </head>
-        <body>        
-        <script> 
-  
-        window.myConfig={pageType:"${config.pageType}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-        </script>
-    
-        <div id="app" ></div>   
-    <script type="module" src="/main.js"> </script>    
-        </body>
-    </html>   
-`;
+    </head>
+    <body>        
+    <script> 
+
+    window.myConfig={pageType:"${config.pageType}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+    </script>
+
+    <div id="app" ></div>   
+<script type="module" src="/main.js"> </script>    
+    </body>
+</html>`;
 };
 const readJS = (
     filePaths:string,
@@ -71,11 +64,8 @@ const readJS = (
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' }); 
         Object.keys(conf.includeImport).forEach(k=>{ 
-            //res.req.headers.origin
             console.log( res.req.headers);
-            //const p =new URL(conf.includeImport[k],res.req.headers.origin||`http://${res.req.headers.host}`).href;// 
-            const p =   conf.includeImport[k]; //.replace(/^\.\//,"/") ; 
-            
+            const p =   conf.includeImport[k]; 
             db = db.replace(k,p);
         }); 
         res.end(db); 
@@ -106,7 +96,7 @@ const readfile = (
     req: http.IncomingMessage;
 },conf:{src:string,includeImport:{ [key: string]: string }}
 )=>{
-    //console.log(filePaths);
+    //console.log("readfile",filePaths);
     const ext = path.extname(filePaths);
     switch (ext) {
         case ".js":
@@ -165,30 +155,7 @@ const workerspaceMessageHandMap = (
                     postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path  }});
                 }            
             });
-        });
-
-        //const db = fs.readFileSync(e.path);
-        //db.
-        
-        //console.log(e);
-        /*
-        if (!workerspacePath){
-            postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
-            return;
-        }
-        const fn = async ()=>{
-            try{
-                const t = await vscode.workspace.fs.readFile(
-                    vscode.Uri.joinPath(
-                        workerspacePath,e.path
-                    )); 
-                postMessage({type:postTypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                    
-            }catch(err:any){
-                postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path }});
-            }
-        };
-        fn();
-        */        
+        });      
     });
     return handListenMsg;
 };
@@ -200,14 +167,8 @@ const createHttpServer = (conf:{
     port:number,
     rootPath:string,
     srcPath:string,
-    //indexHtml:string,
     includeImport:{ [key: string]: string }
-    //watchPath:string,
     })=>{  
- 
-    
-    //const libUri = vscode.Uri.joinPath(config.extensionUri,"myModule");
-    //const rooturi = vscode.Uri.joinPath(libUri,"webui");
     return http.createServer((req, res) => {
         const pathList = req.url?.split("/")||[];
         const filepath =path.join( ...pathList) ;
@@ -228,7 +189,7 @@ const createHttpServer = (conf:{
                 res.end(indexHtml);
                 break;
             case conf.src:
-                //console.log("src",path.join(conf.srcPath,filepath));
+                //console.log(pathList);
                 readfile(path.join(conf.srcPath,"../",...pathList), res,conf);
                 break;
             case "api":                         
