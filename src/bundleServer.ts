@@ -186,13 +186,16 @@ const watchInit = (conf:{
 export const watcherServer = (context: vscode.ExtensionContext)=>{
     vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
         if (files.length === 0) {
+            /*
             if (!vscode.workspace.workspaceFolders){
                 return;
             }
+            
             const uri = vscode.workspace.workspaceFolders[0].uri;
             CreateSolidjscadPackage(uri,context).then(()=>{
                 watcherServer(context); 
             });
+            */
            
        
             //vscode.commands.executeCommand('solidJScad.create').;
@@ -297,16 +300,16 @@ const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,con
             try{
                 let pathUri = config.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
-                    pathUri =vscode.Uri.joinPath(pathUri,config.src,
-                         ...config.includeImport[e.path].split("/")); 
-                     
+                    pathUri = vscode.Uri.joinPath(pathUri,config.src,
+                        ...config.includeImport[e.path].split("/")); 
+                    
                 }else{
                     pathUri = vscode.Uri.joinPath(
                         config.watchPath ,...e.path.split("/")
                     );
                 }
-                console.log(pathUri);
-               const t = await vscode.workspace.fs.readFile(pathUri); 
+                //console.log(pathUri);
+                const t = await vscode.workspace.fs.readFile(pathUri); 
                
                 panel.webview.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});
                               

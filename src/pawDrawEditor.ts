@@ -316,47 +316,49 @@ export const newWorkspacePackage= async(
 		);
 	}catch(e){
 		console.error(e);
-	}
-
-		/*
-	await vscode.workspace.fs.copy(
-		vscode.Uri.joinPath(context.extensionUri,"myModule","csgChange.js"),
-		vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","csgChange.js")
-	);
-	await vscode.workspace.fs.copy(
-		vscode.Uri.joinPath(context.extensionUri,"myModule","modeling.esm.js"),
-		vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib","modeling.esm.js")
-	);*/
-	//return handleEnd;
-	//vscode.workspace.fs.delete(vscode.Uri.joinPath(NewWorkspace,"node_modules","@jscad","modeling","src",))
-	const cf = await vscode.workspace.fs.readFile(
-		vscode.Uri.joinPath(extensionUri,"myModule","modeling","package.json"));
-	
-	const cf_ = JSON.parse(cf.toString());
-	//console.log(cf_);
+	} 
 	try{
-		await vscode.workspace.fs.writeFile(
-			vscode.Uri.joinPath(NewWorkspace,"package.json"),
-			new TextEncoder().encode(JSON.stringify({
-				name:myWorkspaceConfig.name.toLowerCase(),
-				type: "module",
-				main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.in,
-				version: "1.0.0", 
-				description:myWorkspaceConfig.name,
-				private: true,
-				scripts: {
-					"build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
-				},
-				devDependencies: {
-					"esbuild": "^0.25.8",
-				},
-				dependencies: {
-					"@jscad/modeling": cf_.version,
-				}
-			}, null, 2))
+		await vscode.workspace.fs.copy(
+			vscode.Uri.joinPath(extensionUri,"myModule", "lib" ),
+			vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src )
 		);
 	}catch(e){
 		console.error(e);
+	} 
+	const packagejson = vscode.Uri.joinPath(NewWorkspace,"package.json");
+	try{
+		await vscode.workspace.fs.stat(packagejson);
+	}catch(e){
+		const cf = await vscode.workspace.fs.readFile(
+			vscode.Uri.joinPath(extensionUri,"myModule","modeling","package.json"));
+		
+		const cf_ = JSON.parse(cf.toString())  ;
+ 
+		try{
+
+			await vscode.workspace.fs.writeFile(
+				packagejson,
+				new TextEncoder().encode(JSON.stringify({
+					name:myWorkspaceConfig.name.toLowerCase(),
+					type: "module",
+					main: myWorkspaceConfig.src+"/"+myWorkspaceConfig.in,
+					version: "1.0.0", 
+					description:myWorkspaceConfig.name,
+					private: true,
+					scripts: {
+						"build:jscad": `npx esbuild ./node_modules/@jscad/modeling/src/index.js --outfile=./${myWorkspaceConfig.src}/lib/modeling.esm.js --minify --bundle --format=esm`,
+					},
+					devDependencies: {
+						"esbuild": "^0.25.8",
+					},
+					dependencies: {
+						"@jscad/modeling": cf_.version,
+					}
+				}, null, 2))
+			);
+		}catch(e){
+			console.error(e);
+		}
 	}
 	try{
 		await vscode.workspace.fs.writeFile(

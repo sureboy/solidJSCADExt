@@ -210,7 +210,9 @@ export const downSrcHandMap = (
                 detail: `Do you need to move the workspace to the ${config.NewWorkspace} Folder`
             },                   
             "OK").then(v=>{
-                if (v!=="OK"){return;}
+                if (v!=="OK"){
+                    return;
+                }
                 vscode.commands.executeCommand('vscode.openFolder', config.NewWorkspace);
             });
             return;
@@ -220,19 +222,20 @@ export const downSrcHandMap = (
         }
         let filePath;
         if (message.name.startsWith("./")){
-            filePath=vscode.Uri.joinPath(config.NewWorkspace,config.src,message.name);
+            filePath=vscode.Uri.joinPath(
+                config.NewWorkspace,
+                config.src,
+                message.name);
         }else{
-            filePath=vscode.Uri.joinPath(config.NewWorkspace,config.src,config.includeImport[message.name]||message.name);
+            filePath=vscode.Uri.joinPath(
+                config.NewWorkspace,
+                config.src,
+                config.includeImport[message.name]||message.name);
         }
-        
- 
         vscode.workspace.fs.writeFile(
             filePath,
             new TextEncoder().encode(message.code)).then(res=>{
                 console.log(res);
-        }); 
-         
-        
-    });
-    
+        });         
+    });    
 };
