@@ -97,6 +97,7 @@ const readfile = (
 },conf:{src:string,includeImport:{ [key: string]: string }}
 )=>{
     //console.log("readfile",filePaths);
+    
     const ext = path.extname(filePaths);
     switch (ext) {
         case ".js":
@@ -127,8 +128,6 @@ const workerspaceMessageHandMap = (
 )=>{
     const handListenMsg = new Map<string,(e:any)=>void>();
     handListenMsg.set('loaded',(e:any)=>{
-        //tmpDate = Date.now();
-        //console.log(e);
         initLoad(e.msg,postTypeTag,t=>{
             postMessage({                    
                 msg:{open:true},
@@ -177,10 +176,12 @@ const createHttpServer = (conf:{
             res.writeHead(200, { 'Content-Type': 'application/json' }); 
             res.end(JSON.stringify(e));
         },conf.src);
+        res.setHeader("Access-Control-Allow-Origin","*");
         switch(pathList[1]){
             case "": 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 let indexHtml = "";
+                //console.log("index path",conf.rootPath);
                 try{
                     indexHtml = fs.readFileSync(path.join(conf.rootPath,"index.html"),{encoding:'utf8'}) ;
                 }catch(e){

@@ -210,15 +210,14 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             });
             console.log("get",config.name);
             //const serv = ServPool.get(config.name);
-            const panel = createPanel(config);
+            
             if (!Bar.text){
                 let rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
                 try{
                     fs.statSync(rootPath);
                 }catch(e){
                     rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
-                }
-               
+                }               
                 RunHttpServer({
                     rootPath,//:path.join(context.extensionUri.fsPath,"myModule","webui"),
                     srcPath:config.watchPath.fsPath,
@@ -229,6 +228,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     Bar.command="menu";
                     Bar.text = `http://${loadIP}:${ser.httpPort}`;
                     const loadUrl = `http://localhost:${ser.httpPort}`;
+                    config.port = ser.httpPort; 
+                    const panel = createPanel(config);                    
+                    initPanel(panel,TypeTag,context,config);
+                          
                     //vscode.window.setStatusBarMessage("llllll").dispose();
                     vscode.commands.registerCommand('menu', () => {
                         vscode.window.showQuickPick(["onload","create",loadUrl,Bar.text]).then(v=>{
@@ -258,18 +261,18 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                         }
                     }); 
                 });
+            }else{ 
+                initPanel(createPanel(config),TypeTag,context,config);
             }
      
-            if (panel){
-                initPanel(panel,TypeTag,context,config);
-            }          
+                    
             
             //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
                       
         });         
     });
 };
-const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,context:vscode.ExtensionContext,config:{
+const initPanel = (panel:vscode.WebviewPanel|undefined,TypeTag:Map<postTypeStr,number>,context:vscode.ExtensionContext,config:{
     src: string;
     name: string;
     func: string;
@@ -284,6 +287,7 @@ const initPanel = (panel:vscode.WebviewPanel,TypeTag:Map<postTypeStr,number>,con
     watchPath: vscode.Uri;
     extensionUri : vscode.Uri,
 })=>{
+    if (!panel){return;}
     const handMap = workerspaceMessageHandMap(  );  
     handMap.set('loaded',(e:any)=>{
         //tmpDate = Date.now();

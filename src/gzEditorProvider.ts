@@ -48,8 +48,6 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 				return new Uint8Array(response);
 			}
 		});
-     
-
         return document;
     }
     //private tmpDate = 0;
@@ -75,24 +73,14 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             workspaceConf.get<string>("in")||"",
             "solidjscad",
             Date.now().toString()
-        ];
-       
-        /*
-        const config = {extensionUri:this._context.extensionUri,
-            name:"GzipPreview",in:in_,func:func,
-            //pageName:"GzipViewer",
-            pageType:'gzData' as "run" | "gzData" | "stlData",};
-      
-        //let NewWorkspace : vscode.Uri|null = null;
-          */ 
-        
+        ]; 
         const myWorkspaceConfig = {name,in:in_,func,date,
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
-         };
+        };
          
         const handMap = workerspaceMessageHandMap( ); 
         downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{

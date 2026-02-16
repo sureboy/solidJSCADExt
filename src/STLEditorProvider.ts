@@ -68,6 +68,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         const config = {
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
+            port:0,
             src:"",
             name:"STLViewer",
             in:"index.js",

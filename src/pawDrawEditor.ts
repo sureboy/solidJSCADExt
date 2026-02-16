@@ -216,6 +216,7 @@ export const  setHtmlForWebview =async (
 		func:string,
 		in:string,
 		src:string,
+		port?:number
 		//webUI?:string,
 		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
@@ -229,17 +230,17 @@ export const  setHtmlForWebview =async (
 	   script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   worker-src ${webview.cspSource} blob: data:;
-	   style-src ${webview.cspSource} 'unsafe-inline';
-	   img-src   ${webview.cspSource} blob: data:;
+	   style-src ${webview.cspSource} http://localhost:${config.port} 'unsafe-inline';
+	   img-src   ${webview.cspSource}  blob: data:;
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
 	
 	//vscode.workspace.fs.stat()
-	const scriptUri = webview.asWebviewUri(
+	const scriptUri =config.port? `http://localhost:${config.port}/main.js`: webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui', 'main.js')
 	); 
 
-	const styleUri = webview.asWebviewUri(
+	const styleUri =config.port? `http://localhost:${config.port}/assets/main.css`: webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'assets', 'main.css')
 	); 
 	/*
@@ -259,7 +260,7 @@ export const  setHtmlForWebview =async (
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
 		<meta http-equiv="Content-Security-Policy" content="${csp}">
 	<title>${config.name||"solidJScad"}</title> 
-	<link rel="stylesheet" href="${styleUri}">
+	<link rel="stylesheet"  href="${styleUri}">
 </head>
 <body>
 <script nonce="${nonce}" >
