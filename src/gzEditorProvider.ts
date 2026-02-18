@@ -59,7 +59,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
     ): Promise<void> {
         //this.tmpDate = Date.now();
         // Add the webview to our internal set of active webviews
-        console.log(document.uri);
+        //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel); 
         webviewPanel.webview.options = {
             enableScripts: true,
@@ -91,7 +91,12 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         handMap.set('loaded',(e:{msg:any})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({
-                    type:postTypeTag.get(tag),
+                    type:postTypeTag.get("begin"),
+                    open:true,
+                    msg:{db:myWorkspaceConfig}
+                });
+                webviewPanel.webview.postMessage({
+                    type:postTypeTag.get("gzData"),
                     msg:{db:document.documentData.buffer}
                 });
             });
@@ -103,9 +108,6 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             },
             handMap
         );
-
-      
- 
     }
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();

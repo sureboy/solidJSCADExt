@@ -82,7 +82,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         handMap.set("loaded",(e:{msg:any})=>{
             initLoad(e.msg,postTypeTag,tag=>{
                 webviewPanel.webview.postMessage({
-                    type:postTypeTag.get(tag),
+                    type:postTypeTag.get("stlData"),
                     msg:{db:document.documentData.buffer}
                 });
             });

@@ -230,7 +230,7 @@ export const  setHtmlForWebview =async (
 	   script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
 	   worker-src ${webview.cspSource} blob: data:;
-	   style-src ${webview.cspSource} http://localhost:${config.port} 'unsafe-inline';
+	   style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
 	   img-src   ${webview.cspSource}  blob: data:;
 	   connect-src ${webview.cspSource} 'unsafe-inline';
 	   `;
@@ -263,10 +263,10 @@ export const  setHtmlForWebview =async (
 	<link rel="stylesheet"  href="${styleUri}">
 </head>
 <body>
-<script nonce="${nonce}" >
-	window.vscode = acquireVsCodeApi();	
-	window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-</script>
+	<script nonce="${nonce}" >
+		window.vscode = acquireVsCodeApi();	
+		window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+	</script>
 <div id="app" ></div>   
 <script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
 </body>

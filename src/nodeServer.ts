@@ -27,27 +27,20 @@ const contentType:{ [key: string]: string } = {
     '.jpg': 'image/jpeg'
 };
 
-const httpindexHtml = (config:{
-    src?:string,
-    name:string,
-    pageType:"run" | "gzData" | "stlData",
-    in:string,
-    func:string})=>{
+const httpindexHtml = ()=>{
 return `
 <!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" /> 
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>${config.name||"solidJScad"}</title> 
+        <title>  solidJScad </title> 
         <link rel="stylesheet" href="/assets/main.css"> 
     </head>
-    <body>        
-    <script> 
-
-    window.myConfig={pageType:"${config.pageType}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-    </script>
-
+    <body>    
+    <script  >
+	window.vscode = acquireVsCodeApi();	
+ </script>    
     <div id="app" ></div>   
 <script type="module" src="/main.js"> </script>    
     </body>
@@ -118,19 +111,28 @@ const initLoad = (
     hand(msg.pageType);
 };
 const workerspaceMessageHandMap = (
-    
     //setTmpDate:(d:number)=>void,
     postTypeTag:Map<postTypeStr,number>,postMessage:(db:{
     type:number,
-    msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
-    workerspacePath:string,
+    msg:{db?:any,name?:string,open?:boolean}})=>void,
+    //workerspacePath:string,
+    conf:{
+    src:string,
+    name: string,
+    func: string,
+    in: string,
+    //port:number,
+    //rootPath:string,
+    //srcPath:string,
+    //includeImport:{ [key: string]: string }
+    }
     //serv?:SerConfig,
 )=>{
     const handListenMsg = new Map<string,(e:any)=>void>();
     handListenMsg.set('loaded',(e:any)=>{
         initLoad(e.msg,postTypeTag,t=>{
             postMessage({                    
-                msg:{open:true},
+                msg:{open:true,name:"solidjscad.json",db: conf},
                 type:postTypeTag.get(t)||0             
             });
         });    
@@ -145,7 +147,7 @@ const workerspaceMessageHandMap = (
                 postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
                 return;
             }      
-            filePath = path.join(workerspacePath,filePath);        
+            filePath = path.join(conf.src,filePath);        
             fs.readFile(filePath,{encoding:'utf8'},(err,db)=>{
                 console.log(err);
                 if (!err){
@@ -175,7 +177,7 @@ const createHttpServer = (conf:{
             TypeTag,(e)=>{
             res.writeHead(200, { 'Content-Type': 'application/json' }); 
             res.end(JSON.stringify(e));
-        },conf.src);
+        },conf);
         res.setHeader("Access-Control-Allow-Origin","*");
         switch(pathList[1]){
             case "": 
@@ -185,7 +187,7 @@ const createHttpServer = (conf:{
                 try{
                     indexHtml = fs.readFileSync(path.join(conf.rootPath,"index.html"),{encoding:'utf8'}) ;
                 }catch(e){
-                    indexHtml = httpindexHtml({pageType:"run",...conf});
+                    indexHtml = httpindexHtml();
                 }
                 res.end(indexHtml);
                 break;

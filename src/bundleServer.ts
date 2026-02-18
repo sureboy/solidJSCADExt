@@ -46,10 +46,10 @@ const createPanel  = ( config:{
         }
     );
 };
-export type postTypeStr = 'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
+export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
 export const initLoad = (
-    msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  ,postTypeTag:Map<postTypeStr,number>,
-    hand:(pageType:'run'|'gzData'|'stlData')=>void)=>{
+    msg:{direction:postTypeStr[],pageType:'begin'|'run'|'gzData'|'stlData'}  ,postTypeTag:Map<postTypeStr,number>,
+    hand:(pageType:'begin'|'run'|'gzData'|'stlData')=>void)=>{
     //const msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  = JSON.parse(db);
     msg.direction.forEach((v,i)=>{
         postTypeTag.set(v,1<<i);
@@ -272,7 +272,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         });         
     });
 };
-const initPanel = (panel:vscode.WebviewPanel|undefined,TypeTag:Map<postTypeStr,number>,context:vscode.ExtensionContext,config:{
+const initPanel = (
+    panel:vscode.WebviewPanel|undefined,
+    TypeTag:Map<postTypeStr,number>,
+    context:vscode.ExtensionContext,config:{
     src: string;
     name: string;
     func: string;
@@ -294,8 +297,12 @@ const initPanel = (panel:vscode.WebviewPanel|undefined,TypeTag:Map<postTypeStr,n
         //console.log(e);
         initLoad(e.msg,TypeTag,t=>{
              panel.webview.postMessage({                    
+                msg:{open:true,name:"solidjscad.json",db:  config},
+                type:TypeTag.get('init')||0             
+            });
+             panel.webview.postMessage({                    
                 msg:{open:true},
-                type:TypeTag.get(t)||0             
+                type:TypeTag.get('run')||0             
             });
         });    
     });   
