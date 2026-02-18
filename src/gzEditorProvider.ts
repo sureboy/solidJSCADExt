@@ -4,7 +4,8 @@ import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage}
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 //import {RunHttpServer,startWebSocketServer} from './httpServer';
 //import {WSSend,httpindexHtml}from './httpLib';
-import type {postTypeStr} from './bundleServer';
+ 
+import type {postTypeStr} from './util';
 //import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
@@ -89,15 +90,10 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             ...myWorkspaceConfig});
 
         handMap.set('loaded',(e:{msg:any})=>{
-            initLoad(e.msg,postTypeTag,tag=>{
+            initLoad(e.msg,postTypeTag,tag=>{ 
                 webviewPanel.webview.postMessage({
-                    type:postTypeTag.get("begin"),
-                    open:true,
-                    msg:{db:myWorkspaceConfig}
-                });
-                webviewPanel.webview.postMessage({
-                    type:postTypeTag.get("gzData"),
-                    msg:{db:document.documentData.buffer}
+                    type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
+                    msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
                 });
             });
  

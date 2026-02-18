@@ -5,6 +5,7 @@ import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import { RunHttpServer } from './nodeServer'; 
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
+import type {postTypeStr} from './util';
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 
 const createPanel  = ( config:{
@@ -46,7 +47,7 @@ const createPanel  = ( config:{
         }
     );
 };
-export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
+
 export const initLoad = (
     msg:{direction:postTypeStr[],pageType:'begin'|'run'|'gzData'|'stlData'}  ,postTypeTag:Map<postTypeStr,number>,
     hand:(pageType:'begin'|'run'|'gzData'|'stlData')=>void)=>{
@@ -297,12 +298,8 @@ const initPanel = (
         //console.log(e);
         initLoad(e.msg,TypeTag,t=>{
              panel.webview.postMessage({                    
-                msg:{open:true,name:"solidjscad.json",db:  config},
-                type:TypeTag.get('init')||0             
-            });
-             panel.webview.postMessage({                    
-                msg:{open:true},
-                type:TypeTag.get('run')||0             
+                msg:{open:true,config},
+                type:(TypeTag.get('run')||0)  | (TypeTag.get('begin')||0)            
             });
         });    
     });   

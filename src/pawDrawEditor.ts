@@ -265,7 +265,7 @@ export const  setHtmlForWebview =async (
 <body>
 	<script nonce="${nonce}" >
 		window.vscode = acquireVsCodeApi();	
-		window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
+		//window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
 	</script>
 <div id="app" ></div>   
 <script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>

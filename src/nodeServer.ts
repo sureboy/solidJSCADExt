@@ -1,9 +1,9 @@
 import * as http from 'http'; 
 import * as path from 'path'; 
 import * as fs from "fs";
-
+import type {postTypeStr} from './util';
 //import {workerspaceMessageHandMap} from "../src/bundleServer.js";
-type postTypeStr = 'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
+//type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
 const TypeTag = new Map<postTypeStr,number>();
 type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
@@ -39,7 +39,7 @@ return `
     </head>
     <body>    
     <script  >
-	window.vscode = acquireVsCodeApi();	
+ 
  </script>    
     <div id="app" ></div>   
 <script type="module" src="/main.js"> </script>    
@@ -114,7 +114,7 @@ const workerspaceMessageHandMap = (
     //setTmpDate:(d:number)=>void,
     postTypeTag:Map<postTypeStr,number>,postMessage:(db:{
     type:number,
-    msg:{db?:any,name?:string,open?:boolean}})=>void,
+    msg:{db?:any,name?:string,open?:boolean,config?:{}}})=>void,
     //workerspacePath:string,
     conf:{
     src:string,
@@ -132,8 +132,8 @@ const workerspaceMessageHandMap = (
     handListenMsg.set('loaded',(e:any)=>{
         initLoad(e.msg,postTypeTag,t=>{
             postMessage({                    
-                msg:{open:true,name:"solidjscad.json",db: conf},
-                type:postTypeTag.get(t)||0             
+                msg:{open:true,config: conf},
+                type:(postTypeTag.get("run")||0)  | (postTypeTag.get("begin")||0)           
             });
         });    
     });   
