@@ -207,20 +207,21 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             const TypeTag = new Map<postTypeStr,number>();
             const config =  Object.assign( {},conf,{ 
                 //pageType:"run",
+                rootPath:"",
                 extensionUri : context.extensionUri,
             });
             console.log("get",config.name);
             //const serv = ServPool.get(config.name);
             
             if (!Bar.text){
-                let rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
+                config.rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
                 try{
-                    fs.statSync(rootPath);
+                    fs.statSync(config.rootPath);
                 }catch(e){
-                    rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
+                    config.rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
                 }               
                 RunHttpServer({
-                    rootPath,//:path.join(context.extensionUri.fsPath,"myModule","webui"),
+                    //rootPath:config.rootPath,//:path.join(context.extensionUri.fsPath,"myModule","webui"),
                     srcPath:config.watchPath.fsPath,
                     indexHtml:"",
                     ...config},(ser)=>{  
@@ -234,7 +235,8 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     initPanel(panel,TypeTag,context,config);
                           
                     //vscode.window.setStatusBarMessage("llllll").dispose();
-                    vscode.commands.registerCommand('menu', () => {
+              
+                        vscode.commands.registerCommand('menu', () => {
                         vscode.window.showQuickPick(["onload","create",loadUrl,Bar.text]).then(v=>{
                             if (!v){
                                 return;
@@ -254,7 +256,9 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                             
                         });
                         //vscode.commands.executeCommand
-                    }),  
+                    });
+               
+                    
                     Bar.show();
                     vscode.window.showInformationMessage( `Remote address:  ${Bar.text}`,"Browser view").then(v=>{
                         if (v==="Browser view"){
@@ -283,7 +287,8 @@ const initPanel = (
     in: string;
     port: number;
     webview: boolean;
-    //webUI:string;
+    webUI?:string;
+    rootPath:string
     includeImport: {
         [key: string]: string;
     };

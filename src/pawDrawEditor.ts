@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
 import { Disposable } from './dispose';
-import {getNonce} from './util';
+import {getNonce,
+	setCSPMetaInHtml,
+	insertScriptAtBodyStart,
+	setScriptNonce,
+	replaceAssetPathsAdvanced
+} from './util';
 
 
 /**
@@ -217,7 +222,8 @@ export const  setHtmlForWebview =async (
 		in:string,
 		src:string,
 		port?:number
-		//webUI?:string,
+		webUI?:string,
+		rootPath:string,
 		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
 	},
@@ -225,15 +231,13 @@ export const  setHtmlForWebview =async (
 )=> {
 	//webview.options.localResourceRoots=[]
 	const nonce = getNonce();
-	const csp = `
-	   default-src 'none';
-	   script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
-	   script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
-	   worker-src ${webview.cspSource} blob: data:;
-	   style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
-	   img-src   ${webview.cspSource}  blob: data:;
-	   connect-src ${webview.cspSource} 'unsafe-inline';
-	   `;
+	const csp = `default-src 'none';
+	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
+	script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
+	worker-src ${webview.cspSource} blob: data:;
+	style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
+	img-src   ${webview.cspSource}  blob: data:;
+	connect-src ${webview.cspSource} 'unsafe-inline';`;
 	
 	//vscode.workspace.fs.stat()
 	const scriptUri =config.port? `http://localhost:${config.port}/main.js`: webview.asWebviewUri(
@@ -251,26 +255,49 @@ export const  setHtmlForWebview =async (
 	 
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap);	
-	});
+	}); 
+	try{
+		const indexpath = vscode.Uri.joinPath(vscode.Uri.parse(config.rootPath),"index.html");
+		console.log(indexpath);
+		const filehtml = await vscode.workspace.fs.readFile(indexpath );
+		let strHtml = new TextDecoder().decode(filehtml);
+		strHtml = setCSPMetaInHtml(strHtml,csp );
+		strHtml = insertScriptAtBodyStart(strHtml,"window.vscode = acquireVsCodeApi();");
+		strHtml = replaceAssetPathsAdvanced(strHtml,(p)=>{
+			if (config.port){
+				return `http://localhost:${config.port}`+p;
+			}
+			return webview.asWebviewUri(
+				vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui',  p)
+			).toString(); 
+			
+		});
+		strHtml = setScriptNonce(strHtml,nonce);
+		//console.log(strHtml);
+		webview.html = strHtml;
+	}catch(e){
+		console.error(e);
+		webview.html = `<!doctype html>
+		<html lang="en">
+		<head>
+			<meta charset="UTF-8" /> 
+			<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+				<meta http-equiv="Content-Security-Policy" content="${csp}">
+			<title>${config.name||"solidJScad"}</title> 
+			<link rel="stylesheet"  href="${styleUri}">
+		</head>
+		<body>
+			<script nonce="${nonce}" >
+				window.vscode = acquireVsCodeApi();	
+			</script>
+		<div id="app" ></div>   
+		<script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
+		</body>
+		</html>`; 
+	}
+	
 
-	webview.html = `<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8" /> 
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-		<meta http-equiv="Content-Security-Policy" content="${csp}">
-	<title>${config.name||"solidJScad"}</title> 
-	<link rel="stylesheet"  href="${styleUri}">
-</head>
-<body>
-	<script nonce="${nonce}" >
-		window.vscode = acquireVsCodeApi();	
-		//window.myConfig={pageType:"${config.pageType||"run"}",src:"${config.src||""}",name:"${config.name||"solidJScad"}",in:"${config.in||"index.js"}",func:"${config.func||"main"}"}
-	</script>
-<div id="app" ></div>   
-<script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
-</body>
-</html>`; 
+	
 };
 export const newWorkspacePackage= async(
 	NewWorkspace:vscode.Uri,

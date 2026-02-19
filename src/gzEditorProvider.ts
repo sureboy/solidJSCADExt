@@ -100,7 +100,8 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         });
         setHtmlForWebview(webviewPanel.webview,
             {name,in:in_.endsWith(".js")?in_:(in_+".js"),func,src:"",
-                extensionUri:this._context.extensionUri,pageType:'gzData'
+                extensionUri:this._context.extensionUri,pageType:'gzData',
+                rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath
             },
             handMap
         );
