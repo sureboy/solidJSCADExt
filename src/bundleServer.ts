@@ -302,7 +302,7 @@ const initPanel = (
         //tmpDate = Date.now();
         //console.log(e);
         initLoad(e.msg,TypeTag,t=>{
-             panel.webview.postMessage({                    
+            panel.webview.postMessage({                    
                 msg:{open:true,config},
                 type:(TypeTag.get('run')||0)  | (TypeTag.get('begin')||0)            
             });

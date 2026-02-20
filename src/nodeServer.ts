@@ -70,6 +70,17 @@ const readJS = (
 };
 const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
+},conf?: {
+    src: string;
+    name: string;
+    func: string;
+    in: string;
+    port: number;
+    rootPath: string;
+    srcPath: string;
+    includeImport: {
+        [key: string]: string;
+    };
 }) =>{
     try{
         //binary
@@ -77,6 +88,11 @@ const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerRespo
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
         res.end(db); 
     }catch(e){
+        if (conf){
+            const pathList = res.req.url?.split("/")||[];
+            readfile(path.join(conf.srcPath,...pathList), res,conf);
+            return;
+        }
         console.error(e);
         res.writeHead(404);
         res.end();
@@ -89,7 +105,7 @@ const readfile = (
     req: http.IncomingMessage;
 },conf:{src:string,includeImport:{ [key: string]: string }}
 )=>{
-    //console.log("readfile",filePaths);
+    console.log("readfile",filePaths);
     
     const ext = path.extname(filePaths);
     switch (ext) {
@@ -229,7 +245,7 @@ const createHttpServer = (conf:{
             default:
                 //const p = path.join(conf.rootPath,filepath);
                 const ext = path.extname(filepath);
-                readBinaryFile(path.join(conf.rootPath,filepath),contentType[ext]|| 'text/plain',res);
+                readBinaryFile(path.join(conf.rootPath,filepath),contentType[ext]|| 'text/plain',res,conf);
                 break;
         }
         return;
