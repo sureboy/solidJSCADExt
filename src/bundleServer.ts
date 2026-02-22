@@ -36,13 +36,8 @@ const createPanel  = ( config:{
         {
             enableScripts: true,
             retainContextWhenHidden: true,
- 
-            localResourceRoots: [ 
-                //outPath,
-                //vscode.Uri.file(path.join(userWorkspace,"modeling","src")),
-                //config.workspacePath,
-                vscode.Uri.joinPath (config.extensionUri, 'myModule'),
-               //vscode.Uri.joinPath( config.workspacePath , config.webUI||""),
+            localResourceRoots: [  
+                vscode.Uri.joinPath (config.extensionUri, 'myModule'), 
             ]
         }
     );
@@ -68,17 +63,7 @@ export const workerspaceMessageHandMap = (
  
     handListenMsg.set('start',()=>{tmpDate = Date.now();});
     handListenMsg.set('end',()=>{
-        vscode.window.showInformationMessage(`${String((Date.now()-tmpDate)/1000)}s`);
-        /*
-        if (serv && serv.Server && serv.clientwsMap.size===0){
- 
-            const port  = serv.httpPort;
-            vscode.window.showInformationMessage( `Remote address: http://${getLocalIp()}:${port}`,"Browser view").then(v=>{
-                if (v==="Browser view"){
-                    vscode.env.openExternal(vscode.Uri.parse(`http://localhost:${port}`));
-                }
-            });
-        }   */     
+        vscode.window.showInformationMessage(`${String((Date.now()-tmpDate)/1000)}s`); 
     });
 
 
@@ -93,6 +78,7 @@ const loadConfig =async (u:vscode.Uri)=>{
         func: string,
         in: string,
         port:number,
+        worker?:string,
         webview:boolean,
         webUI?:string,
         includeImport:{ [key: string]: string }
@@ -102,14 +88,15 @@ const loadConfig =async (u:vscode.Uri)=>{
         //return;
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }  
+    /*
     Object.keys(conf.includeImport).forEach((k)=>{
         let uri = conf.includeImport[k];
         const srcReg =new RegExp(`^\.\/${conf.src}\/`);  
         if (srcReg.exec(uri)){
             uri.replace(srcReg,"./");
         } 
-        conf.includeImport[k] =   uri.replace(srcReg,"./");; 
-    });
+        conf.includeImport[k] =   uri.replace(srcReg,"./");
+    });*/
     //console.log(config);  
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
     return {
