@@ -269,8 +269,7 @@ export const  setHtmlForWebview =async (
 			}
 			return webview.asWebviewUri(
 				vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui',  p)
-			).toString(); 
-			
+			).toString(); 			
 		});
 		strHtml = setScriptNonce(strHtml,nonce);
 		//console.log(strHtml);
@@ -278,22 +277,22 @@ export const  setHtmlForWebview =async (
 	}catch(e){
 		console.error(e);
 		webview.html = `<!doctype html>
-		<html lang="en">
-		<head>
-			<meta charset="UTF-8" /> 
-			<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
-				<meta http-equiv="Content-Security-Policy" content="${csp}">
-			<title>${config.name||"solidJScad"}</title> 
-			<link rel="stylesheet"  href="${styleUri}">
-		</head>
-		<body>
-			<script nonce="${nonce}" >
-				window.vscode = acquireVsCodeApi();	
-			</script>
-		<div id="app" ></div>   
-		<script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
-		</body>
-		</html>`; 
+<html lang="en">
+<head>
+	<meta charset="UTF-8" /> 
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" /> 
+		<meta http-equiv="Content-Security-Policy" content="${csp}">
+	<title>${config.name||"solidJScad"}</title> 
+	<link rel="stylesheet"  href="${styleUri}">
+</head>
+<body>
+	<script nonce="${nonce}" >
+		window.vscode = acquireVsCodeApi();	
+	</script>
+<div id="app" ></div>   
+<script type="module"  nonce="${nonce}"  src="${scriptUri}"></script>
+</body>
+</html>`; 
 	}
 	
 
@@ -304,6 +303,7 @@ export const newWorkspacePackage= async(
 	//context: vscode.ExtensionContext,
 	extensionUri:vscode.Uri,
 	myWorkspaceConfig:{
+		worker?:string,
 		name:string,
 		in:string,
 		func:string,
@@ -343,7 +343,7 @@ export const newWorkspacePackage= async(
 	try{
 		await vscode.workspace.fs.copy(
 			vscode.Uri.joinPath(extensionUri,"myModule", "lib" ),
-			vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src )
+			vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.src,"lib" )
 		);
 	}catch(e){
 		console.error(e);

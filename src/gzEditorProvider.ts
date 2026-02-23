@@ -95,8 +95,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
                     msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
                 });
-            });
- 
+            }); 
         });
         setHtmlForWebview(webviewPanel.webview,
             {name,in:in_.endsWith(".js")?in_:(in_+".js"),func,src:"",
@@ -125,10 +124,8 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
     public backupCustomDocument(document: PawDrawDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
         return document.backup(context.destination, cancellation);
     }
- 
     private _requestId = 1;
     private readonly _callbacks = new Map<number, (response: any) => void>();
-
     private postMessageWithResponse<R = unknown>(panel: vscode.WebviewPanel, type: string, body: any): Promise<R> {
         const requestId = this._requestId++;
         const p = new Promise<R>(resolve => this._callbacks.set(requestId, resolve));
@@ -143,6 +140,7 @@ export const downSrcHandMap = (
         type:number,
         msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
     config:{
+        //worker:string,
         webview:boolean,
         NewWorkspace?:vscode.Uri,
         in:string,
@@ -168,6 +166,7 @@ export const downSrcHandMap = (
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
                 config!.extensionUri,  {
                     webview:config.webview,
+                    //worker:config.worker,
                     in:config.in,
                     func:config.func,
                     port:config.port,
@@ -187,7 +186,7 @@ export const downSrcHandMap = (
         });            
     });
     handMap.set('src',(message:{name:string,code:string,start?:boolean,end?:boolean})=>{
-        //console.log(message);
+        //console.log(message,config.NewWorkspace);
         if (!config.NewWorkspace){
             return;
         }
@@ -219,6 +218,7 @@ export const downSrcHandMap = (
                 config.src,
                 config.includeImport[message.name]||message.name);
         }
+        //console.log(filePath);
         vscode.workspace.fs.writeFile(
             filePath,
             new TextEncoder().encode(message.code)).then(res=>{

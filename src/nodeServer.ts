@@ -1,7 +1,7 @@
 import * as http from 'http'; 
 import * as path from 'path'; 
 import * as fs from "fs";
-import type {postTypeStr} from './util';
+import type {postTypeStr} from './util'; 
 //import {workerspaceMessageHandMap} from "../src/bundleServer.js";
 //type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
 const TypeTag = new Map<postTypeStr,number>();
@@ -131,7 +131,7 @@ const workerspaceMessageHandMap = (
     postTypeTag:Map<postTypeStr,number>,postMessage:(db:{
     type:number,
     msg:{db?:any,name?:string,open?:boolean,config?:{}}})=>void,
-    //workerspacePath:string,
+    //srcPath:string,
     conf:{
     src:string,
     name: string,
@@ -139,8 +139,8 @@ const workerspaceMessageHandMap = (
     in: string,
     //port:number,
     //rootPath:string,
-    //srcPath:string,
-    //includeImport:{ [key: string]: string }
+    srcPath:string,
+    includeImport:{ [key: string]: string }
     }
     //serv?:SerConfig,
 )=>{
@@ -157,7 +157,24 @@ const workerspaceMessageHandMap = (
         
         //postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
         //return;
-        let  filePath = path.join(...e.path.split("/"));  
+        let  filePath = conf.srcPath;
+        if (e.path.endsWith(".js")){
+            filePath = path.join(conf.srcPath,...e.path.split("/"));  
+        }else  if (conf.includeImport && conf.includeImport[e.path]){
+            filePath = path.join(conf.srcPath,...conf.includeImport[e.path].split("/"));  
+        }else{
+            postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
+            return;
+        }
+        fs.readFile(filePath,{encoding:'utf8'},(err,db)=>{
+            console.log(filePath,err);
+                if (!err){
+                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path,db }});
+                }else{
+                    postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path  }});
+                }    
+        });
+        /*
         fs.stat(filePath,(err,s)=>{
             if (!err){
                 postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
@@ -172,9 +189,37 @@ const workerspaceMessageHandMap = (
                     postMessage({type:postTypeTag.get("init")||0,msg:{ name:e.path  }});
                 }            
             });
-        });      
+        });    */  
     });
     return handListenMsg;
+};
+const sse = (res: http.ServerResponse<http.IncomingMessage> & {
+    req: http.IncomingMessage;
+},PostMessageSet?:Set<(e:any)=>any>)=>{
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'  // if needed
+    }); 
+    const post = (e:any)=>{
+        if (res && res.writable){
+            res.write(e,(err)=>{
+                if (err){
+                    console.error(err);
+                }
+            });
+            console.log("post ok");
+        }        
+    };
+    PostMessageSet?.add(post);
+    console.log("sse start"); 
+    res.req.on('close', () => {
+      //clearInterval(intervalId);
+      console.log("sse end");
+      PostMessageSet?.delete(post);
+      res.end();
+    });
 };
 const createHttpServer = (conf:{
     src:string,
@@ -185,7 +230,7 @@ const createHttpServer = (conf:{
     rootPath:string,
     srcPath:string,
     includeImport:{ [key: string]: string }
-    })=>{  
+    },PostMessageSet?:Set<(e:any)=>any>)=>{  
     return http.createServer((req, res) => {
         const pathList = req.url?.split("/")||[];
         const filepath =path.join( ...pathList) ;
@@ -196,6 +241,8 @@ const createHttpServer = (conf:{
         },conf);
         res.setHeader("Access-Control-Allow-Origin","*");
         switch(pathList[1]){
+            case 'events':
+                sse(res,PostMessageSet);
             case "": 
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 let indexHtml = "";
@@ -212,7 +259,7 @@ const createHttpServer = (conf:{
                 readfile(path.join(conf.srcPath,"../",...pathList), res,conf);
                 break;
             case "api":                         
-                console.log(filepath,req.method);
+                //console.log(filepath,req.method);
                 if (req.method ==="POST"){
                     let body = "";
                     req.addListener("data",(db)=>{
@@ -221,7 +268,7 @@ const createHttpServer = (conf:{
                         //console.log(db);
                     });                    
                     req.addListener("end",()=>{
-                        console.log(body);
+                        //console.log(body);
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
                             const handMsg = handmsg.get(data.type);
@@ -230,7 +277,7 @@ const createHttpServer = (conf:{
                             }else{
                                 res.end(JSON.stringify({}));
                             }
-                            console.log(data);
+                            //console.log(data);
                         }catch(e){
                             console.error(e);
                         }
@@ -239,7 +286,6 @@ const createHttpServer = (conf:{
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({}));
                 }
-                
                 //handmsg.get(req.d)
                 break;
             default:
@@ -264,14 +310,14 @@ export const RunHttpServer = (
         srcPath:string,
         indexHtml:string,
         includeImport:{ [key: string]: string } 
-    }, backServ:(ser:SerConfig)=>void,errNumber = 10)=>{
+    }, backServ:(ser:SerConfig)=>void,errNumber = 10,PostMessageSet?: Set<(e: any) => any>)=>{
     /*
     if (!conf){
         const db = fs.readFileSync("solidjscad.json");
         conf =  JSON.parse(db.toString());
     }    
     */
-    const serv = createHttpServer(conf);
+    const serv = createHttpServer(conf,PostMessageSet);
     const runHttp = (p:number)=>{ 
         serv.listen(p, () => {
             console.log("listen port:",p);

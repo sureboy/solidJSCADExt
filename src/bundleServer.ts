@@ -34,6 +34,7 @@ const createPanel  = ( config:{
         config.name||"solidJScad",
         vscode.ViewColumn.One,
         {
+            enableFindWidget:true,
             enableScripts: true,
             retainContextWhenHidden: true,
             localResourceRoots: [  
@@ -117,7 +118,7 @@ const watchInit = (conf:{
     port:number,
     TypeTag:Map<postTypeStr,number>
     //webview:boolean,
-}, panel:vscode.WebviewPanel)=>{
+}, postMessage:((message: {type?:number,msg:{db?:ArrayBuffer,name:string }}) => void))=>{
     const watcher = vscode.workspace.createFileSystemWatcher(
         new vscode.RelativePattern(conf.watchPath, '**/*.js')
     );
@@ -136,13 +137,15 @@ const watchInit = (conf:{
         vscode.workspace.fs.readFile(uri).then(db=>{      
             const msg={
                 db:  db.buffer as ArrayBuffer,
+     
                 name 
             };
             //serv?.wss?.clients.forEach(ws=>{
             //    WSSendUpdate(["init","run"],TypeTag,msg,ws);
                 //ws.send(JSON.stringify({run:true}));
             //});
-            panel.webview.postMessage( {  
+            //panel.webview.postMessage( {  
+            postMessage( {  
                 type:(conf.TypeTag.get("init")||0)|(conf.TypeTag.get("run") ||0 ),
                 msg                   
             },);
@@ -160,7 +163,8 @@ const watchInit = (conf:{
         //const name = path.relative(config.watchPath.fsPath,uri.fsPath);
        
         
-        panel.webview.postMessage({
+        //panel.webview.postMessage({
+        postMessage({
             type:conf.TypeTag.get("del"),
             msg:{
                 name:path.basename(uri.fsPath)
@@ -190,6 +194,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             return;
         }
         const u = files[0];
+        const PostMessageSet = new Set<(msg:any)=>any>();
         loadConfig(u).then(conf=>{
             const TypeTag = new Map<postTypeStr,number>();
             const config =  Object.assign( {},conf,{ 
@@ -219,7 +224,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     const loadUrl = `http://localhost:${ser.httpPort}`;
                     config.port = ser.httpPort; 
                     const panel = createPanel(config);                    
-                    initPanel(panel,TypeTag,context,config);
+                    initPanel(panel,TypeTag,context,config,PostMessageSet);
                           
                     //vscode.window.setStatusBarMessage("llllll").dispose();
               
@@ -252,15 +257,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                             vscode.env.openExternal(vscode.Uri.parse(loadUrl));
                         }
                     }); 
-                });
+                },10,PostMessageSet);
             }else{ 
-                initPanel(createPanel(config),TypeTag,context,config);
-            }
-     
-                    
-            
-            //bundleConfig.in = vscode.Uri.joinPath(bundleConfig.in,"index.js");
-                      
+                initPanel(createPanel(config),TypeTag,context,config,PostMessageSet);
+            }         
         });         
     });
 };
@@ -282,9 +282,9 @@ const initPanel = (
     workspacePath: vscode.Uri;
     watchPath: vscode.Uri;
     extensionUri : vscode.Uri,
-})=>{
+},PostMessageSet?: Set<(e: any) => any>)=>{
     if (!panel){return;}
-    const handMap = workerspaceMessageHandMap(  );  
+    const handMap = workerspaceMessageHandMap();  
     handMap.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
         //console.log(e);
@@ -326,7 +326,19 @@ const initPanel = (
             console.log(db);
         }
     },{ TypeTag, ...config});  
-    const watcher = watchInit({TypeTag,...config},panel );
+    const watcher = watchInit({TypeTag,...config},(m)=>{
+        console.log("watcher",m);
+        if (panel){panel.webview.postMessage(m);}
+        //console.log(PostMessageSet);
+        if (PostMessageSet){
+            const db =m.msg.db?Buffer.from(new Uint8Array(m.msg.db)).toString("base64") :m.msg.db; // new TextDecoder().decode(m.msg.db);
+            const msg ="data:"+JSON.stringify({type:m.type,msg:{name:m.msg.name,db}})+"\n\n";
+            PostMessageSet.forEach(f=>{
+                f(msg);
+            });
+        }
+        
+    } );
     context.subscriptions.push(watcher); 
     panel.onDidDispose((e)=>{
         console.log("close",e);
