@@ -4,7 +4,7 @@ import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage}
 import {workerspaceMessageHandMap,initLoad} from './bundleServer';
 //import {RunHttpServer,startWebSocketServer} from './httpServer';
 //import {WSSend,httpindexHtml}from './httpLib';
- 
+import { RunHttpServer } from './nodeServer'; 
 import type {postTypeStr} from './util';
 //import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
@@ -75,13 +75,16 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             "solidjscad",
             Date.now().toString()
         ]; 
-        const myWorkspaceConfig = {name,in:in_,func,date,
+        const rootPath = path.join(this._context.extensionUri.fsPath,"myModule","webui");
+        const myWorkspaceConfig = {name,in:in_,func,date,rootPath,
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
         };
+        
+        
          
         const handMap = workerspaceMessageHandMap( ); 
         downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{
@@ -97,9 +100,13 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 });
             }); 
         });
+        RunHttpServer(myWorkspaceConfig,(ser)=>{
+
+        });
         setHtmlForWebview(webviewPanel.webview,
-            {name,in:in_.endsWith(".js")?in_:(in_+".js"),func,src:"",
-                extensionUri:this._context.extensionUri,pageType:'gzData',
+            {
+                name, 
+                extensionUri:this._context.extensionUri, 
                 rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath
             },
             handMap

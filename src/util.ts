@@ -1,5 +1,18 @@
 import * as os from "os"; 
 export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
+export type mainConfigType = {
+  src:string,
+  name: string,
+  func: string,
+  in: string,
+  date:string,
+  port:number,
+  worker?:string,
+  webview:boolean,
+  webUI?:string,
+  includeImport:{ [key: string]: string }
+}
+
 export function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

@@ -2,33 +2,30 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
-import { RunHttpServer } from './nodeServer'; 
+import { RunHttpServer,defaultSerConfig } from './nodeServer'; 
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
-import type {postTypeStr} from './util';
+import type {postTypeStr,mainConfigType} from './util';
+type webUIPathType = {
+    rootPath:string 
+    extensionUri : vscode.Uri,
+}
+type workPathType = { 
+    workspacePath: vscode.Uri;
+    watchPath: vscode.Uri; 
+}
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
-
+let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( config:{
     webview:boolean,
-    name:string,
-    in:string,
-    func:string,
-    src:string,
-    //webUI?:string,
+    name:string, 
     workspacePath: vscode.Uri;
-    //watchPath:vscode.Uri,
     extensionUri: vscode.Uri} 
    )=>{
     if (!config.webview){
         return ;
     }
  
-    console.log("new panel");
-    if (!config.in){
-        config.in = "index.js";
-    }else if (!config.in.endsWith(".js")){
-        config.in+=".js";
-    }
     return vscode.window.createWebviewPanel(
         'View',
         config.name||"solidJScad",
@@ -73,39 +70,19 @@ export const workerspaceMessageHandMap = (
 const loadConfig =async (u:vscode.Uri)=>{
     //console.log(vscode.workspace.getConfiguration().get("title"));
     const v = await vscode.workspace.fs.readFile(u) ;
-    const conf:{
-        src:string,
-        name: string,
-        func: string,
-        in: string,
-        port:number,
-        worker?:string,
-        webview:boolean,
-        webUI?:string,
-        includeImport:{ [key: string]: string }
-        //webview:boolean,
-    } = JSON.parse(v.toString());
+    const conf:mainConfigType = JSON.parse(v.toString());
     if (!conf.src){
         //return;
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }  
-    /*
-    Object.keys(conf.includeImport).forEach((k)=>{
-        let uri = conf.includeImport[k];
-        const srcReg =new RegExp(`^\.\/${conf.src}\/`);  
-        if (srcReg.exec(uri)){
-            uri.replace(srcReg,"./");
-        } 
-        conf.includeImport[k] =   uri.replace(srcReg,"./");
-    });*/
-    //console.log(config);  
+ 
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri;
     return {
         workspacePath,
         watchPath : vscode.Uri.joinPath(
             workspacePath,
             conf.src),
-        //extensionUri : context.extensionUri,
+ 
         ...conf
     }; 
 };
@@ -175,114 +152,103 @@ const watchInit = (conf:{
 
     return watcher;
 };
-export const watcherServer = (context: vscode.ExtensionContext)=>{
-    vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
-        if (files.length === 0) {
-            /*
-            if (!vscode.workspace.workspaceFolders){
+const initBar = (panel?:vscode.WebviewPanel)=>{
+    if (menu){
+        menu.dispose();
+    }
+    const loadIP = getLocalIp();
+    Bar.command="menu";
+    Bar.text = `http://${loadIP}:${defaultSerConfig.ser?.httpPort}`;
+    const loadUrl = `http://localhost:${defaultSerConfig.ser?.httpPort}`;
+    menu =     vscode.commands.registerCommand('menu', () => {
+        vscode.window.showQuickPick(["onload","create",loadUrl,Bar.text,"stop"]).then(v=>{
+            if (!v){
                 return;
             }
-            
-            const uri = vscode.workspace.workspaceFolders[0].uri;
-            CreateSolidjscadPackage(uri,context).then(()=>{
-                watcherServer(context); 
-            });
-            */
-           
-       
-            //vscode.commands.executeCommand('solidJScad.create').;
+            if (v.startsWith("http://")){
+                vscode.env.openExternal(vscode.Uri.parse(v));
+                return;
+            }
+            if (v==="onload" || v==="stop"){
+                Bar.text="";
+                //ser.Server?.close(); 
+                //ser.Server?.closeIdleConnections(); 
+                panel?.dispose();
+                if (v==="stop"){
+                    defaultSerConfig.ser?.Server?.close();
+                    //ser.Server?.close(); 
+                    defaultSerConfig.ser?.Server?.closeIdleConnections(); 
+                    defaultSerConfig.ser = undefined;
+                }
+            }
+
+            vscode.commands.executeCommand("solidJScad."+v);                            
+        });
+    }); 
+    Bar.show();
+    vscode.window.showInformationMessage( `Remote address:  ${Bar.text}`,"Browser view").then(v=>{
+        if (v==="Browser view"){
+            vscode.env.openExternal(vscode.Uri.parse(loadUrl));
+        }
+    }); 
+};
+const initServer = (
+    context: vscode.ExtensionContext,
+    conf:mainConfigType&workPathType,
+    func:(
+        PostMessageSet:Set<(msg:any)=>any>,
+        config:mainConfigType& workPathType & webUIPathType
+    )=>vscode.WebviewPanel|undefined)=>{
+    
+    const PostMessageSet = new Set<(msg:any)=>any>();
+    const config =  Object.assign(  conf,{ 
+        //pageType:"run",
+        rootPath:"",
+        extensionUri : context.extensionUri,
+    } as webUIPathType);
+    console.log("get",config.name);
+    //const serv = ServPool.get(config.name);
+    
+    if (!Bar.text){
+        config.rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
+        try{
+            fs.statSync(config.rootPath);
+        }catch(e){
+            config.rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
+        }               
+        RunHttpServer({ 
+            srcPath:config.watchPath.fsPath, 
+            ...config},(ser)=>{   
+            config.port = ser.httpPort;  
+            initBar(func(PostMessageSet,config));
+                
+        },10,PostMessageSet);
+    }else{ 
+        func(PostMessageSet,config); 
+    } 
+};
+export const watcherServer = (context: vscode.ExtensionContext)=>{
+    vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
+        if (files.length === 0) { 
             return;
         }
         const u = files[0];
-        const PostMessageSet = new Set<(msg:any)=>any>();
-        loadConfig(u).then(conf=>{
+        
+        loadConfig(u).then(conf=>{            
             const TypeTag = new Map<postTypeStr,number>();
-            const config =  Object.assign( {},conf,{ 
-                //pageType:"run",
-                rootPath:"",
-                extensionUri : context.extensionUri,
-            });
-            console.log("get",config.name);
-            //const serv = ServPool.get(config.name);
-            
-            if (!Bar.text){
-                config.rootPath = path.join(config.workspacePath.fsPath,config.webUI||"webui");
-                try{
-                    fs.statSync(config.rootPath);
-                }catch(e){
-                    config.rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
-                }               
-                RunHttpServer({
-                    //rootPath:config.rootPath,//:path.join(context.extensionUri.fsPath,"myModule","webui"),
-                    srcPath:config.watchPath.fsPath,
-                    indexHtml:"",
-                    ...config},(ser)=>{  
-                    //ser.Server?.close()
-                    const loadIP = getLocalIp();
-                    Bar.command="menu";
-                    Bar.text = `http://${loadIP}:${ser.httpPort}`;
-                    const loadUrl = `http://localhost:${ser.httpPort}`;
-                    config.port = ser.httpPort; 
-                    const panel = createPanel(config);                    
-                    initPanel(panel,TypeTag,context,config,PostMessageSet);
-                          
-                    //vscode.window.setStatusBarMessage("llllll").dispose();
-              
-                        vscode.commands.registerCommand('menu', () => {
-                        vscode.window.showQuickPick(["onload","create",loadUrl,Bar.text]).then(v=>{
-                            if (!v){
-                                return;
-                            }
-                            if (v.startsWith("http://")){
-                                vscode.env.openExternal(vscode.Uri.parse(v));
-                                return;
-                            }
-                            if (v==="onload"){
-                                Bar.text="";
-                                ser.Server?.close();
-                                //ser.Server?.closeAllConnections();
-                                ser.Server?.closeIdleConnections(); 
-                                panel?.dispose();
-                            }
-                            vscode.commands.executeCommand("solidJScad."+v);
-                            
-                        });
-                        //vscode.commands.executeCommand
-                    });
-               
-                    
-                    Bar.show();
-                    vscode.window.showInformationMessage( `Remote address:  ${Bar.text}`,"Browser view").then(v=>{
-                        if (v==="Browser view"){
-                            vscode.env.openExternal(vscode.Uri.parse(loadUrl));
-                        }
-                    }); 
-                },10,PostMessageSet);
-            }else{ 
-                initPanel(createPanel(config),TypeTag,context,config,PostMessageSet);
-            }         
+            initServer(context,conf,(MessageSet,c)=>{
+                 const panel = createPanel(c);
+                 initPanel(panel,TypeTag,context,c,MessageSet);
+                 return panel;
+            });        
         });         
     });
 };
 const initPanel = (
     panel:vscode.WebviewPanel|undefined,
     TypeTag:Map<postTypeStr,number>,
-    context:vscode.ExtensionContext,config:{
-    src: string;
-    name: string;
-    func: string;
-    in: string;
-    port: number;
-    webview: boolean;
-    webUI?:string;
-    rootPath:string
-    includeImport: {
-        [key: string]: string;
-    };
-    workspacePath: vscode.Uri;
-    watchPath: vscode.Uri;
-    extensionUri : vscode.Uri,
-},PostMessageSet?: Set<(e: any) => any>)=>{
+    context:vscode.ExtensionContext,
+    config:mainConfigType & workPathType & webUIPathType,PostMessageSet?: Set<(e: any) => any>)=>{
     if (!panel){return;}
     const handMap = workerspaceMessageHandMap();  
     handMap.set('loaded',(e:any)=>{
@@ -301,18 +267,14 @@ const initPanel = (
                 let pathUri = config.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
                     pathUri = vscode.Uri.joinPath(pathUri,config.src,
-                        ...config.includeImport[e.path].split("/")); 
-                    
+                        ...config.includeImport[e.path].split("/"));                     
                 }else{
                     pathUri = vscode.Uri.joinPath(
                         config.watchPath ,...e.path.split("/")
                     );
                 }
-                //console.log(pathUri);
-                const t = await vscode.workspace.fs.readFile(pathUri); 
-               
-                panel.webview.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});
-                              
+                const t = await vscode.workspace.fs.readFile(pathUri);                
+                panel.webview.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
             }catch(err:any){                         
                 panel.webview.postMessage({type:TypeTag.get("init")||0,msg:{ name:e.path }});                     
             }
@@ -336,23 +298,15 @@ const initPanel = (
             PostMessageSet.forEach(f=>{
                 f(msg);
             });
-        }
-        
+        }        
     } );
     context.subscriptions.push(watcher); 
     panel.onDidDispose((e)=>{
-        console.log("close",e);
-        //panel?.dispose()
-        //Serv?.Server?.
-        //Bar?.hide();
-        //Serv?.Server?.close();
-        //panel=null;
-        //config.webview=false;
-        //Bar.dispose();
+        console.log("close",e); 
         watcher.dispose();
     });
     setHtmlForWebview(
-        panel.webview,{pageType:"run" ,...config},
+        panel.webview,config,
         handMap
     );
 };
@@ -392,32 +346,7 @@ export const CreateSolidjscadPackage =async (
             }catch(e){
                 console.error(e);
             }
-            /*
-            try{
-                await vscode.workspace.fs.copy(
-                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","main.js"),
-                    vscode.Uri.joinPath(uri,"webui", "main.js")
-                );
-            }catch(e){
-                console.error(e);
-            }
-            try{
-                await vscode.workspace.fs.copy(
-                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","assets","main.css"),
-                    vscode.Uri.joinPath(uri,"webui","assets", "main.js")
-                );
-            }catch(e){
-                console.error(e);
-            }
-            try{
-                await vscode.workspace.fs.copy(
-                    vscode.Uri.joinPath(context.extensionUri,"myModule", "webui","assets","logo.png"),
-                    vscode.Uri.joinPath(uri,"webui","assets", "logo.png")
-                );
-            }catch(e){
-                console.error(e);
-            }
-            */
+           
             try{
                 await vscode.workspace.fs.writeFile(
                     vscode.Uri.joinPath(uri,"src","index.js"),
@@ -427,6 +356,6 @@ export const CreateSolidjscadPackage =async (
             }catch(e){
                 console.error(e);
             }
-        });
-        
+        }
+    );        
 };

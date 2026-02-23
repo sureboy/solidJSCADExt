@@ -71,10 +71,11 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             //pageName:"STLViewer",
             rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath,
             //port:0,
-            src:"",
+            //src:"",
             name:"STLViewer",
-            in:"index.js",
-            func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",};
+            //in:"index.js",
+            //func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",
+        };
         
         // Setup initial content for the webview
         webviewPanel.webview.options = {

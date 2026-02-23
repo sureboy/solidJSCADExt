@@ -12,12 +12,14 @@ type SerConfig = {
     //isConn:()=>boolean,
     Server?: http.Server
     //wss?:WebSocketServer
+    /*
     config?:{
         extensionUri:string,
         indexHtml:string,
         name:string
-    }
+    }*/
 }
+export const defaultSerConfig:{ser?:SerConfig|undefined} = {};
 const contentType:{ [key: string]: string } = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -51,14 +53,16 @@ const readJS = (
     contentType:string,
     res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;},
-    conf:{src:string,includeImport:{ [key: string]: string }}
+     
+        //src:string,
+        includeImport:{ [key: string]: string }
 )=>{
     try{
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' }); 
-        Object.keys(conf.includeImport).forEach(k=>{ 
+        Object.keys(includeImport).forEach(k=>{ 
             console.log( res.req.headers);
-            const p =   conf.includeImport[k]; 
+            const p =   includeImport[k]; 
             db = db.replace(k,p);
         }); 
         res.end(db); 
@@ -71,13 +75,13 @@ const readJS = (
 const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
 },conf?: {
-    src: string;
-    name: string;
-    func: string;
-    in: string;
-    port: number;
+    //src: string;
+    //name: string;
+    //func: string;
+    //in: string;
+    //port: number;
     rootPath: string;
-    srcPath: string;
+    srcPath?: string;
     includeImport: {
         [key: string]: string;
     };
@@ -90,7 +94,7 @@ const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerRespo
     }catch(e){
         if (conf){
             const pathList = res.req.url?.split("/")||[];
-            readfile(path.join(conf.srcPath,...pathList), res,conf);
+            readfile(path.join(conf.srcPath||"",...pathList), res,conf.includeImport);
             return;
         }
         console.error(e);
@@ -103,14 +107,16 @@ const readfile = (
     filePaths:string,
     res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
-},conf:{src:string,includeImport:{ [key: string]: string }}
+}, 
+    //src:string,
+    includeImport:{ [key: string]: string }
 )=>{
     console.log("readfile",filePaths);
     
     const ext = path.extname(filePaths);
     switch (ext) {
         case ".js":
-            readJS(filePaths,'text/javascript',res,conf);
+            readJS(filePaths,'text/javascript',res,includeImport);
             break;
         default:
             readBinaryFile(filePaths,contentType[ext]|| 'text/plain',res);
@@ -134,12 +140,12 @@ const workerspaceMessageHandMap = (
     //srcPath:string,
     conf:{
     src:string,
-    name: string,
-    func: string,
-    in: string,
+    //name: string,
+    //func: string,
+    //in: string,
     //port:number,
     //rootPath:string,
-    srcPath:string,
+    srcPath?:string,
     includeImport:{ [key: string]: string }
     }
     //serv?:SerConfig,
@@ -159,9 +165,9 @@ const workerspaceMessageHandMap = (
         //return;
         let  filePath = conf.srcPath;
         if (e.path.endsWith(".js")){
-            filePath = path.join(conf.srcPath,...e.path.split("/"));  
+            filePath = path.join(conf.srcPath||"",...e.path.split("/"));  
         }else  if (conf.includeImport && conf.includeImport[e.path]){
-            filePath = path.join(conf.srcPath,...conf.includeImport[e.path].split("/"));  
+            filePath = path.join(conf.srcPath||"",...conf.includeImport[e.path].split("/"));  
         }else{
             postMessage({type:postTypeTag.get("init")||0,msg:{ name: e.path  }});
             return;
@@ -223,12 +229,12 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
 };
 const createHttpServer = (conf:{
     src:string,
-    name: string,
-    func: string,
-    in: string,
-    port:number,
+    //name: string,
+    //func: string,
+    //in: string,
+    //port:number,
     rootPath:string,
-    srcPath:string,
+    srcPath?:string,
     includeImport:{ [key: string]: string }
     },PostMessageSet?:Set<(e:any)=>any>)=>{  
     return http.createServer((req, res) => {
@@ -256,7 +262,7 @@ const createHttpServer = (conf:{
                 break;
             case conf.src:
                 //console.log(pathList);
-                readfile(path.join(conf.srcPath,"../",...pathList), res,conf);
+                readfile(path.join(conf.srcPath||"","../",...pathList), res,conf.includeImport);
                 break;
             case "api":                         
                 //console.log(filepath,req.method);
@@ -302,13 +308,13 @@ const createHttpServer = (conf:{
 export const RunHttpServer = (
     conf:{
         src:string,
-        name: string,
-        func: string,
-        in: string,
+        //name: string,
+        //func: string,
+        //in: string,
         port:number,
         rootPath:string,
-        srcPath:string,
-        indexHtml:string,
+        srcPath?:string,
+        //indexHtml:string,
         includeImport:{ [key: string]: string } 
     }, backServ:(ser:SerConfig)=>void,errNumber = 10,PostMessageSet?: Set<(e: any) => any>)=>{
     /*
@@ -317,11 +323,19 @@ export const RunHttpServer = (
         conf =  JSON.parse(db.toString());
     }    
     */
+    //if ()
+    if (defaultSerConfig.ser && defaultSerConfig.ser.Server){
+        backServ(defaultSerConfig.ser);
+        return;
+    }
     const serv = createHttpServer(conf,PostMessageSet);
     const runHttp = (p:number)=>{ 
         serv.listen(p, () => {
             console.log("listen port:",p);
-            backServ({Server:serv,httpPort:p,config:{extensionUri:conf.src,name:conf.name,indexHtml:conf.indexHtml}});
+            defaultSerConfig.ser = {Server:serv,httpPort:p,
+             //   config:{extensionUri:conf.src,name:conf.name,indexHtml:conf.indexHtml}
+            };
+            backServ(defaultSerConfig.ser);
         }).on('error',(err)=>{
             console.log(err.message,p.toString());
             if (err.message.startsWith("listen EADDRINUSE:")){ 

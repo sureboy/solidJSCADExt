@@ -7,7 +7,7 @@ import {getNonce,
 	replaceAssetPathsAdvanced
 } from './util';
 
-
+import type {mainConfigType} from './util';
 /**
  * Define the type of edits used in paw draw files.
  */
@@ -216,11 +216,11 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 export const  setHtmlForWebview =async (
 	webview: vscode.Webview,
 	config:{
-		pageType:'run'|'gzData'|'stlData',
+		//pageType:'run'|'gzData'|'stlData',
 		name:string,
-		func:string,
-		in:string,
-		src:string,
+		//func:string,
+		//in:string,
+		//src:string,
 		port?:number
 		webUI?:string,
 		rootPath:string,
@@ -302,20 +302,7 @@ export const newWorkspacePackage= async(
 	NewWorkspace:vscode.Uri,
 	//context: vscode.ExtensionContext,
 	extensionUri:vscode.Uri,
-	myWorkspaceConfig:{
-		worker?:string,
-		name:string,
-		in:string,
-		func:string,
-		date:string,
-		src:string,
-		port:number,
-		webUI:string,
-		webview:boolean,
-		includeImport: {
-			[key: string]: string;
-		};
-	},
+	myWorkspaceConfig:mainConfigType,
 		handleEnd?:()=>Thenable<void>)=>{
 	try{	
 		await vscode.workspace.fs.writeFile(
