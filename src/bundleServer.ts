@@ -190,7 +190,10 @@ export const initBar = (clearFunc?:()=>void)=>{
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType,
+    conf:mainConfigType&workPathType &{
+        postMessage:(m:any)=>any,
+        handmsg: Map<string, (e: any) => void>,
+    },
     func:(
         config:mainConfigType& workPathType & webUIPathType,
         PostMessageSet?:Set<(msg:any)=>any>
@@ -238,30 +241,38 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         
         loadConfig(u).then(conf=>{            
             const TypeTag = new Map<postTypeStr,number>();
-            initServer(context,conf,(c,MessageSet)=>{
-                 const panel = createPanel(c);
-                 initPanel(TypeTag,context,c,MessageSet,panel);
+            const _conf = Object.assign(conf,{
+                postMessage: console.log}) as mainConfigType & workPathType&{postMessage:(e:any)=>any};
+            const handmsg = initMessageHandMap(
+                TypeTag,_conf
+                );
+            const panel = createPanel(conf);
+            const __conf = Object.assign(_conf,{handmsg}) as mainConfigType & workPathType&{
+                handmsg: Map<string, (e: any) => void>,
+                postMessage:(e:any)=>any};
+            
+            initServer(context,__conf,(c,MessageSet)=>{
+                 const postMessage = (m:any)=>{
+                if (panel){panel.webview.postMessage(m);}
+                HandlePostMessage(m,MessageSet);
+            };
+                Object.assign(conf,{postMessage});
+                initPanel(handmsg,TypeTag,context,c,MessageSet,panel);
                  return panel;
             });        
         });         
     });
 };
-const initPanel = (
-    
+const initMessageHandMap = (
     TypeTag:Map<postTypeStr,number>,
-    context:vscode.ExtensionContext,
-    config:mainConfigType & workPathType & webUIPathType,PostMessageSet?: Set<(e: any) => any>,panel?:vscode.WebviewPanel)=>{
-    //if (!panel){return;}
-    const postMessage = (m:any)=>{
-        if (panel){panel.webview.postMessage(m);}
-        HandlePostMessage(m,PostMessageSet);
-    };
+    config:mainConfigType & workPathType &
+    {postMessage:(e:any)=>any})=>{
     const handMap = workerspaceMessageHandMap();  
     handMap.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
         //console.log(e);
         initLoad(e.msg,TypeTag,t=>{
-            postMessage({                    
+            config.postMessage({                    
                 msg:{open:true,config},
                 type:(TypeTag.get('run')||0)  | (TypeTag.get('begin')||0)            
             });
@@ -280,17 +291,33 @@ const initPanel = (
                     );
                 }
                 const t = await vscode.workspace.fs.readFile(pathUri);                
-                postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
+                config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
             }catch(err:any){                         
-                postMessage({type:TypeTag.get("init")||0,msg:{ name:e.path }});                     
+                config.postMessage({type:TypeTag.get("init")||0,msg:{ name:e.path }});                     
             }
         };
         fn();        
     });       
     downSrcHandMap(
         handMap,
-        postMessage          
+        config.postMessage          
      ,{ TypeTag, ...config});  
+    return handMap;
+};
+const initPanel = (
+    handMap: Map<string, (e: any) => void>,
+    TypeTag:Map<postTypeStr,number>,
+    context:vscode.ExtensionContext,
+    config:mainConfigType & workPathType & webUIPathType,
+    PostMessageSet?: Set<(e: any) => any>,
+    panel?:vscode.WebviewPanel)=>{
+    //if (!panel){return;}
+    const postMessage = (m:any)=>{
+        if (panel){panel.webview.postMessage(m);}
+        HandlePostMessage(m,PostMessageSet);
+    };
+    //const handMap = initMessageHandMap(TypeTag,config,postMessage);
+     
     const watcher = watchInit({TypeTag,watchPath:config.watchPath},(m)=>{
         console.log("watcher",m);
         postMessage(m);           

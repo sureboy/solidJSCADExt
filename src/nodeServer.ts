@@ -33,7 +33,7 @@ export const HandlePostMessage = (
     m:{
         type?: number | undefined;
         msg: {
-            db?: ArrayBuffer | undefined;
+            db?: ArrayBuffer | string;
             name: string;
         };
     },
@@ -41,8 +41,13 @@ export const HandlePostMessage = (
     if (!PostMessageSet){
         return;
     }
-    const db =m.msg.db?Buffer.from(new Uint8Array(m.msg.db)).toString("base64") :m.msg.db; // new TextDecoder().decode(m.msg.db);
-    const msg ="data:"+JSON.stringify({type:m.type,msg:{name:m.msg.name,db}})+"\n\n";
+    
+    if (m.msg.db){
+        if (typeof m.msg.db !=="string"){
+            m.msg.db =Buffer.from(new Uint8Array(m.msg.db)).toString("base64");
+        }  
+    }
+    const msg ="data:"+JSON.stringify(m)+"\n\n";
     PostMessageSet.forEach(f=>{
         f(msg);
     });          
@@ -202,43 +207,56 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'  // if needed
+      //'Access-Control-Allow-Origin': '*'  // if needed
     }); 
     const post = (e:any)=>{
-        if (res && res.writable){
+        if (res  && res.writable ){
             res.write(e,(err)=>{
                 if (err){
                     console.error(err);
                 }
             });
-            console.log("post ok");
-        }        
+            //console.log("post ok");
+            return true;
+        } 
+        return false;       
     };
+    //setTimeout(()=>{
+    //    console.log("open");
+        post("data:"+JSON.stringify({type:0})+"\n\n");
+    //    console.log("end");
+        //post({});
+    //});
+    //res.write(`event: open\n\n`);
     PostMessageSet?.add(post);
-    console.log("sse start"); 
+    //console.log("sse start"); 
     res.req.on('close', () => {
       //clearInterval(intervalId);
-      console.log("sse end");
+      //console.log("sse end");
       PostMessageSet?.delete(post);
       res.end();
     });
 };
-const createHttpServer = (conf:HttpConfigType )=>{  
+const createHttpServer = (conf:{       
+        port:number ,
+        //postMessage:(e:any)=>any,
+        handmsg: Map<string, (e: any) => void>
+    }&HttpConfigType )=>{  
     //const resW=new Set();
  
-    const handmsg = workerspaceMessageHandMap(
-            TypeTag,conf);
+    //const handmsg = workerspaceMessageHandMap(TypeTag,conf);
+    //Object.assign(conf,{postMessage:(e:any)=>{
+    //    HandlePostMessage(e,defaultSerConfig.ser?.PostMessageSet);
+    //}});
     return http.createServer((req, res) => {
         res.setHeader("Access-Control-Allow-Origin","*");
         const pathList = req.url?.split("/")||[];
         const filepath =path.join( ...pathList) ;
-
-        Object.assign(conf,{postMessage:(e:any)=>{
-
-            res.writeHead(200, { 'Content-Type': 'application/json' }); 
-            res.end(JSON.stringify(e));
-        }});
-        
+      
+        //Object.assign(conf,{postMessage:(e:any)=>{
+        //    res.writeHead(200, { 'Content-Type': 'application/json' }); 
+        //    res.end(JSON.stringify(e));
+        //}});       
         switch(pathList[1]){
             case 'events':
                 sse(res,defaultSerConfig.ser?.PostMessageSet);
@@ -270,9 +288,11 @@ const createHttpServer = (conf:HttpConfigType )=>{
                         //console.log(body);
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
-                            const handMsg = handmsg.get(data.type);
+                            const handMsg = conf.handmsg.get(data.type);
                             if (handMsg){
                                 handMsg(data);
+                                res.writeHead(200, { 'Content-Type': 'application/json' }); 
+                                res.end("{}");
                             }else{
                                 res.end(JSON.stringify({}));
                             }
@@ -283,7 +303,7 @@ const createHttpServer = (conf:HttpConfigType )=>{
                     });
                 }else{
                     res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({}));
+                    res.end('{}');
                 }
                 //handmsg.get(req.d)
                 break;
@@ -300,7 +320,9 @@ const createHttpServer = (conf:HttpConfigType )=>{
 
 export const RunHttpServer = (
     conf:{       
-        port:number 
+        port:number ,
+        //postMessage:(e:any)=>any,
+        handmsg: Map<string, (e: any) => void>
     }&HttpConfigType, backServ:(ser:SerConfig)=>void,errNumber = 10  )=>{
     /*
     if (!conf){
