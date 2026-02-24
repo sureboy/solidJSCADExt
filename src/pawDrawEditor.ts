@@ -257,8 +257,9 @@ export const  setHtmlForWebview =async (
 		listenMessage(message,handleMessageMap);	
 	}); 
 	try{
+		console.log("paw",config);
 		const indexpath = vscode.Uri.joinPath(vscode.Uri.parse(config.rootPath),"index.html");
-		console.log(indexpath);
+		//console.log(indexpath);
 		const filehtml = await vscode.workspace.fs.readFile(indexpath );
 		let strHtml = new TextDecoder().decode(filehtml);
 		strHtml = setCSPMetaInHtml(strHtml,csp );

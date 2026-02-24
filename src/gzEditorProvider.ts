@@ -1,11 +1,12 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad} from './bundleServer';
+import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 //import {RunHttpServer,startWebSocketServer} from './httpServer';
 //import {WSSend,httpindexHtml}from './httpLib';
 import { RunHttpServer } from './nodeServer'; 
-import type {postTypeStr} from './util';
+import type {postTypeStr,mainConfigType} from './util';
+import  type {webUIPathType} from './bundleServer';
 //import type {SerConfig} from './httpServer';
 const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
@@ -68,23 +69,22 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
         const nameConfig = packageName.split("_");
         const workspaceConf = vscode.workspace.getConfiguration("init");
-         
         const [func,in_,name,date] =nameConfig.length>=4?nameConfig:[
             workspaceConf.get<string>("func")||"",
             workspaceConf.get<string>("in")||"",
             "solidjscad",
             Date.now().toString()
         ]; 
-        const rootPath = path.join(this._context.extensionUri.fsPath,"myModule","webui");
-        const myWorkspaceConfig = {name,in:in_,func,date,rootPath,
+        
+        const srcPath = path.join(this._context.extensionUri.fsPath,"myModule" );
+        const rootPath = path.join(srcPath,"webui");
+        const myWorkspaceConfig = {name,in:in_,func,date,rootPath,srcPath,
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
-        };
-        
-        
+        }   ;       
          
         const handMap = workerspaceMessageHandMap( ); 
         downSrcHandMap(handMap,e=>webviewPanel.webview.postMessage(e),{
@@ -101,7 +101,11 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             }); 
         });
         RunHttpServer(myWorkspaceConfig,(ser)=>{
+            myWorkspaceConfig.port = ser.httpPort;  
+            initBar(()=>{
+                webviewPanel.dispose();
 
+            });
         });
         setHtmlForWebview(webviewPanel.webview,
             {
@@ -156,9 +160,12 @@ export const downSrcHandMap = (
         src:string,
         webUI?:string,
         includeImport:{ [key: string]: string }
-        extensionUri:vscode.Uri,
+        extensionUri?:vscode.Uri,
         TypeTag : Map<postTypeStr,number>
     })=>{
+        if (!config.extensionUri){
+            return;
+        }
     handMap.set('downSrc',()=>{
         vscode.window.showOpenDialog({
             canSelectFolders:true,
@@ -171,7 +178,7 @@ export const downSrcHandMap = (
             config.NewWorkspace = u[0];
             newWorkspacePackage(config.NewWorkspace,
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
-                config!.extensionUri,  {
+                config.extensionUri!,  {
                     webview:config.webview,
                     //worker:config.worker,
                     in:config.in,
