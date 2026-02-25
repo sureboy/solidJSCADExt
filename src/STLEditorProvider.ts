@@ -3,8 +3,9 @@ import * as vscode from 'vscode';
 //import { disposeAll } from './dispose';
 //import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad} from './bundleServer';
+import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 //import type {postTypeStr} from './bundleServer';
+import { RunHttpServer,HandlePostMessage } from './nodeServer'; 
 import type {postTypeStr} from './util';
 //import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
 //import {RunHttpServer,startWebSocketServer} from './httpServer';
@@ -70,7 +71,8 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
             rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath,
-            //port:0,
+            port:0,
+            srcPath:"",
             //src:"",
             name:"STLViewer",
             //in:"index.js",
@@ -81,19 +83,28 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         webviewPanel.webview.options = {
             enableScripts: true,
         }; 
-        const handMap =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
-        handMap.set("loaded",(e:{msg:any})=>{
-            initLoad(e.msg,postTypeTag,tag=>{
-                webviewPanel.webview.postMessage({
-                    type:postTypeTag.get("stlData"),
-                    msg:{db:document.documentData.buffer}
+        const getMessage =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
+        /*
+        RunHttpServer(Object.assign(config,{getMessage}),
+        (ser)=>{
+            config.port = ser.httpPort;  
+            initBar();
+            getMessage.set("loaded",(e:{msg:any})=>{
+                initLoad(e.msg,postTypeTag,tag=>{
+                    const msg = {
+                        type:(postTypeTag.get("stlData")||0)|(postTypeTag.get("begin")||0),
+                        msg:{db:document.documentData.buffer,config}
+                    };
+                    webviewPanel.webview.postMessage(msg);
+                    HandlePostMessage(e,ser.PostMessageSet);
                 });
-            });
-        }); 
+            }); 
+            
+        });*/
         setHtmlForWebview(
             webviewPanel.webview,
              config,
-            handMap
+            getMessage
         );
     }
 

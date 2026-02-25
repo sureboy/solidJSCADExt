@@ -240,7 +240,7 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
 const createHttpServer = (conf:{       
         port:number ,
         //postMessage:(e:any)=>any,
-        handmsg: Map<string, (e: any) => void>
+        getMessage: Map<string, (e: any) => void>
     }&HttpConfigType )=>{  
     //const resW=new Set();
  
@@ -288,7 +288,7 @@ const createHttpServer = (conf:{
                         //console.log(body);
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
-                            const handMsg = conf.handmsg.get(data.type);
+                            const handMsg = conf.getMessage.get(data.type);
                             if (handMsg){
                                 handMsg(data);
                                 res.writeHead(200, { 'Content-Type': 'application/json' }); 
@@ -322,7 +322,7 @@ export const RunHttpServer = (
     conf:{       
         port:number ,
         //postMessage:(e:any)=>any,
-        handmsg: Map<string, (e: any) => void>
+        getMessage: Map<string, (e: any) => void>
     }&HttpConfigType, backServ:(ser:SerConfig)=>void,errNumber = 10  )=>{
     /*
     if (!conf){

@@ -14,6 +14,10 @@ type workPathType = {
     workspacePath: vscode.Uri;
     watchPath: vscode.Uri; 
 }
+type messageType = {
+    getMessage: Map<string, (e: any) => void>,
+    postMessage?:(e:any)=>any
+}
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( 
@@ -145,15 +149,22 @@ const watchInit = (conf:{
     return watcher;
 };
 export const initBar = (clearFunc?:()=>void)=>{
-    if (menu){
-        menu.dispose();
-    }
+    //if (menu){
+        //return;
+    menu?.dispose();
+    //}
     const loadIP = getLocalIp();
     Bar.command="menu";
     Bar.text = `http://${loadIP}:${defaultSerConfig.ser?.httpPort}`;
     const loadUrl = `http://localhost:${defaultSerConfig.ser?.httpPort}`;
-    menu =     vscode.commands.registerCommand('menu', () => {
-        vscode.window.showQuickPick(["onload","create",loadUrl,Bar.text ]).then(v=>{
+    menu = vscode.commands.registerCommand('menu', () => {
+        vscode.window.showQuickPick([
+            "onload",
+            "create",
+            loadUrl,
+            Bar.text,
+            "stop"
+         ]).then(v=>{
             if (!v){
                 return;
             }
@@ -190,10 +201,7 @@ export const initBar = (clearFunc?:()=>void)=>{
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType &{
-        postMessage:(m:any)=>any,
-        handmsg: Map<string, (e: any) => void>,
-    },
+    conf:mainConfigType&workPathType &messageType,
     func:(
         config:mainConfigType& workPathType & webUIPathType,
         PostMessageSet?:Set<(msg:any)=>any>
@@ -237,28 +245,28 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         if (files.length === 0) { 
             return;
         }
-        const u = files[0];
-        
+        const u = files[0];        
         loadConfig(u).then(conf=>{            
-            const TypeTag = new Map<postTypeStr,number>();
-            const _conf = Object.assign(conf,{
-                postMessage: console.log}) as mainConfigType & workPathType&{postMessage:(e:any)=>any};
-            const handmsg = initMessageHandMap(
-                TypeTag,_conf
-                );
-            const panel = createPanel(conf);
-            const __conf = Object.assign(_conf,{handmsg}) as mainConfigType & workPathType&{
-                handmsg: Map<string, (e: any) => void>,
-                postMessage:(e:any)=>any};
             
-            initServer(context,__conf,(c,MessageSet)=>{
-                 const postMessage = (m:any)=>{
-                if (panel){panel.webview.postMessage(m);}
-                HandlePostMessage(m,MessageSet);
-            };
-                Object.assign(conf,{postMessage});
-                initPanel(handmsg,TypeTag,context,c,MessageSet,panel);
-                 return panel;
+            const getMessage =  workerspaceMessageHandMap(); 
+            
+            const TypeTag = new Map<postTypeStr,number>();
+            const panel = createPanel(conf); 
+            initServer(context,
+                Object.assign(conf,{getMessage}),
+                (c,MessageSet)=>{  
+                initMessageHandMap(
+                    TypeTag,
+                    Object.assign(
+                        c,
+                        {postMessage:(m:any)=>{
+                            if (panel){panel.webview.postMessage(m);}
+                            HandlePostMessage(m,MessageSet);
+                        }}
+                    ),
+                    getMessage);
+                initPanel(getMessage,TypeTag,context,c,MessageSet,panel);
+                return panel;
             });        
         });         
     });
@@ -266,8 +274,13 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
 const initMessageHandMap = (
     TypeTag:Map<postTypeStr,number>,
     config:mainConfigType & workPathType &
-    {postMessage:(e:any)=>any})=>{
-    const handMap = workerspaceMessageHandMap();  
+        {postMessage:(e:any)=>any},
+    handMap?:Map<string, (e: any) => void>
+)=>{
+    if (!handMap){
+        handMap= workerspaceMessageHandMap();
+    }
+    //const handMap = workerspaceMessageHandMap();  
     handMap.set('loaded',(e:any)=>{
         //tmpDate = Date.now();
         //console.log(e);
@@ -280,6 +293,14 @@ const initMessageHandMap = (
     });   
     handMap.set('req',(e:{path:string})=>{  
         const fn = async ()=>{
+            const msg = {
+                type:(TypeTag.get("init")||0)
+                |(TypeTag.get("begin")||0)
+                ,
+                msg:{ name:e.path,
+                    config 
+                }};
+            //console.log(msg);
             try{
                 let pathUri = config.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
@@ -290,11 +311,14 @@ const initMessageHandMap = (
                         config.watchPath ,...e.path.split("/")
                     );
                 }
-                const t = await vscode.workspace.fs.readFile(pathUri);                
-                config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
+                const t = await vscode.workspace.fs.readFile(pathUri);          
+                Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
+                config.postMessage(msg);  
+                //config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
             }catch(err:any){                         
-                config.postMessage({type:TypeTag.get("init")||0,msg:{ name:e.path }});                     
-            }
+                console.error("req Err",err);   
+                config.postMessage(msg);         
+            } 
         };
         fn();        
     });       
