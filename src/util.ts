@@ -12,7 +12,7 @@ export type mainConfigType = {
   webUI?:string,
   includeImport:{ [key: string]: string }
 }
-
+export type HandMessageFuncMap  = Map<string,(e:any,reqMsg:(req:any)=>any)=>any>
 export function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

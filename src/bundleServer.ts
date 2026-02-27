@@ -5,7 +5,8 @@ import { setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
 import { RunHttpServer,defaultSerConfig,HandlePostMessage } from './nodeServer'; 
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
-import type {postTypeStr,mainConfigType} from './util';
+import type {postTypeStr,mainConfigType,HandMessageFuncMap} from './util';
+import type {PostMessageSetType} from './nodeServer';
 export  type webUIPathType = {
     rootPath:string 
     extensionUri : vscode.Uri,
@@ -14,10 +15,12 @@ type workPathType = {
     workspacePath: vscode.Uri;
     watchPath: vscode.Uri; 
 }
-type messageType = {
-    getMessage: Map<string, (e: any) => void>,
-    postMessage?:(e:any)=>any
-}
+ 
+//type messageType = {
+//    getMessage: Map<string, (e: any) => void>,
+    //postMessage?:(e:any)=>any
+//} 
+
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( 
@@ -44,28 +47,29 @@ const createPanel  = (
             ]
         }
     );
-};
-
+}; 
 export const initLoad = (
-    msg:{direction:postTypeStr[],pageType:'begin'|'run'|'gzData'|'stlData'}  ,postTypeTag:Map<postTypeStr,number>,
-    hand:(pageType:'begin'|'run'|'gzData'|'stlData')=>void)=>{
+    msg:{direction:postTypeStr[],pageType:'begin'|'run'|'gzData'|'stlData'},
+    postTypeTag:Map<postTypeStr,number>,
+    //hand:(pageType:'begin'|'run'|'gzData'|'stlData')=>void
+)=>{
     //const msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  = JSON.parse(db);
     msg.direction.forEach((v,i)=>{
         postTypeTag.set(v,1<<i);
     });
-    hand(msg.pageType);
+    return msg.pageType;
 };
 export const workerspaceMessageHandMap = (
       )=>{
-    const handListenMsg = new Map<string,(e:any)=>void>();
+    const handListenMsg:HandMessageFuncMap = new Map();
     let tmpDate = Date.now();
     
-    handListenMsg.set('initError',(message:{msg:string})=>{
+    handListenMsg.set('initError',async (message:{msg:string})=>{ 
         vscode.window.showErrorMessage(message.msg);
     });
  
-    handListenMsg.set('start',()=>{tmpDate = Date.now();});
-    handListenMsg.set('end',()=>{
+    handListenMsg.set('start',async ()=>{tmpDate = Date.now();});
+    handListenMsg.set('end',async ()=>{
         vscode.window.showInformationMessage(`${String((Date.now()-tmpDate)/1000)}s`); 
     });
 
@@ -201,10 +205,12 @@ export const initBar = (clearFunc?:()=>void)=>{
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType &messageType,
+    conf:mainConfigType&workPathType &{
+    getMessage: HandMessageFuncMap, 
+}  ,
     func:(
         config:mainConfigType& workPathType & webUIPathType,
-        PostMessageSet?:Set<(msg:any)=>any>
+        PostMessageSet?:PostMessageSetType
     )=>vscode.WebviewPanel|undefined)=>{
     
     //const PostMessageSet = new Set<(msg:any)=>any>();
@@ -246,24 +252,23 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             return;
         }
         const u = files[0];        
-        loadConfig(u).then(conf=>{            
-            
+        loadConfig(u).then(conf=>{
             const getMessage =  workerspaceMessageHandMap(); 
-            
             const TypeTag = new Map<postTypeStr,number>();
             const panel = createPanel(conf); 
             initServer(context,
                 Object.assign(conf,{getMessage}),
                 (c,MessageSet)=>{  
                 initMessageHandMap(
-                    TypeTag,
+                    TypeTag, /*
                     Object.assign(
                         c,
                         {postMessage:(m:any)=>{
                             if (panel){panel.webview.postMessage(m);}
-                            HandlePostMessage(m,MessageSet);
+                            //HandlePostMessage(m,MessageSet);
                         }}
-                    ),
+                    ),*/
+                    c,
                     getMessage);
                 initPanel(getMessage,TypeTag,context,c,MessageSet,panel);
                 return panel;
@@ -273,26 +278,30 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
 };
 const initMessageHandMap = (
     TypeTag:Map<postTypeStr,number>,
-    config:mainConfigType & workPathType &
-        {postMessage:(e:any)=>any},
-    handMap?:Map<string, (e: any) => void>
+    config:mainConfigType & workPathType
+    // & {postMessage:(e:any)=>any}
+     ,
+    handMap?:HandMessageFuncMap
 )=>{
     if (!handMap){
         handMap= workerspaceMessageHandMap();
     }
     //const handMap = workerspaceMessageHandMap();  
-    handMap.set('loaded',(e:any)=>{
+    handMap.set('loaded',(e:any,postMsg:(e:any)=>Promise<any>)=>{
         //tmpDate = Date.now();
         //console.log(e);
-        initLoad(e.msg,TypeTag,t=>{
-            config.postMessage({                    
+        const t = initLoad(e.msg,TypeTag);
+        //initLoad(e.msg,TypeTag,async t=>{
+            const m = {                    
                 msg:{open:true,config},
                 type:(TypeTag.get('run')||0)  | (TypeTag.get('begin')||0)            
-            });
-        });    
+            }; 
+            postMsg(m);//setTimeout(()=>postMsg(m),1000);           
+        //});    
     });   
-    handMap.set('req',(e:{path:string})=>{  
-        const fn = async ()=>{
+    handMap.set('req',async (e:{path:string},postMsg:(e:any)=>Promise<any>)=>{  
+        
+        //const fn = async ()=>{
             const msg = {
                 type:(TypeTag.get("init")||0)
                 |(TypeTag.get("begin")||0)
@@ -313,27 +322,30 @@ const initMessageHandMap = (
                 }
                 const t = await vscode.workspace.fs.readFile(pathUri);          
                 Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
-                config.postMessage(msg);  
+                postMsg(msg);        
                 //config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
             }catch(err:any){                         
                 console.error("req Err",err);   
-                config.postMessage(msg);         
+                postMsg(msg); 
             } 
-        };
-        fn();        
+        //};
+        //fn();        
     });       
     downSrcHandMap(
         handMap,
-        config.postMessage          
-     ,{ TypeTag, ...config});  
+        //config.postMessage,  
+        TypeTag ,
+        config       
+    // { TypeTag, ...config}
+    );  
     return handMap;
 };
 const initPanel = (
-    handMap: Map<string, (e: any) => void>,
+    handMap:HandMessageFuncMap,
     TypeTag:Map<postTypeStr,number>,
     context:vscode.ExtensionContext,
     config:mainConfigType & workPathType & webUIPathType,
-    PostMessageSet?: Set<(e: any) => any>,
+    PostMessageSet?: PostMessageSetType,
     panel?:vscode.WebviewPanel)=>{
     //if (!panel){return;}
     const postMessage = (m:any)=>{
@@ -354,7 +366,8 @@ const initPanel = (
     if (panel){
         setHtmlForWebview(
             panel.webview,config,
-            handMap
+            handMap,
+            //panel.webview.postMessage
         );
     }    
 };

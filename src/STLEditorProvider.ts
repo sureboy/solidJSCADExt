@@ -75,6 +75,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             srcPath:"",
             //src:"",
             name:"STLViewer",
+            includeImport:{}
             //in:"index.js",
             //func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",
         };
@@ -84,27 +85,28 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             enableScripts: true,
         }; 
         const getMessage =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
-        /*
+        
         RunHttpServer(Object.assign(config,{getMessage}),
         (ser)=>{
             config.port = ser.httpPort;  
             initBar();
             getMessage.set("loaded",(e:{msg:any})=>{
-                initLoad(e.msg,postTypeTag,tag=>{
-                    const msg = {
-                        type:(postTypeTag.get("stlData")||0)|(postTypeTag.get("begin")||0),
-                        msg:{db:document.documentData.buffer,config}
-                    };
-                    webviewPanel.webview.postMessage(msg);
-                    HandlePostMessage(e,ser.PostMessageSet);
-                });
+                const tag = initLoad(e.msg,postTypeTag);//,tag=>{
+                const msg = {
+                    type:(postTypeTag.get("stlData")||0)|(postTypeTag.get("begin")||0),
+                    msg:{db:document.documentData.buffer,config}
+                };
+                webviewPanel.webview.postMessage(msg);
+                HandlePostMessage(e,ser.PostMessageSet);
+                //});
             }); 
             
-        });*/
+        }); 
         setHtmlForWebview(
             webviewPanel.webview,
              config,
-            getMessage
+            getMessage,
+            //webviewPanel.webview.postMessage
         );
     }
 

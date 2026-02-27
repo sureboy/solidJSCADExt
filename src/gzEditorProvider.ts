@@ -86,34 +86,35 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
          
         const getMessage = workerspaceMessageHandMap(); 
         const initMessageHandMap = (
-            getMessage:Map<string, (e: any) => void>,
-            postMessage:(e:any)=>any
+            getMessage:Map<string, (e: any,postMessage:(e:any)=>any) => void>,
+            //postMessage:(e:any)=>any
         )=>{
        
-            downSrcHandMap(getMessage,postMessage,{
-                TypeTag:postTypeTag,
+            downSrcHandMap(getMessage,postTypeTag,{
+                //TypeTag:postTypeTag,
                 extensionUri:this._context.extensionUri, 
                 ...myWorkspaceConfig});
 
-            getMessage.set('loaded',(e:{msg:any})=>{
-                initLoad(e.msg,postTypeTag,tag=>{ 
+            getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
+                const tag = initLoad(e.msg,postTypeTag);//,tag=>{ 
                     //webviewPanel.webview.postMessage({
                     postMessage({
                         type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
                         msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
                     });
-                }); 
+                //}); 
             });
         };
         RunHttpServer(Object.assign(myWorkspaceConfig,{getMessage}),
         (ser)=>{
             myWorkspaceConfig.port = ser.httpPort;  
             initBar();
-            initMessageHandMap(getMessage,(e:any)=>{
-                webviewPanel.webview.postMessage(e);
-                HandlePostMessage(e,ser.PostMessageSet);
-                 
-            });
+            initMessageHandMap(getMessage
+            //     ,(e:any)=>{
+            //     webviewPanel.webview.postMessage(e);
+            //     HandlePostMessage(e,ser.PostMessageSet); 
+            //  }
+            );
         });
         setHtmlForWebview(webviewPanel.webview,
             {
@@ -121,7 +122,8 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 extensionUri:this._context.extensionUri, 
                 rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath
             },
-            getMessage
+            getMessage,
+            //webviewPanel.webview.postMessage,
         );
     }
 
@@ -154,10 +156,9 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 }
  
 export const downSrcHandMap = (
-    handMap:Map<string,(e:any)=>void>,
-    postMessage:(db:{
-        type:number,
-        msg:{db?:string|ArrayBuffer,name?:string,open?:boolean}})=>void,
+    handMap:Map<string,(e:any,postMessage:(r:any)=>any)=>void>,
+    TypeTag:Map<postTypeStr,number> ,
+  
     config:{
         //worker:string,
         webview:boolean,
@@ -169,12 +170,12 @@ export const downSrcHandMap = (
         webUI?:string,
         includeImport:{ [key: string]: string }
         extensionUri?:vscode.Uri,
-        TypeTag : Map<postTypeStr,number>
+        //TypeTag : Map<postTypeStr,number>
     })=>{
         if (!config.extensionUri){
             return;
         }
-    handMap.set('downSrc',()=>{
+    handMap.set('downSrc',(e:any,postMessage:(r:any)=>any)=>{
         vscode.window.showOpenDialog({
             canSelectFolders:true,
             canSelectFiles:false,
@@ -200,7 +201,7 @@ export const downSrcHandMap = (
                 }, async ()=>{
                     //console.log("begin get src",panel,TypeTag);
                     postMessage({
-                        type:config.TypeTag.get("getSrc")||0  ,
+                        type:TypeTag.get("getSrc")||0  ,
                         msg:{}
                     });
             });  

@@ -7,7 +7,7 @@ import {getNonce,
 	replaceAssetPathsAdvanced
 } from './util';
 
-import type {mainConfigType} from './util';
+import type {mainConfigType,HandMessageFuncMap} from './util';
 /**
  * Define the type of edits used in paw draw files.
  */
@@ -196,7 +196,11 @@ export class WebviewCollection {
 	}
 	
 }
-export const listenMessage = (message:{type:string,msg:string},handMap:Map<string,any>)=>{
+export const listenMessage = (
+	message:{type:string,msg:string},
+	handMap:Map<string,any>,
+	PostMessage:(m:any)=>any
+)=>{
 	switch (message.type) {
 	case 'log':
 		vscode.window.showInformationMessage( message.msg  );
@@ -210,7 +214,7 @@ export const listenMessage = (message:{type:string,msg:string},handMap:Map<strin
 		if (!handMap.has(message.type)){
 			return;
 		}
-		handMap.get(message.type)!(message);
+		handMap.get(message.type)!(message,PostMessage);
 	}		
 };
 export const  setHtmlForWebview =async (
@@ -227,7 +231,8 @@ export const  setHtmlForWebview =async (
 		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
 	},
-	handleMessageMap:Map<string,(e?:any)=>void>
+	handleMessageMap:HandMessageFuncMap,
+	//PostMessage:(m:any)=>any
 )=> {
 	//webview.options.localResourceRoots=[]
 	const nonce = getNonce();
@@ -254,7 +259,9 @@ export const  setHtmlForWebview =async (
 */
 	 
 	webview.onDidReceiveMessage(message => {
-		listenMessage(message,handleMessageMap);	
+		listenMessage(message,handleMessageMap,(e)=>{
+			webview.postMessage(e);//.then(v=>console.log(v));
+		});	
 	}); 
 	try{
 		console.log("paw",config);

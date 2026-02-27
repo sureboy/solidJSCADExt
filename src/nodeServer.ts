@@ -1,7 +1,7 @@
 import * as http from 'http'; 
 import * as path from 'path'; 
 import * as fs from "fs";
-import type {postTypeStr} from './util'; 
+import type {postTypeStr,HandMessageFuncMap} from './util'; 
 //import {workerspaceMessageHandMap} from "../src/bundleServer.js";
 //type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
 const TypeTag = new Map<postTypeStr,number>();
@@ -11,9 +11,11 @@ type HttpConfigType = {
     srcPath:string,
     includeImport:{ [key: string]: string }
 } 
+ type PostMsgType = (m:reqMsg)=>void
+export type PostMessageSetType = Set<(m:string)=>void>
 type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
-    PostMessageSet:Set<(msg:any)=>any>,
+    PostMessageSet:PostMessageSetType,
     //name:string,
     httpPort:number,
     //isConn:()=>boolean,
@@ -29,28 +31,31 @@ type SerConfig = {
         name:string
     }*/
 }
-export const HandlePostMessage = (
-    m:{
-        type?: number | undefined;
+type reqMsg = {
+    type?: number | undefined;
         msg: {
             db?: ArrayBuffer | string;
             name: string;
         };
-    },
-    PostMessageSet?:Set<(msg:any)=>any>)=>{   
+}
+export const HandlePostMessage = (
+    m:reqMsg,
+    PostMessageSet?:PostMessageSetType)=>{   
     if (!PostMessageSet){
         return;
-    }
-    
+    } 
+    const msg ="data:"+msgToString(m)+"\n\n";
+    PostMessageSet.forEach(f=>{
+        f(msg);
+    });          
+};
+const msgToString = (m:reqMsg)=>{ 
     if (m.msg.db){
         if (typeof m.msg.db !=="string"){
             m.msg.db =Buffer.from(new Uint8Array(m.msg.db)).toString("base64");
         }  
     }
-    const msg ="data:"+JSON.stringify(m)+"\n\n";
-    PostMessageSet.forEach(f=>{
-        f(msg);
-    });          
+    return JSON.stringify(m);
 };
 export const defaultSerConfig:{ser?:SerConfig|undefined} = {};
 const contentType:{ [key: string]: string } = {
@@ -202,28 +207,31 @@ const workerspaceMessageHandMap = (
 };
 const sse = (res: http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
-},PostMessageSet?:Set<(e:any)=>any>)=>{
+},PostMessageSet?:PostMessageSetType)=>{
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       //'Access-Control-Allow-Origin': '*'  // if needed
     }); 
-    const post = (e:any)=>{
+    const post =async (e:any)=>{
         if (res  && res.writable ){
-            res.write(e,(err)=>{
+            const v = res.write(e,(err)=>{
                 if (err){
                     console.error(err);
                 }
             });
-            //console.log("post ok");
+            console.log("post ok",v);
             return true;
         } 
         return false;       
     };
     //setTimeout(()=>{
     //    console.log("open");
+    const Interval = setInterval(()=>{
         post("data:"+JSON.stringify({type:0})+"\n\n");
+    },10000);
+        
     //    console.log("end");
         //post({});
     //});
@@ -233,6 +241,7 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
     res.req.on('close', () => {
       //clearInterval(intervalId);
       //console.log("sse end");
+      clearInterval(Interval);
       PostMessageSet?.delete(post);
       res.end();
     });
@@ -240,7 +249,7 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
 const createHttpServer = (conf:{       
         port:number ,
         //postMessage:(e:any)=>any,
-        getMessage: Map<string, (e: any) => void>
+        getMessage: HandMessageFuncMap
     }&HttpConfigType )=>{  
     //const resW=new Set();
  
@@ -249,18 +258,17 @@ const createHttpServer = (conf:{
     //    HandlePostMessage(e,defaultSerConfig.ser?.PostMessageSet);
     //}});
     return http.createServer((req, res) => {
-        res.setHeader("Access-Control-Allow-Origin","*");
+        
         const pathList = req.url?.split("/")||[];
         const filepath =path.join( ...pathList) ;
       
-        //Object.assign(conf,{postMessage:(e:any)=>{
-        //    res.writeHead(200, { 'Content-Type': 'application/json' }); 
-        //    res.end(JSON.stringify(e));
-        //}});       
+              
         switch(pathList[1]){
             case 'events':
                 sse(res,defaultSerConfig.ser?.PostMessageSet);
+                return;
             case "": 
+                res.setHeader("Access-Control-Allow-Origin","*");
                 res.writeHead(200, { 'Content-Type': 'text/html' });
                 let indexHtml = "";
                 //console.log("index path",conf.rootPath);
@@ -270,7 +278,7 @@ const createHttpServer = (conf:{
                     indexHtml = httpindexHtml();
                 }
                 res.end(indexHtml);
-                break;
+                return;
             //case conf.src:
                 //console.log(pathList);
             //    readcodefile(path.join(conf.srcPath||"" ,"../",...pathList), res,conf.includeImport);
@@ -279,41 +287,47 @@ const createHttpServer = (conf:{
                 //console.log(filepath,req.method);
                 if (req.method ==="POST"){
                     let body = "";
-                    req.addListener("data",(db)=>{
-                        //db
-                        body += db.toString();
-                        //console.log(db);
+                    const postmsg = (e:any)=>{ 
+                        res.writeHead(200, { 'Content-Type': 'application/json' });  
+                        res.end(msgToString(e));
+                    };
+                    req.addListener("data",(db)=>{ 
+                        body += db.toString(); 
                     });                    
-                    req.addListener("end",()=>{
-                        //console.log(body);
+                    req.addListener("end",()=>{ 
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
                             const handMsg = conf.getMessage.get(data.type);
                             if (handMsg){
-                                handMsg(data);
-                                res.writeHead(200, { 'Content-Type': 'application/json' }); 
-                                res.end("{}");
-                            }else{
+                                handMsg(data,postmsg); 
+                            }else{                            
                                 res.end(JSON.stringify({}));
                             }
+                            
                             //console.log(data);
                         }catch(e){
                             console.error(e);
                         }
                     });
+                //}else{
+
                 }else{
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end('{}');
                 }
+                
                 //handmsg.get(req.d)
-                break;
+                return;
             default:
                 //const p = path.join(conf.rootPath,filepath);
+                res.setHeader("Access-Control-Allow-Origin","*");
                 const ext = path.extname(filepath);
                 readBinaryFile(path.join(conf.rootPath,filepath),contentType[ext]|| 'text/plain',res);
-                break;
+                return;
         }
-        return;
+        //res.writeHead(200, { 'Content-Type': 'application/json' });
+        //res.end('{}');
+        //return;
       
     });
 };
@@ -322,7 +336,7 @@ export const RunHttpServer = (
     conf:{       
         port:number ,
         //postMessage:(e:any)=>any,
-        getMessage: Map<string, (e: any) => void>
+        getMessage: HandMessageFuncMap
     }&HttpConfigType, backServ:(ser:SerConfig)=>void,errNumber = 10  )=>{
     /*
     if (!conf){
