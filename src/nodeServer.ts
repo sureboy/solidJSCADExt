@@ -5,24 +5,24 @@ import type {postTypeStr,HandMessageFuncMap} from './util';
 //import {workerspaceMessageHandMap} from "../src/bundleServer.js";
 //type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
 const TypeTag = new Map<postTypeStr,number>();
-type HttpConfigType = {
+export type HttpConfigType = {
     //src:string, 
+    port:number,
     rootPath:string,
     srcPath:string,
     includeImport:{ [key: string]: string }
 } 
- type PostMsgType = (m:reqMsg)=>void
-export type PostMessageSetType = Set<(m:string)=>void>
-type SerConfig = {
+//type PostMsgType = (m:reqMsg)=>void
+type PostMessageSetType = Set<(m:string)=>void>
+export type SerConfig = {
     //clientwsMap:Set< WS.WebSocket >,
     PostMessageSet:PostMessageSetType,
     //name:string,
     httpPort:number,
     //isConn:()=>boolean,
     Server?: http.Server
-    conf:HttpConfigType&{       
-        port:number 
-    }
+    conf:HttpConfigType ,
+    HandleMsgMap:Map<string,HandMessageFuncMap>,
     //wss?:WebSocketServer
     /*
     config?:{
@@ -57,7 +57,9 @@ const msgToString = (m:reqMsg)=>{
     }
     return JSON.stringify(m);
 };
-export const defaultSerConfig:{ser?:SerConfig|undefined} = {};
+export const defaultSerConfig:
+{ser?:SerConfig|undefined} = 
+{};
 const contentType:{ [key: string]: string } = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -246,23 +248,18 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
       res.end();
     });
 };
-const createHttpServer = (conf:{       
-        port:number ,
-        //postMessage:(e:any)=>any,
-        getMessage: HandMessageFuncMap
-    }&HttpConfigType )=>{  
+const createHttpServer = (conf: HttpConfigType )=>{  
     //const resW=new Set();
  
     //const handmsg = workerspaceMessageHandMap(TypeTag,conf);
     //Object.assign(conf,{postMessage:(e:any)=>{
     //    HandlePostMessage(e,defaultSerConfig.ser?.PostMessageSet);
     //}});
+    //const getMsgMap = new Map();
     return http.createServer((req, res) => {
-        
-        const pathList = req.url?.split("/")||[];
-        const filepath =path.join( ...pathList) ;
-      
-              
+        const u = new URL(req.url!,`http://${req.headers.host}`);
+        //console.log("url",u,u.pathname,u.href);
+        const pathList =u.pathname.split("/")||[];
         switch(pathList[1]){
             case 'events':
                 sse(res,defaultSerConfig.ser?.PostMessageSet);
@@ -285,6 +282,11 @@ const createHttpServer = (conf:{
             //    break;
             case "api":                         
                 //console.log(filepath,req.method);
+                //const u = new URL(req.url!);
+            
+                //console.log("url",req);
+                const tag =u.searchParams.get("tag")||"run";
+                //console.log("tag",tag);
                 if (req.method ==="POST"){
                     let body = "";
                     const postmsg = (e:any)=>{ 
@@ -297,20 +299,18 @@ const createHttpServer = (conf:{
                     req.addListener("end",()=>{ 
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
-                            const handMsg = conf.getMessage.get(data.type);
+                            const handMsg = defaultSerConfig.ser?.HandleMsgMap.get(tag)?.get(data.type);
+                            //const handMsg = conf.getMessage.get(data.type);
+                            console.log(tag,data.type);
                             if (handMsg){
                                 handMsg(data,postmsg); 
                             }else{                            
                                 res.end(JSON.stringify({}));
                             }
-                            
-                            //console.log(data);
                         }catch(e){
                             console.error(e);
                         }
                     });
-                //}else{
-
                 }else{
                     res.writeHead(200, { 'Content-Type': 'application/json' });
                     res.end('{}');
@@ -319,6 +319,7 @@ const createHttpServer = (conf:{
                 //handmsg.get(req.d)
                 return;
             default:
+                const filepath =path.join( ...pathList) ;
                 //const p = path.join(conf.rootPath,filepath);
                 res.setHeader("Access-Control-Allow-Origin","*");
                 const ext = path.extname(filepath);
@@ -333,18 +334,7 @@ const createHttpServer = (conf:{
 };
 
 export const RunHttpServer = (
-    conf:{       
-        port:number ,
-        //postMessage:(e:any)=>any,
-        getMessage: HandMessageFuncMap
-    }&HttpConfigType, backServ:(ser:SerConfig)=>void,errNumber = 10  )=>{
-    /*
-    if (!conf){
-        const db = fs.readFileSync("solidjscad.json");
-        conf =  JSON.parse(db.toString());
-    }    
-    */
-    //if ()
+    conf: HttpConfigType, backServ:(ser:SerConfig)=>void,errNumber = 10  )=>{
     console.log(conf);
     if (defaultSerConfig.ser && defaultSerConfig.ser.Server){
         Object.assign(defaultSerConfig.ser.conf,conf);
@@ -358,8 +348,10 @@ export const RunHttpServer = (
             defaultSerConfig.ser = {
                 Server:serv,httpPort:p,
                 PostMessageSet:new Set(), 
-                conf
+                conf,
+                HandleMsgMap:new Map(),
             };
+            //defaultSerConfig.ser.HandleMsgMap.set(conf.pageTag,conf.getMessage);
             backServ(defaultSerConfig.ser);
         }).on('error',(err)=>{
             console.log(err.message,p.toString());

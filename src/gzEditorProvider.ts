@@ -5,6 +5,7 @@ import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 //import {RunHttpServer,startWebSocketServer} from './httpServer';
 //import {WSSend,httpindexHtml}from './httpLib';
 import { RunHttpServer,HandlePostMessage } from './nodeServer'; 
+import type {HttpConfigType} from './nodeServer';
 import type {postTypeStr} from './util'; 
 const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
@@ -105,8 +106,10 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 //}); 
             });
         };
-        RunHttpServer(Object.assign(myWorkspaceConfig,{getMessage}),
+        RunHttpServer(myWorkspaceConfig as HttpConfigType,
+           // Object.assign(myWorkspaceConfig,{pageTag:"gzData",getMessage}),
         (ser)=>{
+            
             myWorkspaceConfig.port = ser.httpPort;  
             initBar();
             initMessageHandMap(getMessage
@@ -115,6 +118,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             //     HandlePostMessage(e,ser.PostMessageSet); 
             //  }
             );
+            ser.HandleMsgMap.set("gzData",getMessage);
         });
         setHtmlForWebview(webviewPanel.webview,
             {

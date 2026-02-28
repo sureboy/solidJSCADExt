@@ -86,7 +86,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         }; 
         const getMessage =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
         
-        RunHttpServer(Object.assign(config,{getMessage}),
+        RunHttpServer(Object.assign(config,{pageTag:"stlData",getMessage}),
         (ser)=>{
             config.port = ser.httpPort;  
             initBar();
@@ -99,8 +99,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                 webviewPanel.webview.postMessage(msg);
                 HandlePostMessage(e,ser.PostMessageSet);
                 //});
-            }); 
-            
+            });             
         }); 
         setHtmlForWebview(
             webviewPanel.webview,

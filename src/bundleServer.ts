@@ -6,7 +6,7 @@ import { RunHttpServer,defaultSerConfig,HandlePostMessage } from './nodeServer';
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
 import type {postTypeStr,mainConfigType,HandMessageFuncMap} from './util';
-import type {PostMessageSetType} from './nodeServer';
+import type {SerConfig} from './nodeServer';
 export  type webUIPathType = {
     rootPath:string 
     extensionUri : vscode.Uri,
@@ -205,15 +205,12 @@ export const initBar = (clearFunc?:()=>void)=>{
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType &{
-    getMessage: HandMessageFuncMap, 
-}  ,
+    conf:mainConfigType&workPathType ,
+    getMessage: HandMessageFuncMap,  
     func:(
         config:mainConfigType& workPathType & webUIPathType,
-        PostMessageSet?:PostMessageSetType
-    )=>vscode.WebviewPanel|undefined)=>{
-    
-    //const PostMessageSet = new Set<(msg:any)=>any>();
+        ser:SerConfig
+    )=>vscode.WebviewPanel|undefined)=>{ 
     let rootPath = path.join(conf.workspacePath.fsPath,conf.webUI||"webui");
         try{
             fs.statSync(rootPath);
@@ -224,26 +221,25 @@ const initServer = (
         //pageType:"run",
         rootPath,
         extensionUri : context.extensionUri,
-    } as webUIPathType);
-    //console.log("get",config.name);
-    //const serv = ServPool.get(config.name);
-    
-    if (!Bar.text){ 
+    } as webUIPathType); 
+    if (!defaultSerConfig.ser){ 
         RunHttpServer(Object.assign(config,{ 
+            //pageTag:"run",
             srcPath:config.watchPath.fsPath, 
             }),(ser)=>{   
-            config.port = ser.httpPort; 
-            const panel =  func(config,ser.PostMessageSet) ;   
-            initBar(()=>{
-                panel?.dispose();
-                //ser.Server?.close();
-                //ser.Server?.closeIdleConnections();
-                //ser.Server=undefined;
-            });
+                //ser.HandleMsgMap.set("run",getMessage);
+                config.port = ser.httpPort; 
+                const panel =  func(config,ser) ;   
+                initBar(()=>{
+                    panel?.dispose();
+                    //ser.Server?.close();
+                    //ser.Server?.closeIdleConnections();
+                    //ser.Server=undefined;
+                });
                 
         },10);
     }else{ 
-        func(config,defaultSerConfig.ser?.PostMessageSet); 
+        func(config,defaultSerConfig.ser); 
     } 
 };
 export const watcherServer = (context: vscode.ExtensionContext)=>{
@@ -256,9 +252,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             const getMessage =  workerspaceMessageHandMap(); 
             const TypeTag = new Map<postTypeStr,number>();
             const panel = createPanel(conf); 
-            initServer(context,
-                Object.assign(conf,{getMessage}),
-                (c,MessageSet)=>{  
+            initServer(context,conf,getMessage,
+                //Object.assign(conf,{getMessage}),
+                (c,ser)=>{  
+                ser.HandleMsgMap.set("run",getMessage);
                 initMessageHandMap(
                     TypeTag, /*
                     Object.assign(
@@ -270,7 +267,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     ),*/
                     c,
                     getMessage);
-                initPanel(getMessage,TypeTag,context,c,MessageSet,panel);
+                initPanel(getMessage,TypeTag,context,c,ser,panel);
                 return panel;
             });        
         });         
@@ -345,12 +342,12 @@ const initPanel = (
     TypeTag:Map<postTypeStr,number>,
     context:vscode.ExtensionContext,
     config:mainConfigType & workPathType & webUIPathType,
-    PostMessageSet?: PostMessageSetType,
+    ser?: SerConfig,
     panel?:vscode.WebviewPanel)=>{
     //if (!panel){return;}
     const postMessage = (m:any)=>{
         if (panel){panel.webview.postMessage(m);}
-        HandlePostMessage(m,PostMessageSet);
+        HandlePostMessage(m,ser?.PostMessageSet);
     };
     //const handMap = initMessageHandMap(TypeTag,config,postMessage);
      
