@@ -70,8 +70,7 @@ const contentType:{ [key: string]: string } = {
 };
 
 const httpindexHtml = ()=>{
-return `
-<!doctype html>
+return `<!doctype html>
 <html lang="en">
     <head>
         <meta charset="UTF-8" /> 
@@ -92,10 +91,8 @@ const readJS = (
     filePaths:string,
     contentType:string,
     res:http.ServerResponse<http.IncomingMessage> & {
-    req: http.IncomingMessage;},
-     
-        //src:string,
-        includeImport:{ [key: string]: string }
+    req: http.IncomingMessage;
+}, includeImport:{ [key: string]: string }
 )=>{
     try{
         let db = fs.readFileSync(filePaths,{encoding:'utf8'});
@@ -209,7 +206,7 @@ const workerspaceMessageHandMap = (
 };
 const sse = (res: http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
-},PostMessageSet?:PostMessageSetType)=>{
+}, PostMessageSet?:PostMessageSetType)=>{
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -223,7 +220,7 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
                     console.error(err);
                 }
             });
-            console.log("post ok",v);
+            //console.log("post ok",v);
             return true;
         } 
         return false;       
@@ -260,9 +257,10 @@ const createHttpServer = (conf: HttpConfigType )=>{
         const u = new URL(req.url!,`http://${req.headers.host}`);
         //console.log("url",u,u.pathname,u.href);
         const pathList =u.pathname.split("/")||[];
+        const tag = u.searchParams.get("tag")||"run";
         switch(pathList[1]){
-            case 'events':
-                sse(res,defaultSerConfig.ser?.PostMessageSet);
+            case 'events': 
+                sse(res,tag==="run"?(defaultSerConfig.ser?.PostMessageSet):undefined);
                 return;
             case "": 
                 res.setHeader("Access-Control-Allow-Origin","*");
@@ -285,7 +283,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 //const u = new URL(req.url!);
             
                 //console.log("url",req);
-                const tag =u.searchParams.get("tag")||"run";
+                //const tag =u.searchParams.get("tag")||"run";
                 //console.log("tag",tag);
                 if (req.method ==="POST"){
                     let body = "";
@@ -299,7 +297,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                     req.addListener("end",()=>{ 
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
-                            const handMsg = defaultSerConfig.ser?.HandleMsgMap.get(tag)?.get(data.type);
+                            const handMsg = defaultSerConfig.ser?.HandleMsgMap.get(tag.toLocaleLowerCase())?.get(data.type);
                             //const handMsg = conf.getMessage.get(data.type);
                             console.log(tag,data.type);
                             if (handMsg){

@@ -20,7 +20,17 @@ type workPathType = {
 //    getMessage: Map<string, (e: any) => void>,
     //postMessage?:(e:any)=>any
 //} 
-
+/*
+const BarMenu:{
+    Bar:vscode.StatusBarItem,
+    menu?:vscode.Disposable,
+    menuList:string[],
+} = {
+    //menu: undefined,
+    menuList:["onload","create"],
+    Bar:vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
+};
+*/
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( 
@@ -62,18 +72,15 @@ export const initLoad = (
 export const workerspaceMessageHandMap = (
       )=>{
     const handListenMsg:HandMessageFuncMap = new Map();
-    let tmpDate = Date.now();
-    
+    let tmpDate = Date.now(); 
     handListenMsg.set('initError',async (message:{msg:string})=>{ 
         vscode.window.showErrorMessage(message.msg);
-    });
- 
+    }); 
     handListenMsg.set('start',async ()=>{tmpDate = Date.now();});
     handListenMsg.set('end',async ()=>{
-        vscode.window.showInformationMessage(`${String((Date.now()-tmpDate)/1000)}s`); 
+        vscode.window.showInformationMessage(
+            `${String((Date.now()-tmpDate)/1000)}s`); 
     });
-
-
     return handListenMsg;
 };
 const loadConfig =async (u:vscode.Uri)=>{ 
@@ -152,23 +159,34 @@ const watchInit = (conf:{
 
     return watcher;
 };
-export const initBar = (clearFunc?:()=>void)=>{
+export const initBar = (tag:string,clearFunc?:()=>void)=>{
     //if (menu){
         //return;
     menu?.dispose();
     //}
     const loadIP = getLocalIp();
     Bar.command="menu";
-    Bar.text = `http://${loadIP}:${defaultSerConfig.ser?.httpPort}`;
+    const ipUrl = `http://${loadIP}:${defaultSerConfig.ser?.httpPort}`;
+    Bar.text = ipUrl;
     const loadUrl = `http://localhost:${defaultSerConfig.ser?.httpPort}`;
+    const menuList = [
+        "onload",
+        "create",
+        //loadUrl,
+        //ipUrl,
+    ];
+   
+    if (defaultSerConfig.ser){
+        //console.log("def ser",defaultSerConfig.ser.HandleMsgMap.size);
+        for(let k of defaultSerConfig.ser.HandleMsgMap.keys() ){
+            //console.log("1",k);
+            menuList.push(ipUrl+"#"+k,loadUrl+"#"+k);
+        };
+    }
+    
+   
     menu = vscode.commands.registerCommand('menu', () => {
-        vscode.window.showQuickPick([
-            "onload",
-            "create",
-            loadUrl,
-            Bar.text,
-            "stop"
-         ]).then(v=>{
+        vscode.window.showQuickPick(menuList).then(v=>{
             if (!v){
                 return;
             }
@@ -197,28 +215,30 @@ export const initBar = (clearFunc?:()=>void)=>{
         });
     }); 
     Bar.show();
-    vscode.window.showInformationMessage( `Remote address:  ${Bar.text}`,"Browser view").then(v=>{
-        if (v==="Browser view"){
-            vscode.env.openExternal(vscode.Uri.parse(loadUrl));
-        }
-    }); 
+    if (tag){
+        vscode.window.showInformationMessage( `Remote address:  ${ipUrl}#${tag}`,"Browser view").then(v=>{
+            if (v==="Browser view"){
+                vscode.env.openExternal(vscode.Uri.parse(`${loadUrl}#${tag}`));
+            }
+        }); 
+    }
+    
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType ,
-    getMessage: HandMessageFuncMap,  
+    conf:mainConfigType&workPathType,
+    //getMessage: HandMessageFuncMap,  
     func:(
         config:mainConfigType& workPathType & webUIPathType,
         ser:SerConfig
-    )=>vscode.WebviewPanel|undefined)=>{ 
+    )=>void)=>{ 
     let rootPath = path.join(conf.workspacePath.fsPath,conf.webUI||"webui");
         try{
             fs.statSync(rootPath);
         }catch(e){
             rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
         }   
-    const config =  Object.assign( conf,{ 
-        //pageType:"run",
+    const config =  Object.assign( conf,{  
         rootPath,
         extensionUri : context.extensionUri,
     } as webUIPathType); 
@@ -229,14 +249,7 @@ const initServer = (
             }),(ser)=>{   
                 //ser.HandleMsgMap.set("run",getMessage);
                 config.port = ser.httpPort; 
-                const panel =  func(config,ser) ;   
-                initBar(()=>{
-                    panel?.dispose();
-                    //ser.Server?.close();
-                    //ser.Server?.closeIdleConnections();
-                    //ser.Server=undefined;
-                });
-                
+                func(config,ser);  
         },10);
     }else{ 
         func(config,defaultSerConfig.ser); 
@@ -252,10 +265,12 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             const getMessage =  workerspaceMessageHandMap(); 
             const TypeTag = new Map<postTypeStr,number>();
             const panel = createPanel(conf); 
-            initServer(context,conf,getMessage,
+            initServer(context,conf,
+                //getMessage,
                 //Object.assign(conf,{getMessage}),
                 (c,ser)=>{  
                 ser.HandleMsgMap.set("run",getMessage);
+                //console.log("run",ser.HandleMsgMap);
                 initMessageHandMap(
                     TypeTag, /*
                     Object.assign(
@@ -268,7 +283,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     c,
                     getMessage);
                 initPanel(getMessage,TypeTag,context,c,ser,panel);
-                return panel;
+                initBar("run",()=>{
+                    panel?.dispose(); 
+                });
+                //return panel;
             });        
         });         
     });

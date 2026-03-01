@@ -89,7 +89,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         RunHttpServer(Object.assign(config,{pageTag:"stlData",getMessage}),
         (ser)=>{
             config.port = ser.httpPort;  
-            initBar();
+            
             getMessage.set("loaded",(e:{msg:any})=>{
                 const tag = initLoad(e.msg,postTypeTag);//,tag=>{
                 const msg = {
@@ -99,7 +99,12 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                 webviewPanel.webview.postMessage(msg);
                 HandlePostMessage(e,ser.PostMessageSet);
                 //});
-            });             
+            });  
+            initBar("stlData");  
+            webviewPanel.onDidDispose(()=>{
+                ser.HandleMsgMap.delete("stlData");
+                initBar("");
+            }) ;        
         }); 
         setHtmlForWebview(
             webviewPanel.webview,

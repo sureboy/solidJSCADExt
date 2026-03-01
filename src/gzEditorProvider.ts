@@ -11,8 +11,7 @@ const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
     //private static newPawDrawFileId = 1;
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
-
+    public static register(context: vscode.ExtensionContext): vscode.Disposable { 
         return vscode.window.registerCustomEditorProvider(
           gzEditorProvider.viewType, 
             new gzEditorProvider(context),
@@ -23,12 +22,9 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                 supportsMultipleEditorsPerDocument: false, // 不支持同一文档多个编辑器
             });
     }
-
     private static readonly viewType = 'solidJScad.gzPreview';
     private readonly webviews = new WebviewCollection();
-    constructor(private readonly _context: vscode.ExtensionContext) {
-
-        //this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:"",name: ""};
+    constructor(private readonly _context: vscode.ExtensionContext) { 
     }
 
     async openCustomDocument(
@@ -83,56 +79,60 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
-        }   ;       
-         
+        }   ; 
         const getMessage = workerspaceMessageHandMap(); 
         const initMessageHandMap = (
             getMessage:Map<string, (e: any,postMessage:(e:any)=>any) => void>,
             //postMessage:(e:any)=>any
         )=>{
-       
-            downSrcHandMap(getMessage,postTypeTag,{
-                //TypeTag:postTypeTag,
+            downSrcHandMap(getMessage,postTypeTag,{ 
                 extensionUri:this._context.extensionUri, 
                 ...myWorkspaceConfig});
-
-            getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
-                const tag = initLoad(e.msg,postTypeTag);//,tag=>{ 
-                    //webviewPanel.webview.postMessage({
-                    postMessage({
-                        type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
-                        msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
-                    });
-                //}); 
+                getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
+                const tag = initLoad(e.msg,postTypeTag); 
+                postMessage({
+                    type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
+                    msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
+                }); 
             });
         };
-        RunHttpServer(myWorkspaceConfig as HttpConfigType,
+        RunHttpServer(
+            myWorkspaceConfig as HttpConfigType,
            // Object.assign(myWorkspaceConfig,{pageTag:"gzData",getMessage}),
         (ser)=>{
             
             myWorkspaceConfig.port = ser.httpPort;  
-            initBar();
+            ser.HandleMsgMap.set("gzData".toLocaleLowerCase(),getMessage);
+            webviewPanel.onDidDispose((e)=>{
+                ser.HandleMsgMap.delete("gzData");
+                initBar("");
+            });
+            initBar("gzData");
             initMessageHandMap(getMessage
             //     ,(e:any)=>{
             //     webviewPanel.webview.postMessage(e);
             //     HandlePostMessage(e,ser.PostMessageSet); 
             //  }
             );
-            ser.HandleMsgMap.set("gzData",getMessage);
+            
         });
         setHtmlForWebview(webviewPanel.webview,
             {
                 name, 
                 extensionUri:this._context.extensionUri, 
-                rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath
+                rootPath:vscode.Uri.joinPath(
+                    this._context.extensionUri,
+                    'myModule', 'webui').fsPath
             },
             getMessage,
             //webviewPanel.webview.postMessage,
         );
+        
+        //webviewPanel.dispose()
     }
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();
-    public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event;
+    public readonly onDidChangeCustomDocument = this._onDidChangeCustomDocument.event; 
 
     public saveCustomDocument(document: PawDrawDocument, cancellation: vscode.CancellationToken): Thenable<void> {
         return document.save(cancellation);

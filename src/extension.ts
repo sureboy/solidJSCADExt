@@ -1,12 +1,8 @@
 import * as vscode from 'vscode';
 import { STLEditorProvider } from './STLEditorProvider';
-import { gzEditorProvider } from './gzEditorProvider'; 
-//import {newWorkspacePackage} from './pawDrawEditor';
-import { watcherServer,CreateSolidjscadPackage } from './bundleServer'; 
-//import * as path from "path";
-//import { treeDataProvider } from './httpServer';
-//import type {SerConfig} from './httpServer';
- 
+import { gzEditorProvider } from './gzEditorProvider';  
+import { watcherServer,CreateSolidjscadPackage } from './bundleServer';  
+
 export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
     //console.log(vscode.workspace.getConfiguration("init").get("in"));
