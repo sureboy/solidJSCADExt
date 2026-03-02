@@ -91,13 +91,14 @@ const loadConfig =async (u:vscode.Uri)=>{
     }   
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri; 
     return {
-        workspacePath ,
-        watchPath : vscode.Uri.joinPath(
+        conf,
+        workPath:{
+            workspacePath ,
+            watchPath : vscode.Uri.joinPath(
             workspacePath,
             conf.src),
- 
-        ...conf
-    } as mainConfigType&workPathType; 
+        } as workPathType
+    }; 
 };
 const watchInit = (conf:{ 
     watchPath: vscode.Uri; 
@@ -226,29 +227,30 @@ export const initBar = (tag:string,clearFunc?:()=>void)=>{
 };
 const initServer = (
     context: vscode.ExtensionContext,
-    conf:mainConfigType&workPathType,
+    conf:mainConfigType,
+    workPath:workPathType,
     //getMessage: HandMessageFuncMap,  
     func:(
-        config:mainConfigType& workPathType & webUIPathType,
+        config: webUIPathType,
         ser:SerConfig
     )=>void)=>{ 
-    let rootPath = path.join(conf.workspacePath.fsPath,conf.webUI||"webui");
+    let rootPath = path.join(workPath.workspacePath.fsPath,conf.webUI||"webui");
         try{
             fs.statSync(rootPath);
         }catch(e){
             rootPath = path.join(context.extensionUri.fsPath,"myModule","webui");
         }   
-    const config =  Object.assign( conf,{  
+    const config =   {  
         rootPath,
         extensionUri : context.extensionUri,
-    } as webUIPathType); 
+    } as webUIPathType; 
     if (!defaultSerConfig.ser){ 
-        RunHttpServer(Object.assign(config,{ 
+        RunHttpServer(Object.assign({},conf,config,{ 
             //pageTag:"run",
-            srcPath:config.watchPath.fsPath, 
+            srcPath:workPath.watchPath.fsPath, 
             }),(ser)=>{   
                 //ser.HandleMsgMap.set("run",getMessage);
-                config.port = ser.httpPort; 
+                conf.port = ser.httpPort; 
                 func(config,ser);  
         },10);
     }else{ 
@@ -261,11 +263,11 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             return;
         }
         const u = files[0];        
-        loadConfig(u).then(conf=>{
+        loadConfig(u).then(({conf,workPath})=>{
             const getMessage =  workerspaceMessageHandMap(); 
             const TypeTag = new Map<postTypeStr,number>();
             const panel = createPanel(conf); 
-            initServer(context,conf,
+            initServer(context,conf,workPath,
                 //getMessage,
                 //Object.assign(conf,{getMessage}),
                 (c,ser)=>{  
@@ -280,9 +282,15 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                             //HandlePostMessage(m,MessageSet);
                         }}
                     ),*/
+                    conf,workPath,
                     c,
                     getMessage);
-                initPanel(getMessage,TypeTag,context,c,ser,panel);
+                initPanel(
+                    getMessage,
+                    TypeTag,
+                    context,
+                    Object.assign({},conf,workPath,c),
+                    ser,panel);
                 initBar("run",()=>{
                     panel?.dispose(); 
                 });
@@ -293,9 +301,10 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
 };
 const initMessageHandMap = (
     TypeTag:Map<postTypeStr,number>,
-    config:mainConfigType & workPathType
-    // & {postMessage:(e:any)=>any}
-     ,
+    config:mainConfigType ,
+    workPath: workPathType,
+    webUI:webUIPathType,
+    // & {postMessage:(e:any)=>any} ,
     handMap?:HandMessageFuncMap
 )=>{
     if (!handMap){
@@ -319,20 +328,20 @@ const initMessageHandMap = (
         //const fn = async ()=>{
             const msg = {
                 type:(TypeTag.get("init")||0)
-                |(TypeTag.get("begin")||0)
+                //|(TypeTag.get("begin")||0)
                 ,
                 msg:{ name:e.path,
                     config 
                 }};
             //console.log(msg);
             try{
-                let pathUri = config.workspacePath;
+                let pathUri = workPath.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
                     pathUri = vscode.Uri.joinPath(pathUri,config.src,
                         ...config.includeImport[e.path].split("/"));                     
                 }else{
                     pathUri = vscode.Uri.joinPath(
-                        config.watchPath ,...e.path.split("/")
+                        workPath.watchPath ,...e.path.split("/")
                     );
                 }
                 const t = await vscode.workspace.fs.readFile(pathUri);          
@@ -350,6 +359,8 @@ const initMessageHandMap = (
         handMap,
         //config.postMessage,  
         TypeTag ,
+        webUI.extensionUri,
+        //workPath.workspacePath,
         config       
     // { TypeTag, ...config}
     );  

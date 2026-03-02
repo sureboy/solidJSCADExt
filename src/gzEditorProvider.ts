@@ -6,7 +6,8 @@ import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 //import {WSSend,httpindexHtml}from './httpLib';
 import { RunHttpServer,HandlePostMessage } from './nodeServer'; 
 import type {HttpConfigType} from './nodeServer';
-import type {postTypeStr} from './util'; 
+import type {postTypeStr,mainConfigType} from './util'; 
+//import type { mainConfigType } from './util';
 const postTypeTag = new Map<postTypeStr,number>();
 //let serv:SerConfig|null = null;
 export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocument> {
@@ -73,21 +74,23 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         
         const srcPath = path.join(this._context.extensionUri.fsPath,"myModule" );
         const rootPath = path.join(srcPath,"webui");
-        const myWorkspaceConfig = {name,in:in_,func,date,rootPath,srcPath,
+        const myWorkspaceConfig = {
+            name,in:in_,func,date,rootPath,srcPath,
             webview:workspaceConf.get("webview") as boolean   || true,
             src:workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
-        }   ; 
+        }; 
         const getMessage = workerspaceMessageHandMap(); 
         const initMessageHandMap = (
             getMessage:Map<string, (e: any,postMessage:(e:any)=>any) => void>,
             //postMessage:(e:any)=>any
         )=>{
-            downSrcHandMap(getMessage,postTypeTag,{ 
-                extensionUri:this._context.extensionUri, 
-                ...myWorkspaceConfig});
+            downSrcHandMap(getMessage,
+                postTypeTag,
+                this._context.extensionUri,
+                myWorkspaceConfig);
                 getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
                 const tag = initLoad(e.msg,postTypeTag); 
                 postMessage({
@@ -162,23 +165,14 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
 export const downSrcHandMap = (
     handMap:Map<string,(e:any,postMessage:(r:any)=>any)=>void>,
     TypeTag:Map<postTypeStr,number> ,
-  
-    config:{
-        //worker:string,
-        webview:boolean,
-        NewWorkspace?:vscode.Uri,
-        in:string,
-        func:string,
-        port:number,
-        src:string,
-        webUI?:string,
-        includeImport:{ [key: string]: string }
-        extensionUri?:vscode.Uri,
-        //TypeTag : Map<postTypeStr,number>
-    })=>{
-        if (!config.extensionUri){
+    extensionUri:vscode.Uri,
+    
+    config:mainConfigType)=>{
+        /*
+        if (!extensionUri){
             return;
-        }
+        }*/
+    let NewWorkspace:vscode.Uri|undefined = undefined;
     handMap.set('downSrc',(e:any,postMessage:(r:any)=>any)=>{
         vscode.window.showOpenDialog({
             canSelectFolders:true,
@@ -188,19 +182,19 @@ export const downSrcHandMap = (
             if (!u){
                 return;
             }
-            config.NewWorkspace = u[0];
-            newWorkspacePackage(config.NewWorkspace,
+            NewWorkspace = u[0];
+            newWorkspacePackage(NewWorkspace,
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
-                config.extensionUri!,  {
+                extensionUri,  {
                     webview:config.webview,
-                    //worker:config.worker,
+                    worker:config.worker,
                     in:config.in,
                     func:config.func,
                     port:config.port,
                     date:Date.now().toString(),
                     src:config.src,
                     webUI:config.webUI||"",
-                    name:path.basename(config.NewWorkspace.fsPath),
+                    name:path.basename(NewWorkspace.fsPath),
                     includeImport:config.includeImport
                 }, async ()=>{
                     //console.log("begin get src",panel,TypeTag);
@@ -214,19 +208,19 @@ export const downSrcHandMap = (
     });
     handMap.set('src',(message:{name:string,code:string,start?:boolean,end?:boolean})=>{
         //console.log(message,config.NewWorkspace);
-        if (!config.NewWorkspace){
+        if (!NewWorkspace){
             return;
         }
         if (!message.name){
             vscode.window.showWarningMessage("Workspace change",{
                 modal:true,
-                detail: `Do you need to move the workspace to the ${config.NewWorkspace} Folder`
+                detail: `Do you need to move the workspace to the ${NewWorkspace} Folder`
             },                   
             "OK").then(v=>{
                 if (v!=="OK"){
                     return;
                 }
-                vscode.commands.executeCommand('vscode.openFolder', config.NewWorkspace);
+                vscode.commands.executeCommand('vscode.openFolder', NewWorkspace);
             });
             return;
         }
@@ -236,12 +230,12 @@ export const downSrcHandMap = (
         let filePath;
         if (message.name.startsWith("./")){
             filePath=vscode.Uri.joinPath(
-                config.NewWorkspace,
+                NewWorkspace,
                 config.src,
                 message.name);
         }else{
             filePath=vscode.Uri.joinPath(
-                config.NewWorkspace,
+                NewWorkspace,
                 config.src,
                 config.includeImport[message.name]||message.name);
         }
