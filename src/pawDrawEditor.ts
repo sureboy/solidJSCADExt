@@ -19,7 +19,7 @@ interface PawDrawEdit {
 interface PawDrawDocumentDelegate {
 	getFileData(): Promise<Uint8Array>;
 }
- 
+
 /**
  * Define the document (the data model) used for paw draw files.
  */
