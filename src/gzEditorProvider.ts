@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
-//import {RunHttpServer,startWebSocketServer} from './httpServer';
-//import {WSSend,httpindexHtml}from './httpLib';
-import { RunHttpServer,HandlePostMessage } from './nodeServer'; 
+import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer'; 
+import { RunHttpServer } from './nodeServer'; 
 import type {HttpConfigType} from './nodeServer';
 import type {postTypeStr,mainConfigType} from './util'; 
 //import type { mainConfigType } from './util';
@@ -84,14 +82,13 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         }; 
         const getMessage = workerspaceMessageHandMap(); 
         const initMessageHandMap = (
-            getMessage:Map<string, (e: any,postMessage:(e:any)=>any) => void>,
-            //postMessage:(e:any)=>any
+            getMessage:Map<string, (e: any,postMessage:(e:any)=>any) => void>, 
         )=>{
             downSrcHandMap(getMessage,
                 postTypeTag,
                 this._context.extensionUri,
                 myWorkspaceConfig);
-                getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
+            getMessage.set('loaded',(e:{msg:any},postMessage:(e:any)=>any)=>{
                 const tag = initLoad(e.msg,postTypeTag); 
                 postMessage({
                     type:(postTypeTag.get("gzData")||0)|(postTypeTag.get("begin")||0),
@@ -102,12 +99,11 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         RunHttpServer(
             myWorkspaceConfig as HttpConfigType,
            // Object.assign(myWorkspaceConfig,{pageTag:"gzData",getMessage}),
-        (ser)=>{
-            
+        (ser)=>{ 
             myWorkspaceConfig.port = ser.httpPort;  
             ser.HandleMsgMap.set("gzData".toLocaleLowerCase(),getMessage);
             webviewPanel.onDidDispose((e)=>{
-                ser.HandleMsgMap.delete("gzData");
+                ser.HandleMsgMap.delete("gzData".toLocaleLowerCase());
                 initBar("");
             });
             initBar("gzData");
@@ -166,20 +162,17 @@ export const downSrcHandMap = (
     handMap:Map<string,(e:any,postMessage:(r:any)=>any)=>void>,
     TypeTag:Map<postTypeStr,number> ,
     extensionUri:vscode.Uri,
-    
-    config:mainConfigType)=>{
-        /*
-        if (!extensionUri){
-            return;
-        }*/
+    config:mainConfigType)=>{ 
     let NewWorkspace:vscode.Uri|undefined = undefined;
     handMap.set('downSrc',(e:any,postMessage:(r:any)=>any)=>{
+        
         vscode.window.showOpenDialog({
             canSelectFolders:true,
             canSelectFiles:false,
             canSelectMany:false,
-        }).then(u=>{
+        }).then(u=>{ 
             if (!u){
+                postMessage({type:0});
                 return;
             }
             NewWorkspace = u[0];
@@ -202,16 +195,20 @@ export const downSrcHandMap = (
                         type:TypeTag.get("getSrc")||0  ,
                         msg:{}
                     });
-            });  
+            }) ;  
                      
         });            
     });
-    handMap.set('src',(message:{name:string,code:string,start?:boolean,end?:boolean})=>{
+    handMap.set('src',(
+        message:{msg:{name:string,db:string,start?:boolean,end?:boolean}},
+        postMessage:(r:any)=>any)=>{
+            //console.log("src",message);
+            postMessage({type:0});
         //console.log(message,config.NewWorkspace);
         if (!NewWorkspace){
             return;
         }
-        if (!message.name){
+        if (!message.msg){
             vscode.window.showWarningMessage("Workspace change",{
                 modal:true,
                 detail: `Do you need to move the workspace to the ${NewWorkspace} Folder`
@@ -224,25 +221,25 @@ export const downSrcHandMap = (
             });
             return;
         }
-        if (message.start){
+        if (message.msg.start){
             return;
         }
         let filePath;
-        if (message.name.startsWith("./")){
+        if (message.msg.name.startsWith("./")){
             filePath=vscode.Uri.joinPath(
                 NewWorkspace,
                 config.src,
-                message.name);
+                message.msg.name);
         }else{
             filePath=vscode.Uri.joinPath(
                 NewWorkspace,
                 config.src,
-                config.includeImport[message.name]||message.name);
+                config.includeImport[message.msg.name]||message.msg.name);
         }
         //console.log(filePath);
         vscode.workspace.fs.writeFile(
             filePath,
-            new TextEncoder().encode(message.code)).then(res=>{
+            new TextEncoder().encode(message.msg.db)).then(res=>{
                 console.log(res);
         });         
     });    

@@ -67,11 +67,12 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         // Add the webview to our internal set of active webviews
         //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel);
+        const workspaceConf = vscode.workspace.getConfiguration("init");
         const config = {
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
             rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath,
-            port:0,
+             port:workspaceConf.get("port") as number|| 0,
             srcPath:"",
             //src:"",
             name:"STLViewer",
@@ -88,21 +89,24 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
         
         RunHttpServer(Object.assign(config,{pageTag:"stlData",getMessage}),
         (ser)=>{
-            config.port = ser.httpPort;  
-            
-            getMessage.set("loaded",(e:{msg:any})=>{
+            config.port = ser.httpPort;   
+            getMessage.set("loaded",(e:{msg:any},
+                postMessage:(e:any)=>any)=>{
                 const tag = initLoad(e.msg,postTypeTag);//,tag=>{
                 const msg = {
                     type:(postTypeTag.get("stlData")||0)|(postTypeTag.get("begin")||0),
                     msg:{db:document.documentData.buffer,config}
                 };
-                webviewPanel.webview.postMessage(msg);
-                HandlePostMessage(e,ser.PostMessageSet);
+                postMessage(msg);
+                //webviewPanel.webview.postMessage(msg);
+                //HandlePostMessage(e,ser.PostMessageSet);
                 //});
             });  
+            ser.HandleMsgMap.set("stlData".toLocaleLowerCase(),getMessage);
             initBar("stlData");  
+            
             webviewPanel.onDidDispose(()=>{
-                ser.HandleMsgMap.delete("stlData");
+                ser.HandleMsgMap.delete("stlData".toLocaleLowerCase());
                 initBar("");
             }) ;        
         }); 

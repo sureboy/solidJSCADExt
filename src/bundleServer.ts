@@ -15,22 +15,6 @@ type workPathType = {
     workspacePath: vscode.Uri;
     watchPath: vscode.Uri; 
 }
- 
-//type messageType = {
-//    getMessage: Map<string, (e: any) => void>,
-    //postMessage?:(e:any)=>any
-//} 
-/*
-const BarMenu:{
-    Bar:vscode.StatusBarItem,
-    menu?:vscode.Disposable,
-    menuList:string[],
-} = {
-    //menu: undefined,
-    menuList:["onload","create"],
-    Bar:vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right)
-};
-*/
 const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( 
@@ -73,11 +57,16 @@ export const workerspaceMessageHandMap = (
       )=>{
     const handListenMsg:HandMessageFuncMap = new Map();
     let tmpDate = Date.now(); 
-    handListenMsg.set('initError',async (message:{msg:string})=>{ 
+    handListenMsg.set('initError',(message:{msg:string},resMsg)=>{ 
         vscode.window.showErrorMessage(message.msg);
+        resMsg({type:0});
     }); 
-    handListenMsg.set('start',async ()=>{tmpDate = Date.now();});
-    handListenMsg.set('end',async ()=>{
+    handListenMsg.set('start',(e,resMsg)=>{
+        tmpDate = Date.now();
+        resMsg({type:0});
+    });
+    handListenMsg.set('end',(e,resMsg)=>{
+        resMsg({type:0});
         vscode.window.showInformationMessage(
             `${String((Date.now()-tmpDate)/1000)}s`); 
     });

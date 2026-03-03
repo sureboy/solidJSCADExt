@@ -50,7 +50,7 @@ export const HandlePostMessage = (
     });          
 };
 const msgToString = (m:reqMsg)=>{ 
-    if (m.msg.db){
+    if (m.msg && m.msg.db){
         if (typeof m.msg.db !=="string"){
             m.msg.db =Buffer.from(new Uint8Array(m.msg.db)).toString("base64");
         }  
@@ -245,17 +245,9 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
       res.end();
     });
 };
-const createHttpServer = (conf: HttpConfigType )=>{  
-    //const resW=new Set();
- 
-    //const handmsg = workerspaceMessageHandMap(TypeTag,conf);
-    //Object.assign(conf,{postMessage:(e:any)=>{
-    //    HandlePostMessage(e,defaultSerConfig.ser?.PostMessageSet);
-    //}});
-    //const getMsgMap = new Map();
+const createHttpServer = (conf: HttpConfigType )=>{   
     return http.createServer((req, res) => {
-        const u = new URL(req.url!,`http://${req.headers.host}`);
-        //console.log("url",u,u.pathname,u.href);
+        const u = new URL(req.url!,`http://${req.headers.host}`); 
         const pathList =u.pathname.split("/")||[];
         const tag = u.searchParams.get("tag")||"run";
         switch(pathList[1]){
@@ -278,13 +270,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 //console.log(pathList);
             //    readcodefile(path.join(conf.srcPath||"" ,"../",...pathList), res,conf.includeImport);
             //    break;
-            case "api":                         
-                //console.log(filepath,req.method);
-                //const u = new URL(req.url!);
-            
-                //console.log("url",req);
-                //const tag =u.searchParams.get("tag")||"run";
-                //console.log("tag",tag);
+            case "api":   
                 if (req.method ==="POST"){
                     let body = "";
                     const postmsg = (e:any)=>{ 
@@ -297,9 +283,10 @@ const createHttpServer = (conf: HttpConfigType )=>{
                     req.addListener("end",()=>{ 
                         try{
                             const data:{type:string,msg:any} = JSON.parse(body);
+                            //console.log(tag,data);
                             const handMsg = defaultSerConfig.ser?.HandleMsgMap.get(tag.toLocaleLowerCase())?.get(data.type);
                             //const handMsg = conf.getMessage.get(data.type);
-                            console.log(tag,data.type);
+                            
                             if (handMsg){
                                 handMsg(data,postmsg); 
                             }else{                            
