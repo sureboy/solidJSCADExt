@@ -76,9 +76,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             srcPath:"",
             //src:"",
             name:"STLViewer",
-            includeImport:{}
-            //in:"index.js",
-            //func:"main",pageType:'stlData' as "run" | "gzData" | "stlData",
+            includeImport:{} 
         };
         
         // Setup initial content for the webview
