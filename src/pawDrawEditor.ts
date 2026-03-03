@@ -242,7 +242,7 @@ export const  setHtmlForWebview =async (
 	worker-src ${webview.cspSource} blob: data:;
 	style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
 	img-src   ${webview.cspSource}  blob: data:;
-	connect-src ${webview.cspSource} 'unsafe-inline';`;
+	connect-src ${webview.cspSource} https://solidjscad.com 'unsafe-inline';`;
 	
 	//vscode.workspace.fs.stat()
 	const scriptUri =config.port? `http://localhost:${config.port}/main.js`: webview.asWebviewUri(

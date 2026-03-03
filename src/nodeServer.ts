@@ -1,4 +1,5 @@
 import * as http from 'http'; 
+import * as https from 'https'; 
 import * as path from 'path'; 
 import * as fs from "fs";
 import type {postTypeStr,HandMessageFuncMap} from './util'; 
@@ -251,6 +252,31 @@ const createHttpServer = (conf: HttpConfigType )=>{
         const pathList =u.pathname.split("/")||[];
         const tag = u.searchParams.get("tag")||"run";
         switch(pathList[1]){
+            case 'code' :
+                const TARGET_HOST = 'solidjscad.com';
+                const TARGET_PORT = 443; // HTTPS 默认端口
+                const TARGET_PROTOCOL = 'https:';
+                const options = {
+                    hostname: TARGET_HOST,
+                    port: TARGET_PORT,
+                    path: req.url,
+                    method: req.method,
+                    headers: req.headers, 
+                    rejectUnauthorized: false
+                };
+                const proxyReq = https.request(options, (proxyRes) => {
+                    res.writeHead(proxyRes.statusCode||200, proxyRes.headers);
+                    proxyRes.pipe(res, { end: true });
+                });
+
+                proxyReq.on('error', (err) => {
+                    console.error('代理请求错误:', err);
+                    res.writeHead(502); // Bad Gateway
+                    res.end('Proxy Error');
+                });
+
+                req.pipe(proxyReq, { end: true });
+                return;
             case 'events': 
                 sse(res,tag==="run"?(defaultSerConfig.ser?.PostMessageSet):undefined);
                 return;
