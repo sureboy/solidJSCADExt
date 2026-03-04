@@ -78,6 +78,9 @@ const loadConfig =async (u:vscode.Uri)=>{
     if (!conf.src){ 
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }   
+    if (!conf.serverIP){ 
+        conf.serverIP = vscode.workspace.getConfiguration("init").get("serverIP") || ["solidjscad.com"];
+    }   
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri; 
     return {
         conf,

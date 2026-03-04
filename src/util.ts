@@ -10,6 +10,7 @@ export type mainConfigType = {
   worker?:string,
   webview:boolean,
   webUI?:string,
+  serverIP?:string[],
   includeImport:{ [key: string]: string }
 }
 export type HandMessageFuncMap  = Map<string,(e:any,reqMsg:(req:any)=>any)=>any>

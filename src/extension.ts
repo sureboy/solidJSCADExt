@@ -1,13 +1,39 @@
 import * as vscode from 'vscode';
 import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider } from './gzEditorProvider';  
-import { watcherServer,CreateSolidjscadPackage } from './bundleServer';  
+import { watcherServer,CreateSolidjscadPackage } from './bundleServer'; 
+import * as path from 'path'; 
+function isTargetFile(fileName: string): boolean {
+    const baseName = path.basename(fileName);
+    return baseName === 'solidjscad.json' ;
+}
 
+const  handleConfigJsonFileEvent = (document: vscode.TextDocument)=>{
+    if (!isTargetFile(document.fileName)) {
+        return;
+    }
+    //const confFilePath = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!vscode.workspace.getWorkspaceFolder(document.uri)){
+        //console.log("open",document.uri,path.dirname(document.uri.fsPath));
+        vscode.window.showOpenDialog({
+            //openLabel:"open ",
+            canSelectFiles:false,
+            canSelectMany:false,
+            defaultUri:vscode.Uri.parse(path.dirname(document.uri.fsPath))
+        });
+        //vscode.commands.executeCommand('vscode.openFolder',vscode.Uri.parse(path.dirname(document.uri.fsPath)) );
+        //vscode.workspace.open
+        return;
+    }else{
+        vscode.commands.executeCommand('solidJScad.onload');
+    }
+};
 export function activate(context: vscode.ExtensionContext) {
     vscode.window.showInformationMessage("solidJScad: Begin");    
     //console.log(vscode.workspace.getConfiguration("init").get("in"));
-    watcherServer(context);
-    context.subscriptions.push(   
+    watcherServer(context);  
+    context.subscriptions.push( 
+        vscode.workspace.onDidSaveTextDocument(handleConfigJsonFileEvent), 
         vscode.commands.registerCommand('solidJScad.onload', () => {
             watcherServer(context);
         }),   

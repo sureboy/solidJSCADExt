@@ -2,7 +2,7 @@
   "name": "solidjscad",
   "displayName": "solidJScad",
   "description": "Using JavaScript and @ jscad/modeling for 3D/2D graphic modeling,Using the ECMAScript Modules standard,Using Threejs to display,Vscode plugin that can be previewed in webview or browser.",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -49,6 +49,11 @@
         "init.config": {
           "type": "string",
           "default": "solidjscad.json",
+          "description": "entry config file"
+        },
+        "init.serverUrl": {
+          "type": "array",
+          "default": ["solidjscad.com","solidjscad.cn"],
           "description": "entry config file"
         },
         "init.port": {

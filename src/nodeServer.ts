@@ -252,7 +252,17 @@ const createHttpServer = (conf: HttpConfigType )=>{
         const pathList =u.pathname.split("/")||[];
         const tag = u.searchParams.get("tag")||"run";
         switch(pathList[1]){
+            
             case 'code' :
+                //fetch("http://solidjscad.cn"+req.url).then(res=>{
+                //    res
+                //})
+                //res.setHeader("Access-Control-Allow-Origin","*");
+                //res.writeHead(301, { "Location": "http://solidjscad.cn"+req.url }); 
+                //return res.end(); 
+                //console.log("code req");
+         
+               
                 const TARGET_HOST = 'solidjscad.com';
                 const TARGET_PORT = 443; // HTTPS 默认端口
                 const TARGET_PROTOCOL = 'https:';
@@ -276,7 +286,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 });
 
                 req.pipe(proxyReq, { end: true });
-                return;
+                return;  
             case 'events': 
                 sse(res,tag==="run"?(defaultSerConfig.ser?.PostMessageSet):undefined);
                 return;
