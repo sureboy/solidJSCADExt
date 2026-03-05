@@ -4068,9 +4068,9 @@ try{
     error:error.stack,
     end:true
     });
-};`,ZU=async(r,e)=>{let t;if(r.worker){if(r.worker.startsWith("./")||(r.worker="./"+r.worker),r.worker.endsWith(".js")||(r.worker+=".js"),t=await Qs(r.worker,e),t.srcList.length>0)return await t.getUri()}else r.worker="./worker.js";let n=r.in;n.startsWith("./")||(n="./"+n),n.endsWith(".js")||(n+=".js");const s=`
+};`,ZU=async(r,e)=>{let t;if(r.worker){if(r.worker.startsWith("./")||(r.worker="./"+r.worker),r.worker.endsWith(".js")||(r.worker+=".js"),t=await Qs(r.worker,e),t.srcList.length>0)return await t.getUri()}else r.worker="./worker.js";let n=r.in;n.startsWith("./")||(n="./"+n),n.endsWith(".js")||(n+=".js");let i="./lib/csgChange.js";r.includeImport&&r.includeImport.csgChange&&(i="csgChange");const s=`
   ${$U} 
-  const csg = await import( './lib/csgChange.js' )
+  const csg = await import( '${i}' )
   const src = await import("${n}")
   const main = "${r.func}";
   const list = Object.keys(src)

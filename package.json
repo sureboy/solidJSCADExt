@@ -69,7 +69,8 @@
         "init.includeImport": {
           "type": "object",
           "default": {
-            "@jscad/modeling": "./lib/modeling.esm.js"
+            "@jscad/modeling": "./lib/modeling.esm.js",
+            "csgChange": "./lib/csgChange.js"
           },
           "description": "webview"
         }
