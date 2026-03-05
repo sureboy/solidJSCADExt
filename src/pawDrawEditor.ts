@@ -201,17 +201,21 @@ export const listenMessage = (
 	handMap:Map<string,any>,
 	PostMessage:(m:any)=>any
 )=>{
+	console.log(message);
 	switch (message.type) {
 	case 'log':
 		vscode.window.showInformationMessage( message.msg  );
+		PostMessage({});
 		break;
 	case 'error':
 		console.log(message);
 		vscode.window.showErrorMessage( message.msg );
+		PostMessage({});
 		break;
 
 	default:
 		if (!handMap.has(message.type)){
+			PostMessage({});
 			return;
 		}
 		handMap.get(message.type)!(message,PostMessage);

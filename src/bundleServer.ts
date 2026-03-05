@@ -80,7 +80,12 @@ const loadConfig =async (u:vscode.Uri)=>{
     }   
     if (!conf.serverIP){ 
         conf.serverIP = vscode.workspace.getConfiguration("init").get("serverIP") || ["solidjscad.com"];
-    }   
+    } 
+    //if (!conf.includeImport){
+        conf.includeImport = vscode.workspace.getConfiguration("init").get("includeImport")||{};
+    //} else{
+
+    //}
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri; 
     return {
         conf,
@@ -259,21 +264,11 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
             const getMessage =  workerspaceMessageHandMap(); 
             const TypeTag = new Map<postTypeStr,number>();
             const panel = createPanel(conf); 
-            initServer(context,conf,workPath,
-                //getMessage,
-                //Object.assign(conf,{getMessage}),
+            initServer(context,conf,workPath, 
                 (c,ser)=>{  
-                ser.HandleMsgMap.set("run",getMessage);
-                //console.log("run",ser.HandleMsgMap);
+                ser.HandleMsgMap.set("run",getMessage); 
                 initMessageHandMap(
-                    TypeTag, /*
-                    Object.assign(
-                        c,
-                        {postMessage:(m:any)=>{
-                            if (panel){panel.webview.postMessage(m);}
-                            //HandlePostMessage(m,MessageSet);
-                        }}
-                    ),*/
+                    TypeTag, 
                     conf,workPath,
                     c,
                     getMessage);
@@ -285,8 +280,7 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
                     ser,panel);
                 initBar("run",()=>{
                     panel?.dispose(); 
-                });
-                //return panel;
+                }); 
             });        
         });         
     });
@@ -323,7 +317,7 @@ const initMessageHandMap = (
                 //|(TypeTag.get("begin")||0)
                 ,
                 msg:{ name:e.path,
-                    config 
+                    //config 
                 }};
             //console.log(msg);
             try{

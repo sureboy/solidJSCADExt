@@ -95,6 +95,38 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     msg:{db:document.documentData.buffer,config:myWorkspaceConfig}
                 }); 
             });
+            getMessage.set('req',async (e:{path:string},postMsg:(e:any)=>Promise<any>)=>{  
+                    
+                    //const fn = async ()=>{
+                        const msg = {
+                            type:(postTypeTag.get("init")||0)
+                            //|(TypeTag.get("begin")||0)
+                            ,
+                            msg:{ name:e.path,
+                                //config 
+                            }};
+                        //console.log(msg);
+                        try{
+                            let pathUri =vscode.Uri.parse(srcPath);
+                            if (myWorkspaceConfig.includeImport && myWorkspaceConfig.includeImport[e.path]){
+                                pathUri = vscode.Uri.joinPath(pathUri, 
+                                    ...myWorkspaceConfig.includeImport[e.path].split("/"));                     
+                            }else{
+                                pathUri = vscode.Uri.joinPath(
+                                    pathUri ,...e.path.split("/")
+                                );
+                            }
+                            const t = await vscode.workspace.fs.readFile(pathUri);          
+                            Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
+                            postMsg(msg);        
+                            //config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
+                        }catch(err:any){                         
+                            console.error("req Err",err);   
+                            postMsg(msg); 
+                        } 
+                    //};
+                    //fn();        
+                }); 
         };
         RunHttpServer(
             myWorkspaceConfig as HttpConfigType,
