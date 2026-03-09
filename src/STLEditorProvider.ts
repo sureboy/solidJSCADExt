@@ -74,7 +74,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath,
              port:workspaceConf.get("port") as number|| 0,
             srcPath:"",
-            //src:"",
+            src:"",
             name:"STLViewer",
             includeImport:{} 
         };

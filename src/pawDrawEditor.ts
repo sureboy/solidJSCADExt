@@ -6,6 +6,7 @@ import {getNonce,
 	setScriptNonce,
 	replaceAssetPathsAdvanced
 } from './util';
+import * as path from "path";
 
 import type {mainConfigType,HandMessageFuncMap} from './util';
 /**
@@ -148,7 +149,6 @@ export class PawDrawDocument extends Disposable implements vscode.CustomDocument
 	 */
 	async backup(destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<vscode.CustomDocumentBackup> {
 		await this.saveAs(destination, cancellation);
-
 		return {
 			id: destination.toString(),
 			delete: async () => {
@@ -196,20 +196,93 @@ export class WebviewCollection {
 	}
 	
 }
+const showOutPut = (
+	output:vscode.OutputChannel,
+	msg:any,
+	config:{
+		workspacePath?: vscode.Uri,
+		src:string,
+		includeImport?: {
+			[key: string]: string;
+		}
+	},
+	urlMap?:any)=>{
+	if (typeof msg === "object"){
+		if (Array.isArray(msg)){
+			msg.forEach(l=>{
+				showOutPut(output,l,config,urlMap);
+			});
+		}else{
+			Object.keys(msg).forEach(k=>{
+				
+				//output.append(":");
+				if (k==="stack" && urlMap){
+					const srcPath = config.workspacePath?vscode.Uri.joinPath(
+						config.workspacePath,config.src).fsPath:
+						"";
+					let strmsg = msg[k] as string;
+					for (const [k,v] of Object.entries(urlMap) as [string,string][]){
+						console.log(k,v);
+						if (config.includeImport && config.includeImport[v]){ 
+							strmsg = strmsg.replaceAll(k,path.join(srcPath,config.includeImport[v]));
+						}else{
+							strmsg = strmsg.replaceAll(k,path.join(srcPath,v));
+						}
+						strmsg = strmsg.replaceAll(k,path.join(srcPath,v));
+					}	
+					output.appendLine(strmsg);	
+				}else{
+					output.appendLine(k+" "+msg[k]);
+				}
+				
+				//output.append("\n");
+			});
+		}
+	}else{
+		output.appendLine(msg);
+	}
+	
+	output.show();
+};
 export const listenMessage = (
-	message:{type:string,msg:string},
+	message:{type:string,msg:any,urlMap?:any},
 	handMap:Map<string,any>,
-	PostMessage:(m:any)=>any
+	PostMessage:(m:any)=>any,
+	config:{
+		workspacePath?: vscode.Uri,
+		src:string,
+		includeImport?: {
+        [key: string]: string;
+    }
+	},
+	//srcPath:string,
+	output?:vscode.OutputChannel
 )=>{
 	console.log(message);
 	switch (message.type) {
 	case 'log':
-		vscode.window.showInformationMessage( message.msg  );
+		if (output){
+			showOutPut(output,message.msg,config);
+			//output.appendLine("log:"+message.msg);
+			//output.show();
+		}else{
+			vscode.window.showInformationMessage( message.msg  );
+		}
 		PostMessage({});
 		break;
 	case 'error':
-		console.log(message);
-		vscode.window.showErrorMessage( message.msg );
+		console.log("host error",message);
+
+		if (output){
+			showOutPut(output,message.msg,config,message.urlMap);
+			//output.appendLine("err:"+message.msg);
+			//output.show();
+		}else{		
+			if (typeof message.msg ==="object"){
+				message.msg = JSON.stringify(message.msg);
+			}	
+			vscode.window.showErrorMessage( message.msg ); 
+		}
 		PostMessage({});
 		break;
 
@@ -229,12 +302,15 @@ export const  setHtmlForWebview =async (
 		serverIP?:string[],
 		//func:string,
 		//in:string,
-		//src:string,
+		src:string,
 		port?:number
 		webUI?:string,
 		rootPath:string,
-		//workspacePath?: vscode.Uri,
+		workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
+		includeImport?: {
+        [key: string]: string;
+    }
 	},
 	handleMessageMap:HandMessageFuncMap,
 	//PostMessage:(m:any)=>any
@@ -267,11 +343,14 @@ export const  setHtmlForWebview =async (
 		vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui', 'assets',   'logo.png')
 	); 
 */
-	 
+	const output = vscode.window.createOutputChannel(config.name,{log:true});
+	output.debug("test");
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap,(e)=>{
 			webview.postMessage(e);//.then(v=>console.log(v));
-		});	
+		},
+		config,
+		output);	
 	}); 
 	try{
 		console.log("paw",config);
@@ -407,10 +486,6 @@ export const newWorkspacePackage= async(
 			await handleEnd();
 		}catch(e){
 			console.error(e);
-		}
-		
-	}
-	
-				 //vscode.workspace.fs.createDirectory(NewWorkspace);
-			
+		}		
+	}		
 };

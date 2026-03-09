@@ -75,7 +75,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         const myWorkspaceConfig = {
             name,in:in_,func,date,rootPath,srcPath,
             webview:workspaceConf.get("webview") as boolean   || true,
-            src:workspaceConf.get("src") as string  || "src",
+            src: workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
             includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
@@ -149,7 +149,9 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         });
         setHtmlForWebview(webviewPanel.webview,
             {
-                name, 
+                name:myWorkspaceConfig.name, 
+                src:myWorkspaceConfig.src,
+                includeImport:myWorkspaceConfig.includeImport,                
                 extensionUri:this._context.extensionUri, 
                 rootPath:vscode.Uri.joinPath(
                     this._context.extensionUri,
