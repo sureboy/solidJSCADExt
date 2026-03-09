@@ -244,7 +244,7 @@ const showOutPut = (
 	
 	output.show();
 };
-export const listenMessage = (
+const listenMessage = (
 	message:{type:string,msg:any,urlMap?:any},
 	handMap:Map<string,any>,
 	PostMessage:(m:any)=>any,
@@ -344,7 +344,7 @@ export const  setHtmlForWebview =async (
 	); 
 */
 	const output = vscode.window.createOutputChannel(config.name,{log:true});
-	output.debug("test");
+	//output.debug("test");
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap,(e)=>{
 			webview.postMessage(e);//.then(v=>console.log(v));

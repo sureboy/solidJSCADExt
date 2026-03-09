@@ -24,7 +24,7 @@
 
 ### 方法二：通过VSIX文件离线安装
 
-1. 下载[solidjscad-0.0.10.vsix](https://github.com/sureboy/solidJSCADExt/releases/download/0.0.10/solidjscad-0.0.10.vsix)文件
+1. 下载[solidjscad-0.0.11.vsix](https://github.com/sureboy/solidJSCADExt/releases/download/0.0.11/solidjscad-0.0.11.vsix)文件
 2. 在VSCode中，使用快捷键 `Ctrl+Shift+P` 打开命令面板
 3. 输入并选择"Extensions: Install from VSIX..."
 4. 在打开的文件选择器中，找到并选择下载的`.vsix`文件进行安装
