@@ -67,7 +67,8 @@ const contentType:{ [key: string]: string } = {
     '.css': 'text/css',
     '.json': 'application/json',
     '.png': 'image/png',
-    '.jpg': 'image/jpeg'
+    '.jpg': 'image/jpeg',
+    '.wasm':'application/wasm',
 };
 
 const httpindexHtml = ()=>{
@@ -114,16 +115,32 @@ const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerRespo
     req: http.IncomingMessage;
 } ) =>{
     try{
+         fs.stat(filePaths, (err, stats) => {
+            if (err || !stats.isFile()) {
+                res.statusCode = 404;
+                res.end('File not found');
+                return;
+            }
+             res.setHeader('Content-Type', contentType || 'text/plain');
+      // 设置 Content-Length，避免分块传输时长度未知
+      res.setHeader('Content-Length', stats.size);
         //binary
+        const stream = fs.createReadStream(filePaths);
+        stream.pipe(res);
+      stream.on('error', (err) => {
+        console.error('Stream error:', err);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.end('Internal Server Error');
+        }
+      });
+         });
+         /*
         const db = fs.readFileSync(filePaths,{encoding:'binary'});
+        res.setHeader('Content-Length', stats.size);
         res.writeHead(200, { 'Content-Type': contentType || 'text/plain' });
-        res.end(db); 
+        res.end(db); */
     }catch(e){
-        //if (conf){
-        //    const pathList = res.req.url?.split("/")||[];
-        //    readcodefile(path.join(conf.srcPath||"",...pathList), res,conf.includeImport);
-        //    return;
-        //}
         console.error(e);
         res.writeHead(404);
         res.end();
@@ -252,7 +269,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
         const pathList =u.pathname.split("/")||[];
         const tag = u.searchParams.get("tag")||"run";
         switch(pathList[1]){
-            
+            /*
             case 'code' :
                 //fetch("http://solidjscad.cn"+req.url).then(res=>{
                 //    res
@@ -286,7 +303,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 });
 
                 req.pipe(proxyReq, { end: true });
-                return;  
+                return;  */
             case 'events': 
                 sse(res,tag==="run"?(defaultSerConfig.ser?.PostMessageSet):undefined);
                 return;
@@ -302,10 +319,13 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 }
                 res.end(indexHtml);
                 return;
+            case "lib":
             //case conf.src:
-                //console.log(pathList);
-            //    readcodefile(path.join(conf.srcPath||"" ,"../",...pathList), res,conf.includeImport);
-            //    break;
+                res.setHeader("Access-Control-Allow-Origin","*");
+                const filePaths = path.join(conf.srcPath||"" , ...pathList);
+                //const ext = path.extname(filePaths);
+                readBinaryFile(filePaths,contentType[path.extname(filePaths)]|| 'text/plain', res );
+                return;
             case "api":   
                 if (req.method ==="POST"){
                     let body = "";

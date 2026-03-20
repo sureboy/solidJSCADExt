@@ -7,6 +7,7 @@ import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
 import type {postTypeStr,mainConfigType,HandMessageFuncMap} from './util';
 import type {SerConfig} from './nodeServer';
+import {initIPCMessageHandle} from './IPCMessageHandle';
 export  type webUIPathType = {
     rootPath:string 
     extensionUri : vscode.Uri,
@@ -70,6 +71,7 @@ export const workerspaceMessageHandMap = (
         vscode.window.showInformationMessage(
             `${String((Date.now()-tmpDate)/1000)}s`); 
     });
+    initIPCMessageHandle(handListenMsg);
     return handListenMsg;
 };
 const loadConfig =async (u:vscode.Uri)=>{ 
@@ -263,9 +265,9 @@ export const watcherServer = (context: vscode.ExtensionContext)=>{
         loadConfig(u).then(({conf,workPath})=>{
             const getMessage =  workerspaceMessageHandMap(); 
             const TypeTag = new Map<postTypeStr,number>();
-            const panel = createPanel(conf); 
             initServer(context,conf,workPath, 
                 (c,ser)=>{  
+                const panel = createPanel(conf); 
                 ser.HandleMsgMap.set("run",getMessage); 
                 initMessageHandMap(
                     TypeTag, 
@@ -424,7 +426,29 @@ export const CreateSolidjscadPackage =async (
                 await vscode.workspace.fs.writeFile(
                     vscode.Uri.joinPath(uri,"src","index.js"),
                 new TextEncoder().encode(
-                    "import modeling from '@jscad/modeling';\nexport const main=()=>{\n  return modeling.primitives.cube()\n}")
+                    `import modeling from '@jscad/modeling';
+import  manifold from 'manifold-3d';
+const Manifold = await  manifold()
+Manifold.setup()
+export const manifold_main= (opt)=>{   
+  const option = Object.assign({size:2},opt);   
+  const box = Manifold.Manifold.cube(option.size,true);    
+  const sphere = Manifold.Manifold.sphere(1.2, 48);     
+  const sphereTranslated = sphere.translate([0.8, 0.8, 0.8]); 
+  const result = box.subtract(sphereTranslated);
+  const meshData = result.getMesh();
+  const vertices= meshData.vertProperties;
+  const indices = meshData.triVerts;   
+  box.delete();
+  sphere.delete();
+  sphereTranslated.delete();
+  result.delete();
+  return [{vertices,indices},option]
+}
+export const main=(opt)=>{
+  const option = Object.assign({size:10},opt)
+  return [modeling.primitives.cube(option),option]
+}`)
                 ) ;
             }catch(e){
                 console.error(e);

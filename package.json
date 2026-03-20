@@ -70,7 +70,8 @@
           "type": "object",
           "default": {
             "@jscad/modeling": "./lib/modeling.esm.js",
-            "csgChange": "./lib/csgChange.js"
+            "csgChange": "./lib/csgChange.js", 
+            "manifold-3d":"./lib/manifold/manifold.js"
           },
           "description": "webview"
         }

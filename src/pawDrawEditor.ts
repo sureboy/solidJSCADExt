@@ -318,12 +318,12 @@ export const  setHtmlForWebview =async (
 	//webview.options.localResourceRoots=[]
 	const nonce = getNonce();
 	const csp = `default-src 'none';
-	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
+	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-eval' 'wasm-eval' 'strict-dynamic';
 	script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
-	worker-src ${webview.cspSource} blob: data:;
+	worker-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline' blob: data:;
 	style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
-	img-src   ${webview.cspSource}  blob: data:;
-	connect-src ${webview.cspSource} ${config.serverIP?config.serverIP.map((v)=>{
+	img-src   ${webview.cspSource} http://localhost:${config.port||3000}  blob: data:;
+	connect-src ${webview.cspSource}  http://localhost:${config.port||3000}  ${config.serverIP?config.serverIP.map((v)=>{
 		if (!v.startsWith("http")){
 			v = "https://"+v;}
 		 
@@ -418,6 +418,13 @@ export const newWorkspacePackage= async(
 	}
 	try{
 		await vscode.workspace.fs.copy(
+			vscode.Uri.joinPath(extensionUri,"myModule","manifold-3d"),
+			vscode.Uri.joinPath(NewWorkspace,"node_modules", "manifold-3d"));
+	}catch(e){
+		console.error(e);
+	}
+	try{
+		await vscode.workspace.fs.copy(
 			vscode.Uri.joinPath(extensionUri,"myModule", "webui" ),
 			vscode.Uri.joinPath(NewWorkspace,"webui" )
 		);
@@ -440,6 +447,11 @@ export const newWorkspacePackage= async(
 			vscode.Uri.joinPath(extensionUri,"myModule","modeling","package.json"));
 		
 		const cf_ = JSON.parse(cf.toString())  ;
+
+		const cf1 = await vscode.workspace.fs.readFile(
+			vscode.Uri.joinPath(extensionUri,"myModule","manifold-3d","package.json"));
+		
+		const cf_1 = JSON.parse(cf.toString())  ;
  
 		try{
 
@@ -460,6 +472,7 @@ export const newWorkspacePackage= async(
 					},
 					dependencies: {
 						"@jscad/modeling": cf_.version,
+						"manifold-3d": cf_1.version,
 					}
 				}, null, 2))
 			);
@@ -473,7 +486,8 @@ export const newWorkspacePackage= async(
 			new TextEncoder().encode(JSON.stringify({
 				compilerOptions:  {
 					paths: { 
-					"@jscad/modeling":["./node_modules/@jscad/modeling"]
+					"@jscad/modeling":["./node_modules/@jscad/modeling"],
+					"manifold-3d":["./node_modules/manifold-3d"]
 					}
 				}
 			}, null, 2)),

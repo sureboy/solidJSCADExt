@@ -53,4 +53,9 @@
 
 ## 技术支持
 
-Email:zaddone@qq.com。
+Email:dimon@solidjscad.com
+
+
+![微信赞助](https://solidjscad.com/wxq.jpeg)
+
+微信扫码赞助
