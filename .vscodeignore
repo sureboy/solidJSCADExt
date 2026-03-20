@@ -11,5 +11,7 @@ vsc-extension-quickstart.md
 **/eslint.config.mjs
 **/*.map
 myModule/modeling/**/*.js
+myModule/manifold-3d/**/*.js
+myModule/manifold-3d/**/*.wasm
 **/.vscode-test.*
 

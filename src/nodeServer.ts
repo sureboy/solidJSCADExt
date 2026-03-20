@@ -383,29 +383,35 @@ export const RunHttpServer = (
         return;
     }
     const serv = createHttpServer(conf);
-    const runHttp = (p:number)=>{ 
-        serv.listen(p, () => {
-            console.log("listen port:",p);
-            defaultSerConfig.ser = {
-                Server:serv,httpPort:p,
-                PostMessageSet:new Set(), 
-                conf,
-                HandleMsgMap:new Map(),
-            };
-            //defaultSerConfig.ser.HandleMsgMap.set(conf.pageTag,conf.getMessage);
-            backServ(defaultSerConfig.ser);
-        }).on('error',(err)=>{
-            console.log(err.message,p.toString());
-            if (err.message.startsWith("listen EADDRINUSE:")){ 
-                if (errNumber===(p-conf.port)){
-                    return;
-                }
-                p++;
-                runHttp(p);
-            }
-        }); 
+    let p = conf.port;
+    const runHttp = ()=>{  
+        serv.listen(p);  
     };
-    runHttp(conf.port);
+    serv.on('listening',()=>{
+        console.log("listening port:",p);
+        defaultSerConfig.ser = {
+            Server:serv,httpPort:p,
+            PostMessageSet:new Set(), 
+            conf,
+            HandleMsgMap:new Map(),
+        };
+        //defaultSerConfig.ser.HandleMsgMap.set(conf.pageTag,conf.getMessage);
+        backServ(defaultSerConfig.ser);
+    });
+    serv.on('error',(err)=>{
+        console.log(err,p.toString() );
+        if (err.message.startsWith("listen EADDRINUSE:")){ 
+            if (errNumber===(p-conf.port)){
+                return;
+            }
+            p++;
+            setTimeout(() => {
+                serv.close();
+                serv.listen(p);
+            });
+        }
+    });     
+    serv.listen(p);
 };
 
  
