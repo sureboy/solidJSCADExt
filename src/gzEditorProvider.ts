@@ -78,7 +78,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             src: workspaceConf.get("src") as string  || "src",
             port:workspaceConf.get("port") as number|| 0,
             webUI:workspaceConf.get("webui") as string  || "webui",
-            includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
+            //includeImport:workspaceConf.get("includeImport") as {[key: string]: string} ||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
         }; 
         const getMessage = workerspaceMessageHandMap(); 
         const initMessageHandMap = (
@@ -108,14 +108,15 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                         //console.log(msg);
                         try{
                             let pathUri =vscode.Uri.parse(srcPath);
+                            /*
                             if (myWorkspaceConfig.includeImport && myWorkspaceConfig.includeImport[e.path]){
                                 pathUri = vscode.Uri.joinPath(pathUri, 
                                     ...myWorkspaceConfig.includeImport[e.path].split("/"));                     
-                            }else{
+                            }else{*/
                                 pathUri = vscode.Uri.joinPath(
                                     pathUri ,...e.path.split("/")
                                 );
-                            }
+                            //}
                             const t = await vscode.workspace.fs.readFile(pathUri);          
                             Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
                             postMsg(msg);        
@@ -145,21 +146,22 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             //     HandlePostMessage(e,ser.PostMessageSet); 
             //  }
             );
-            
-        });
-        setHtmlForWebview(webviewPanel.webview,
+            setHtmlForWebview(webviewPanel.webview,
             {
                 name:myWorkspaceConfig.name, 
                 src:myWorkspaceConfig.src,
-                includeImport:myWorkspaceConfig.includeImport,                
+                //includeImport:myWorkspaceConfig.includeImport,                
                 extensionUri:this._context.extensionUri, 
                 rootPath:vscode.Uri.joinPath(
                     this._context.extensionUri,
                     'myModule', 'webui').fsPath
             },
-            getMessage,
+            getMessage,ser.httpPort
             //webviewPanel.webview.postMessage,
         );
+            
+        });
+        
         
         //webviewPanel.dispose()
     }
@@ -214,15 +216,15 @@ export const downSrcHandMap = (
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
                 extensionUri,  {
                     webview:config.webview,
-                    worker:config.worker,
+                    //worker:config.worker,
                     in:config.in,
                     func:config.func,
-                    port:config.port,
+                    //port:config.port,
                     date:Date.now().toString(),
                     src:config.src,
                     webUI:config.webUI||"",
                     name:path.basename(NewWorkspace.fsPath),
-                    includeImport:config.includeImport
+                    //includeImport:config.includeImport
                 }, async ()=>{
                     //console.log("begin get src",panel,TypeTag);
                     postMessage({
@@ -259,17 +261,18 @@ export const downSrcHandMap = (
             return;
         }
         let filePath;
-        if (message.msg.name.startsWith("./")){
+        //if (message.msg.name.startsWith("./")){
             filePath=vscode.Uri.joinPath(
                 NewWorkspace,
                 config.src,
                 message.msg.name);
+                /*
         }else{
             filePath=vscode.Uri.joinPath(
                 NewWorkspace,
                 config.src,
                 config.includeImport[message.msg.name]||message.msg.name);
-        }
+        }*/
         //console.log(filePath);
         vscode.workspace.fs.writeFile(
             filePath,

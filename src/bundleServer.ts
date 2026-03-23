@@ -80,6 +80,7 @@ const loadConfig =async (u:vscode.Uri)=>{
     if (!conf.src){ 
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }   
+    /*
     if (!conf.serverIP){ 
         conf.serverIP = vscode.workspace.getConfiguration("init").get("serverIP") || ["solidjscad.com"];
     } 
@@ -88,6 +89,7 @@ const loadConfig =async (u:vscode.Uri)=>{
     //} else{
 
     //}
+    */
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri; 
     return {
         conf,
@@ -246,10 +248,11 @@ const initServer = (
     if (!defaultSerConfig.ser){ 
         RunHttpServer(Object.assign({},conf,config,{ 
             //pageTag:"run",
+            port:(vscode.workspace.getConfiguration("init").get("port") as number) || 3000,
             srcPath:workPath.watchPath.fsPath, 
             }),(ser)=>{   
                 //ser.HandleMsgMap.set("run",getMessage);
-                conf.port = ser.httpPort; 
+                //conf.port = ser.httpPort; 
                 func(config,ser);  
         },10);
     }else{ 
@@ -323,6 +326,7 @@ const initMessageHandMap = (
                 }};
             //console.log(msg);
             try{
+                /*
                 let pathUri = workPath.workspacePath;
                 if (config.includeImport && config.includeImport[e.path]){
                     pathUri = vscode.Uri.joinPath(pathUri,config.src,
@@ -331,7 +335,10 @@ const initMessageHandMap = (
                     pathUri = vscode.Uri.joinPath(
                         workPath.watchPath ,...e.path.split("/")
                     );
-                }
+                }*/
+                let pathUri = vscode.Uri.joinPath(
+                        workPath.watchPath ,...e.path.split("/")
+                    );
                 const t = await vscode.workspace.fs.readFile(pathUri);          
                 Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
                 postMsg(msg);        
@@ -380,7 +387,7 @@ const initPanel = (
     if (panel){
         setHtmlForWebview(
             panel.webview,config,
-            handMap,
+            handMap,ser?.httpPort||3000
             //panel.webview.postMessage
         );
     }    
@@ -400,9 +407,9 @@ export const CreateSolidjscadPackage =async (
             date:"",
             webUI:conf.get("webui")||"webui", 
             src:conf.get("src")||"src",
-            port:conf.get("port")||3000,
+            //port:conf.get("port")||3000,
             webview:conf.get("webview")||true,
-            includeImport:conf.get("includeImport")||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
+            //includeImport:conf.get("includeImport")||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
         },
         async ()=>{
             try{

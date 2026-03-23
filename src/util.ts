@@ -6,12 +6,12 @@ export type mainConfigType = {
   func: string,
   in: string,
   date:string,
-  port:number,
-  worker?:string,
+  //port:number,
+  //worker?:string,
   webview:boolean,
   webUI?:string,
-  serverIP?:string[],
-  includeImport:{ [key: string]: string }
+  //serverIP?:string[],
+  //includeImport:{ [key: string]: string }
 }
 export type HandMessageFuncMap  = Map<string,(e:any,reqMsg:(req:any)=>any)=>any>
 export function getNonce() {

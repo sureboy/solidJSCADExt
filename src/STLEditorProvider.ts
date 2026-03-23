@@ -1,21 +1,10 @@
 import * as vscode from 'vscode';
-//import * as THREE from 'three';  
-//import { disposeAll } from './dispose';
-//import {gzEditorProvider} from './gzEditorProvider';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 //import type {postTypeStr} from './bundleServer';
-import { RunHttpServer,HandlePostMessage } from './nodeServer'; 
+import { RunHttpServer } from './nodeServer'; 
 import type {postTypeStr} from './util';
-//import { STLLoader } from 'three/examples/jsm/loaders/STLLoader';
-//import {RunHttpServer,startWebSocketServer} from './httpServer';
-//import {WSSend,httpindexHtml} from './httpLib';
-//import type {SerConfig} from './httpServer';
-/**
- * Define the type of edits used in paw draw files.
- */
 const postTypeTag = new Map<postTypeStr,number>();
-//let serv:SerConfig|null = null;
 export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -76,7 +65,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             srcPath:"",
             src:"",
             name:"STLViewer",
-            includeImport:{} 
+            //includeImport:{} 
         };
         
         // Setup initial content for the webview
@@ -106,14 +95,16 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             webviewPanel.onDidDispose(()=>{
                 ser.HandleMsgMap.delete("stlData".toLocaleLowerCase());
                 initBar("");
-            }) ;        
-        }); 
-        setHtmlForWebview(
+            }) ;     
+             setHtmlForWebview(
             webviewPanel.webview,
-             config,
-            getMessage,
-            //webviewPanel.webview.postMessage
-        );
+                config,
+                getMessage,
+                ser.httpPort
+                //webviewPanel.webview.postMessage
+            );   
+        }); 
+       
     }
 
     private readonly _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentEditEvent<PawDrawDocument>>();

@@ -11,7 +11,7 @@ export type HttpConfigType = {
     port:number,
     rootPath:string,
     srcPath:string,
-    includeImport:{ [key: string]: string }
+    //includeImport:{ [key: string]: string }
 } 
 //type PostMsgType = (m:reqMsg)=>void
 type PostMessageSetType = Set<(m:string)=>void>
@@ -89,6 +89,7 @@ return `<!doctype html>
     </body>
 </html>`;
 };
+/*
 const readJS = (
     filePaths:string,
     contentType:string,
@@ -110,7 +111,7 @@ const readJS = (
         res.writeHead(404);
         res.end();
     }
-};
+};*/
 const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
 } ) =>{
@@ -146,7 +147,7 @@ const readBinaryFile = (filePaths:string,contentType:string,res:http.ServerRespo
         res.end();
     }
 };
-
+/*
 const readcodefile = ( 
     filePaths:string,
     res:http.ServerResponse<http.IncomingMessage> & {
@@ -167,7 +168,7 @@ const readcodefile = (
             break;
     }
     
-};
+};*/
 const initLoad = (
     msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'},postTypeTag:Map<postTypeStr,number>,hand:(pageType:'run'|'gzData'|'stlData')=>void)=>{
     //const msg:{direction:postTypeStr[],pageType:'run'|'gzData'|'stlData'}  = JSON.parse(db);
@@ -176,6 +177,7 @@ const initLoad = (
     });
     hand(msg.pageType);
 };
+/*
 const workerspaceMessageHandMap = (
     //setTmpDate:(d:number)=>void,
     postTypeTag:Map<postTypeStr,number>,
@@ -221,7 +223,7 @@ const workerspaceMessageHandMap = (
         }); 
     });
     return handListenMsg;
-};
+};*/
 const sse = (res: http.ServerResponse<http.IncomingMessage> & {
     req: http.IncomingMessage;
 }, PostMessageSet?:PostMessageSetType)=>{

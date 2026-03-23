@@ -303,27 +303,25 @@ export const  setHtmlForWebview =async (
 		//func:string,
 		//in:string,
 		src:string,
-		port?:number
+		//port?:number
 		webUI?:string,
 		rootPath:string,
 		workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
-		includeImport?: {
-        [key: string]: string;
-    }
+		//includeImport?: {[key: string]: string;}
 	},
-	handleMessageMap:HandMessageFuncMap,
+	handleMessageMap:HandMessageFuncMap,port:number
 	//PostMessage:(m:any)=>any
 )=> {
 	//webview.options.localResourceRoots=[]
 	const nonce = getNonce();
 	const csp = `default-src 'none';
-	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-eval' 'wasm-eval' 'strict-dynamic';
+	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} http://localhost:${port||3000} 'unsafe-eval' 'wasm-eval' 'strict-dynamic';
 	script-src-elem 'self' 'nonce-${nonce}' ${webview.cspSource} 'strict-dynamic';
-	worker-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline' blob: data:;
-	style-src ${webview.cspSource} http://localhost:${config.port||3000} 'unsafe-inline';
-	img-src   ${webview.cspSource} http://localhost:${config.port||3000}  blob: data:;
-	connect-src ${webview.cspSource}  http://localhost:${config.port||3000}  ${config.serverIP?config.serverIP.map((v)=>{
+	worker-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline' blob: data:;
+	style-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline';
+	img-src   ${webview.cspSource} http://localhost:${port||3000}  blob: data:;
+	connect-src ${webview.cspSource}  http://localhost:${port||3000}  ${config.serverIP?config.serverIP.map((v)=>{
 		if (!v.startsWith("http")){
 			v = "https://"+v;}
 		 
@@ -331,11 +329,11 @@ export const  setHtmlForWebview =async (
 	}).join(" "):""} 'unsafe-inline';`;
 	
 	//vscode.workspace.fs.stat()
-	const scriptUri =config.port? `http://localhost:${config.port}/main.js`: webview.asWebviewUri(
+	const scriptUri =port? `http://localhost:${port}/main.js`: webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui', 'main.js')
 	); 
 
-	const styleUri =config.port? `http://localhost:${config.port}/assets/main.css`: webview.asWebviewUri(
+	const styleUri =port? `http://localhost:${port}/assets/main.css`: webview.asWebviewUri(
 		vscode.Uri.joinPath(config.extensionUri, 'myModule', 'webui',   'assets', 'main.css')
 	); 
 	/*
@@ -361,8 +359,8 @@ export const  setHtmlForWebview =async (
 		strHtml = setCSPMetaInHtml(strHtml,csp );
 		strHtml = insertScriptAtBodyStart(strHtml,"window.vscode = acquireVsCodeApi();");
 		strHtml = replaceAssetPathsAdvanced(strHtml,(p)=>{
-			if (config.port){
-				return `http://localhost:${config.port}`+p;
+			if (port){
+				return `http://localhost:${port}`+p;
 			}
 			return webview.asWebviewUri(
 				vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui',  p)
