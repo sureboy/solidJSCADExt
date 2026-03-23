@@ -299,14 +299,14 @@ export const  setHtmlForWebview =async (
 	config:{
 		//pageType:'run'|'gzData'|'stlData',
 		name:string,
-		serverIP?:string[],
+		//serverIP:string[],
 		//func:string,
 		//in:string,
 		src:string,
 		//port?:number
-		webUI?:string,
+		//webUI?:string,
 		rootPath:string,
-		workspacePath?: vscode.Uri,
+		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
 		//includeImport?: {[key: string]: string;}
 	},
@@ -314,6 +314,8 @@ export const  setHtmlForWebview =async (
 	//PostMessage:(m:any)=>any
 )=> {
 	//webview.options.localResourceRoots=[]
+	const serverIP = (vscode.workspace.getConfiguration("init").get("serverUrl") as string[]||[]).reduce((p,c)=>`${p} ${c.startsWith("http")?c:("https://"+c)}`,"");
+	console.log(serverIP);
 	const nonce = getNonce();
 	const csp = `default-src 'none';
 	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} http://localhost:${port||3000} 'unsafe-eval' 'wasm-eval' 'strict-dynamic';
@@ -321,12 +323,7 @@ export const  setHtmlForWebview =async (
 	worker-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline' blob: data:;
 	style-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline';
 	img-src   ${webview.cspSource} http://localhost:${port||3000}  blob: data:;
-	connect-src ${webview.cspSource}  http://localhost:${port||3000}  ${config.serverIP?config.serverIP.map((v)=>{
-		if (!v.startsWith("http")){
-			v = "https://"+v;}
-		 
-		return v;
-	}).join(" "):""} 'unsafe-inline';`;
+	connect-src ${webview.cspSource}  http://localhost:${port||3000}  ${serverIP} 'unsafe-inline';`;
 	
 	//vscode.workspace.fs.stat()
 	const scriptUri =port? `http://localhost:${port}/main.js`: webview.asWebviewUri(
@@ -351,7 +348,7 @@ export const  setHtmlForWebview =async (
 		output);	
 	}); 
 	try{
-		console.log("paw",config);
+		//console.log("paw",config);
 		const indexpath = vscode.Uri.joinPath(vscode.Uri.parse(config.rootPath),"index.html");
 		//console.log(indexpath);
 		const filehtml = await vscode.workspace.fs.readFile(indexpath );

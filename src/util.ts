@@ -8,8 +8,8 @@ export type mainConfigType = {
   date:string,
   //port:number,
   //worker?:string,
-  webview:boolean,
-  webUI?:string,
+  //webview:boolean,
+  //webUI?:string,
   //serverIP?:string[],
   //includeImport:{ [key: string]: string }
 }

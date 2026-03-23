@@ -20,13 +20,14 @@ const Bar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right);
 let menu:vscode.Disposable|undefined =undefined;
 const createPanel  = ( 
     config:{
-        webview:boolean,
+        //webview:boolean,
         name?:string, 
         //workspacePath?: vscode.Uri;
         //extensionUri: vscode.Uri
     } 
 )=>{
-    if (!config.webview){
+    //vscode.workspace.getConfiguration("init").get("webview")
+    if (!(vscode.workspace.getConfiguration("init").get("webview") as boolean)){
         return ;
     } 
     return vscode.window.createWebviewPanel(
@@ -235,7 +236,8 @@ const initServer = (
         config: webUIPathType,
         ser:SerConfig
     )=>void)=>{ 
-    let rootPath = path.join(workPath.workspacePath.fsPath,conf.webUI||"webui");
+        //vscode.ConfigurationTarget.Global("init")
+    let rootPath = path.join(workPath.workspacePath.fsPath,vscode.workspace.getConfiguration("init").get("webui")||"webui");
         try{
             fs.statSync(rootPath);
         }catch(e){
@@ -405,10 +407,10 @@ export const CreateSolidjscadPackage =async (
             in:conf.get("in")||"index.js",
             func:conf.get("func")||"main",
             date:"",
-            webUI:conf.get("webui")||"webui", 
+            //webUI:conf.get("webui")||"webui", 
             src:conf.get("src")||"src",
             //port:conf.get("port")||3000,
-            webview:conf.get("webview")||true,
+            //webview:conf.get("webview")||true,
             //includeImport:conf.get("includeImport")||{"@jscad/modeling":"./src/lib/modeling.esm.js"}
         },
         async ()=>{

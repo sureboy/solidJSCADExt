@@ -215,14 +215,14 @@ export const downSrcHandMap = (
             newWorkspacePackage(NewWorkspace,
                 //vscode.Uri.joinPath(NewWorkspace,myWorkspaceConfig.name),
                 extensionUri,  {
-                    webview:config.webview,
+                    //webview:config.webview,
                     //worker:config.worker,
                     in:config.in,
                     func:config.func,
                     //port:config.port,
                     date:Date.now().toString(),
                     src:config.src,
-                    webUI:config.webUI||"",
+                    //webUI:config.webUI||"",
                     name:path.basename(NewWorkspace.fsPath),
                     //includeImport:config.includeImport
                 }, async ()=>{
