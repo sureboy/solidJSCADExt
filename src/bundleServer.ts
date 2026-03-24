@@ -118,24 +118,15 @@ const watchInit = (conf:{
             name = "./"+name;
         }
         vscode.window.showInformationMessage(`Change: ${name}`);
-        //console.log('文件更改:', uri.fsPath);
-        
-        //tmpDate = Date.now();
         vscode.workspace.fs.readFile(uri).then(db=>{      
             const msg={
                 db:  db.buffer as ArrayBuffer,
-     
                 name 
             };
-            //serv?.wss?.clients.forEach(ws=>{
-            //    WSSendUpdate(["init","run"],TypeTag,msg,ws);
-                //ws.send(JSON.stringify({run:true}));
-            //});
-            //panel.webview.postMessage( {  
-            postMessage( {  
+            postMessage({  
                 type:(conf.TypeTag.get("init")||0)|(conf.TypeTag.get("run") ||0 ),
                 msg                   
-            },);
+            });
         });                
     });        
     // 监听文件删除事件
@@ -358,7 +349,8 @@ const initMessageHandMap = (
         TypeTag ,
         webUI.extensionUri,
         //workPath.workspacePath,
-        config       
+        config   ,
+        workPath.workspacePath//.watchPath    
     // { TypeTag, ...config}
     );  
     return handMap;

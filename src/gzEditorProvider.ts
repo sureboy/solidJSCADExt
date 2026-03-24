@@ -198,8 +198,10 @@ export const downSrcHandMap = (
     handMap:Map<string,(e:any,postMessage:(r:any)=>any)=>void>,
     TypeTag:Map<postTypeStr,number> ,
     extensionUri:vscode.Uri,
-    config:mainConfigType)=>{ 
-    let NewWorkspace:vscode.Uri|undefined = undefined;
+    config:mainConfigType,
+    NewWorkspace?:vscode.Uri
+)=>{ 
+    //let NewWorkspace:vscode.Uri|undefined = undefined;
     handMap.set('downSrc',(e:any,postMessage:(r:any)=>any)=>{
         
         vscode.window.showOpenDialog({
@@ -236,7 +238,10 @@ export const downSrcHandMap = (
         });            
     });
     handMap.set('src',(
-        message:{msg:{name:string,db:string,start?:boolean,end?:boolean}},
+        message:{msg:{name:string,db:string,
+            start?:boolean,
+            //end?:boolean
+        }},
         postMessage:(r:any)=>any)=>{
             //console.log("src",message);
             postMessage({type:0});
@@ -262,10 +267,11 @@ export const downSrcHandMap = (
         }
         let filePath;
         //if (message.msg.name.startsWith("./")){
-            filePath=vscode.Uri.joinPath(
-                NewWorkspace,
-                config.src,
-                message.msg.name);
+        filePath=vscode.Uri.joinPath(
+            NewWorkspace,
+            config.src,
+            message.msg.name
+        );
                 /*
         }else{
             filePath=vscode.Uri.joinPath(
