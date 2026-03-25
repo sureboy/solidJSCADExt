@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
 import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
-//import type {postTypeStr} from './bundleServer';
+//import type {HttpConfigType} from './nodeServer';
 import { RunHttpServer } from './nodeServer'; 
 import type {postTypeStr} from './util';
 const postTypeTag = new Map<postTypeStr,number>();
@@ -73,8 +73,8 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             enableScripts: true,
         }; 
         const getMessage =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
-        
-        RunHttpServer(Object.assign(config,{pageTag:"stlData",getMessage}),
+        const httpConfig = Object.assign(config,{pageTag:"stlData",getMessage,serverIP:(workspaceConf.get("serverUrl") as string[]) || []}) ;
+        RunHttpServer(httpConfig,
         (ser)=>{
             config.port = ser.httpPort;   
             getMessage.set("loaded",(e:{msg:any},
@@ -98,7 +98,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             }) ;     
              setHtmlForWebview(
             webviewPanel.webview,
-                config,
+                httpConfig,
                 getMessage,
                 ser.httpPort
                 //webviewPanel.webview.postMessage

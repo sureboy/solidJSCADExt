@@ -1,7 +1,8 @@
 import * as http from 'http'; 
-import * as https from 'https'; 
+//import * as https from 'https'; 
 import * as path from 'path'; 
 import * as fs from "fs";
+import {insertScriptAtBodyStart} from './util';
 import type {postTypeStr,HandMessageFuncMap} from './util'; 
 //import {workerspaceMessageHandMap} from "../src/bundleServer.js";
 //type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
@@ -11,6 +12,7 @@ export type HttpConfigType = {
     port:number,
     rootPath:string,
     srcPath:string,
+    serverIP:string[]
     //includeImport:{ [key: string]: string }
 } 
 //type PostMsgType = (m:reqMsg)=>void
@@ -265,7 +267,7 @@ const sse = (res: http.ServerResponse<http.IncomingMessage> & {
       res.end();
     });
 };
-const createHttpServer = (conf: HttpConfigType )=>{   
+const createHttpServer = (conf: HttpConfigType  )=>{   
     return http.createServer((req, res) => {
         const u = new URL(req.url!,`http://${req.headers.host}`); 
         const pathList =u.pathname.split("/")||[];
@@ -319,6 +321,7 @@ const createHttpServer = (conf: HttpConfigType )=>{
                 }catch(e){
                     indexHtml = httpindexHtml();
                 }
+                indexHtml = insertScriptAtBodyStart(indexHtml,`window.serverIP=[${conf.serverIP.map((c)=> `"${c}"`).join(",")}];`);
                 res.end(indexHtml);
                 return;
             case "lib":

@@ -6,7 +6,7 @@ import { RunHttpServer,defaultSerConfig,HandlePostMessage } from './nodeServer';
 import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
 import type {postTypeStr,mainConfigType,HandMessageFuncMap} from './util';
-import type {SerConfig} from './nodeServer';
+import type {SerConfig,HttpConfigType} from './nodeServer';
 import {initIPCMessageHandle} from './IPCMessageHandle';
 export  type webUIPathType = {
     rootPath:string 
@@ -118,6 +118,7 @@ const watchInit = (conf:{
             name = "./"+name;
         }
         vscode.window.showInformationMessage(`Change: ${name}`);
+        
         vscode.workspace.fs.readFile(uri).then(db=>{      
             const msg={
                 db:  db.buffer as ArrayBuffer,
@@ -224,11 +225,12 @@ const initServer = (
     workPath:workPathType,
     //getMessage: HandMessageFuncMap,  
     func:(
-        config: webUIPathType,
+        config: webUIPathType & HttpConfigType,
         ser:SerConfig
     )=>void)=>{ 
+        const workspaceConf = vscode.workspace.getConfiguration("init");
         //vscode.ConfigurationTarget.Global("init")
-    let rootPath = path.join(workPath.workspacePath.fsPath,vscode.workspace.getConfiguration("init").get("webui")||"webui");
+    let rootPath = path.join(workPath.workspacePath.fsPath,workspaceConf.get("webui")||"webui");
         try{
             fs.statSync(rootPath);
         }catch(e){
@@ -238,18 +240,21 @@ const initServer = (
         rootPath,
         extensionUri : context.extensionUri,
     } as webUIPathType; 
-    if (!defaultSerConfig.ser){ 
-        RunHttpServer(Object.assign({},conf,config,{ 
+    const httpConfig  = Object.assign({},conf,config,{ 
             //pageTag:"run",
-            port:(vscode.workspace.getConfiguration("init").get("port") as number) || 3000,
+            serverIP:(workspaceConf.get("serverUrl") as string[]) || [],
+            port:(workspaceConf.get("port") as number) || 3000,
             srcPath:workPath.watchPath.fsPath, 
-            }),(ser)=>{   
+            });
+    if (!defaultSerConfig.ser){ 
+        
+        RunHttpServer(httpConfig,(ser)=>{   
                 //ser.HandleMsgMap.set("run",getMessage);
                 //conf.port = ser.httpPort; 
-                func(config,ser);  
+                func(httpConfig,ser);  
         },10);
     }else{ 
-        func(config,defaultSerConfig.ser); 
+        func(httpConfig,defaultSerConfig.ser); 
     } 
 };
 export const watcherServer = (context: vscode.ExtensionContext)=>{
@@ -359,7 +364,7 @@ const initPanel = (
     handMap:HandMessageFuncMap,
     TypeTag:Map<postTypeStr,number>,
     context:vscode.ExtensionContext,
-    config:mainConfigType & workPathType & webUIPathType,
+    config:mainConfigType & workPathType & webUIPathType & HttpConfigType,
     ser?: SerConfig,
     panel?:vscode.WebviewPanel)=>{
     //if (!panel){return;}
@@ -380,7 +385,7 @@ const initPanel = (
     });
     if (panel){
         setHtmlForWebview(
-            panel.webview,config,
+            panel.webview,config  ,
             handMap,ser?.httpPort||3000
             //panel.webview.postMessage
         );

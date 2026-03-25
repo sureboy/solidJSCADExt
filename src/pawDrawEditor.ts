@@ -308,14 +308,15 @@ export const  setHtmlForWebview =async (
 		rootPath:string,
 		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
+		serverIP:string[]
 		//includeImport?: {[key: string]: string;}
 	},
 	handleMessageMap:HandMessageFuncMap,port:number
 	//PostMessage:(m:any)=>any
 )=> {
 	//webview.options.localResourceRoots=[]
-	const serverIP = (vscode.workspace.getConfiguration("init").get("serverUrl") as string[]||[]).reduce((p,c)=>`${p} ${c.startsWith("http")?c:("https://"+c)}`,"");
-	console.log(serverIP);
+	//const serverIP = config.serverIP.map((c)=>`${c.startsWith("http")?c:("https://"+c)}`).join(" ");
+	//console.log(serverIP);
 	const nonce = getNonce();
 	const csp = `default-src 'none';
 	script-src 'self' 'nonce-${nonce}' ${webview.cspSource} http://localhost:${port||3000} 'unsafe-eval' 'wasm-eval' 'strict-dynamic';
@@ -323,7 +324,7 @@ export const  setHtmlForWebview =async (
 	worker-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline' blob: data:;
 	style-src ${webview.cspSource} http://localhost:${port||3000} 'unsafe-inline';
 	img-src   ${webview.cspSource} http://localhost:${port||3000}  blob: data:;
-	connect-src ${webview.cspSource}  http://localhost:${port||3000}  ${serverIP} 'unsafe-inline';`;
+	connect-src ${webview.cspSource}  http://localhost:${port||3000}  ${config.serverIP.map((c)=>`${c.startsWith("http")?c:("https://"+c)}`).join(" ")} 'unsafe-inline';`;
 	
 	//vscode.workspace.fs.stat()
 	const scriptUri =port? `http://localhost:${port}/main.js`: webview.asWebviewUri(
@@ -354,7 +355,7 @@ export const  setHtmlForWebview =async (
 		const filehtml = await vscode.workspace.fs.readFile(indexpath );
 		let strHtml = new TextDecoder().decode(filehtml);
 		strHtml = setCSPMetaInHtml(strHtml,csp );
-		strHtml = insertScriptAtBodyStart(strHtml,"window.vscode = acquireVsCodeApi();");
+		strHtml = insertScriptAtBodyStart(strHtml,`window.vscode = acquireVsCodeApi();window.serverIP=[${config.serverIP.map((c)=> `"${c}"`).join(",")}];`);
 		strHtml = replaceAssetPathsAdvanced(strHtml,(p)=>{
 			if (port){
 				return `http://localhost:${port}`+p;

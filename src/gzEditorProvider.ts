@@ -129,8 +129,9 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
                     //fn();        
                 }); 
         };
+        const httpConfig = Object.assign(myWorkspaceConfig,{serverIP:(workspaceConf.get("serverUrl") as string[]) || []}) as HttpConfigType;
         RunHttpServer(
-            myWorkspaceConfig as HttpConfigType,
+           httpConfig ,
            // Object.assign(myWorkspaceConfig,{pageTag:"gzData",getMessage}),
         (ser)=>{ 
             myWorkspaceConfig.port = ser.httpPort;  
@@ -148,6 +149,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
             );
             setHtmlForWebview(webviewPanel.webview,
             {
+                serverIP:httpConfig.serverIP,
                 name:myWorkspaceConfig.name, 
                 src:myWorkspaceConfig.src,
                 //includeImport:myWorkspaceConfig.includeImport,                
