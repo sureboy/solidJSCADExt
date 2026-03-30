@@ -7,7 +7,7 @@ import {downSrcHandMap} from './gzEditorProvider';
 import {getLocalIp} from './util';
 import type {postTypeStr,mainConfigType,HandMessageFuncMap} from './util';
 import type {SerConfig,HttpConfigType} from './nodeServer';
-import {initIPCMessageHandle} from './IPCMessageHandle';
+import {handleCommand,CommandConfig} from './IPCMessageHandle';
 export  type webUIPathType = {
     rootPath:string 
     extensionUri : vscode.Uri,
@@ -55,6 +55,7 @@ export const initLoad = (
     });
     return msg.pageType;
 };
+ 
 export const workerspaceMessageHandMap = (
       )=>{
     const handListenMsg:HandMessageFuncMap = new Map();
@@ -72,7 +73,7 @@ export const workerspaceMessageHandMap = (
         vscode.window.showInformationMessage(
             `${String((Date.now()-tmpDate)/1000)}s`); 
     });
-    initIPCMessageHandle(handListenMsg);
+    //initIPCMessageHandle(handListenMsg);
     return handListenMsg;
 };
 const loadConfig =async (u:vscode.Uri)=>{ 
@@ -81,6 +82,7 @@ const loadConfig =async (u:vscode.Uri)=>{
     if (!conf.src){ 
         conf.src = vscode.workspace.getConfiguration("init").get("src") || "src";
     }   
+
     /*
     if (!conf.serverIP){ 
         conf.serverIP = vscode.workspace.getConfiguration("init").get("serverIP") || ["solidjscad.com"];
@@ -92,22 +94,32 @@ const loadConfig =async (u:vscode.Uri)=>{
     //}
     */
     const workspacePath = vscode.workspace.getWorkspaceFolder(u)!.uri; 
+    const watchPath = vscode.Uri.joinPath(
+            workspacePath,
+            conf.src);
+    if (conf.command){
+        const [command,...p] = conf.command.split(" ").map(c=>c.trim());
+        CommandConfig.command=command;
+        CommandConfig.args = p;
+        CommandConfig.option = {cwd:watchPath.fsPath};
+        //const ext = path.extname(conf.in);
+    }
     return {
         conf,
         workPath:{
             workspacePath ,
-            watchPath : vscode.Uri.joinPath(
-            workspacePath,
-            conf.src),
+            watchPath ,
         } as workPathType
     }; 
 };
 const watchInit = (conf:{ 
+    //command?:string;
+    handMap:HandMessageFuncMap,
     watchPath: vscode.Uri; 
     TypeTag:Map<postTypeStr,number> 
 }, postMessage:((message: {type?:number,msg:{db?:ArrayBuffer,name:string }}) => void))=>{
     const watcher = vscode.workspace.createFileSystemWatcher(
-        new vscode.RelativePattern(conf.watchPath , '**/*.js')
+        new vscode.RelativePattern(conf.watchPath , '**/*')
     );
     watcher.onDidChange(uri => { 
         let name = path.relative(
@@ -118,17 +130,24 @@ const watchInit = (conf:{
             name = "./"+name;
         }
         vscode.window.showInformationMessage(`Change: ${name}`);
-        
-        vscode.workspace.fs.readFile(uri).then(db=>{      
-            const msg={
-                db:  db.buffer as ArrayBuffer,
-                name 
-            };
-            postMessage({  
-                type:(conf.TypeTag.get("init")||0)|(conf.TypeTag.get("run") ||0 ),
-                msg                   
-            });
-        });                
+        if (CommandConfig.command) {
+            handleCommand(conf.TypeTag,postMessage,conf.handMap);
+            //console.log(conf.command);
+            return;
+        }
+            vscode.workspace.fs.readFile(uri).then(db=>{      
+                const msg={
+                    db:  db.buffer as ArrayBuffer,
+                    name 
+                };
+                postMessage({  
+                    type:(conf.TypeTag.get("init")||0)|(conf.TypeTag.get("run") ||0 ),
+                    msg                   
+                });
+            }); 
+         
+
+                     
     });        
     // 监听文件删除事件
     watcher.onDidDelete(uri => {
@@ -258,7 +277,10 @@ const initServer = (
     } 
 };
 export const watcherServer = (context: vscode.ExtensionContext)=>{
-    vscode.workspace.findFiles('solidjscad.json', null, 1).then(files=>{
+    
+    vscode.workspace.findFiles(
+        vscode.workspace.getConfiguration("init").get("config")||'solidjscad.json', 
+        null, 1).then(files=>{
         if (files.length === 0) { 
             return;
         }
@@ -300,10 +322,20 @@ const initMessageHandMap = (
         handMap= workerspaceMessageHandMap();
     }
     //const handMap = workerspaceMessageHandMap();  
-    handMap.set('loaded',(e:any,postMsg:(e:any)=>Promise<any>)=>{
+    handMap.set('loaded',(e:any,postMsg:(e:any)=>any)=>{
         //tmpDate = Date.now();
         //console.log(e);
         const t = initLoad(e.msg,TypeTag);
+        if (CommandConfig.command){
+            //console.log(config.command);
+            const m = {                    
+                msg:{ config},
+                type:  (TypeTag.get('begin')||0)            
+            };
+            postMsg(m);
+            handleCommand(TypeTag,postMsg,handMap);
+            return;
+        }
         //initLoad(e.msg,TypeTag,async t=>{
             const m = {                    
                 msg:{open:true,config},
@@ -374,7 +406,7 @@ const initPanel = (
     };
     //const handMap = initMessageHandMap(TypeTag,config,postMessage);
      
-    const watcher = watchInit({TypeTag,watchPath:config.watchPath},(m)=>{
+    const watcher = watchInit({TypeTag,watchPath:config.watchPath,handMap},(m)=>{
         console.log("watcher",m);
         postMessage(m);           
     } );

@@ -1,11 +1,12 @@
 import * as os from "os"; 
-export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'
+export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'|'bufferDB'
 export type mainConfigType = {
   src:string,
   name: string,
   func: string,
   in: string,
   date:string,
+  command?:string,
   //port:number,
   //worker?:string,
   //webview:boolean,

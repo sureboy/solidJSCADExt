@@ -61,7 +61,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",
             rootPath:vscode.Uri.joinPath(this._context.extensionUri,'myModule', 'webui').fsPath,
-             port:workspaceConf.get("port") as number|| 0,
+            port:workspaceConf.get("port") as number|| 0,
             srcPath:"",
             src:"",
             name:"STLViewer",
@@ -73,7 +73,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             enableScripts: true,
         }; 
         const getMessage =workerspaceMessageHandMap( );// new Map<string,(e?:any)=>void>();
-        const httpConfig = Object.assign(config,{pageTag:"stlData",getMessage,serverIP:(workspaceConf.get("serverUrl") as string[]) || []}) ;
+        const httpConfig = Object.assign(config,{  serverIP:(workspaceConf.get("serverUrl") as string[]) || []}) ;
         RunHttpServer(httpConfig,
         (ser)=>{
             config.port = ser.httpPort;   
