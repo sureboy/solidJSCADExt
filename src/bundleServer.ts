@@ -344,41 +344,27 @@ const initMessageHandMap = (
             postMsg(m);//setTimeout(()=>postMsg(m),1000);           
         //});    
     });   
-    handMap.set('req',async (e:{path:string},postMsg:(e:any)=>Promise<any>)=>{  
-        
-        //const fn = async ()=>{
-            const msg = {
-                type:(TypeTag.get("init")||0)
-                //|(TypeTag.get("begin")||0)
-                ,
-                msg:{ name:e.path,
-                    //config 
-                }};
-            //console.log(msg);
-            try{
-                /*
-                let pathUri = workPath.workspacePath;
-                if (config.includeImport && config.includeImport[e.path]){
-                    pathUri = vscode.Uri.joinPath(pathUri,config.src,
-                        ...config.includeImport[e.path].split("/"));                     
-                }else{
-                    pathUri = vscode.Uri.joinPath(
-                        workPath.watchPath ,...e.path.split("/")
-                    );
-                }*/
-                let pathUri = vscode.Uri.joinPath(
-                        workPath.watchPath ,...e.path.split("/")
-                    );
-                const t = await vscode.workspace.fs.readFile(pathUri);          
-                Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
-                postMsg(msg);        
-                //config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
-            }catch(err:any){                         
-                console.error("req Err",err);   
-                postMsg(msg); 
-            } 
-        //};
-        //fn();        
+    handMap.set('req',async (e:{path:string},postMsg:(e:any)=>Promise<any>)=>{   
+        const msg = {
+            type:(TypeTag.get("init")||0)
+            //|(TypeTag.get("begin")||0)
+            ,
+            msg:{ name:e.path,
+                //config 
+            }};
+        //console.log(msg);
+        try{ 
+            let pathUri = vscode.Uri.joinPath(
+                    workPath.watchPath ,...e.path.split("/")
+                );
+            const t = await vscode.workspace.fs.readFile(pathUri);          
+            Object.assign( msg.msg,{db:   t.buffer as ArrayBuffer});   
+            postMsg(msg);        
+            //config.postMessage({type:TypeTag.get("init")|| 0,msg:{db:t.buffer as ArrayBuffer,name:e.path }});                              
+        }catch(err:any){                         
+            console.error("req Err",err);   
+            postMsg(msg); 
+        }        
     });       
     downSrcHandMap(
         handMap,

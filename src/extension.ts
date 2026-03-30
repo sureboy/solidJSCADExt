@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { STLEditorProvider } from './STLEditorProvider';
+//import { STLEditorProvider } from './STLEditorProvider';
 import { gzEditorProvider } from './gzEditorProvider';  
+import { EditorProvider } from './editorProvider';  
 import { watcherServer,CreateSolidjscadPackage } from './bundleServer'; 
 import * as path from 'path'; 
 function isTargetFile(fileName: string): boolean {
@@ -53,7 +54,8 @@ export function activate(context: vscode.ExtensionContext) {
             });
         }),
         gzEditorProvider.register(context),
-        STLEditorProvider.register(context)
+        EditorProvider.register(context,"stl"),
+        EditorProvider.register(context,'3mf')
     );
     //const treeDataProvider = new PackageDependenciesProvider();
     //vscode.window.registerTreeDataProvider('package-dependencies', treeDataProvider);

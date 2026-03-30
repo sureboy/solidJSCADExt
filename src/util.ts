@@ -1,5 +1,5 @@
 import * as os from "os"; 
-export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'|'bufferDB'
+export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'|'bufferDB'|'3mfData'|string
 export type mainConfigType = {
   src:string,
   name: string,

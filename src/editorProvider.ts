@@ -5,13 +5,13 @@ import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
 import { RunHttpServer } from './nodeServer'; 
 import type {postTypeStr} from './util';
 const postTypeTag = new Map<postTypeStr,number>();
-export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
+export class EditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
-    public static register(context: vscode.ExtensionContext): vscode.Disposable {
+    public static register(context: vscode.ExtensionContext,ext:string): vscode.Disposable {
 
         return vscode.window.registerCustomEditorProvider(
-            STLEditorProvider.viewType, 
-            new STLEditorProvider(context),
+            `solidJScad.${ext}Preview`, 
+            new EditorProvider(context,ext),
             {
                 webviewOptions: {
                     retainContextWhenHidden: true, // 保持webview状态当隐藏时
@@ -20,9 +20,9 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             });
     }
 
-    private static readonly viewType = 'solidJScad.stlPreview';
+    //private static readonly viewType = `solidJScad.${this._ext}Preview`;
     private readonly webviews = new WebviewCollection();
-    constructor(private readonly _context: vscode.ExtensionContext) { 
+    constructor(private readonly _context: vscode.ExtensionContext,private readonly _ext:string) { 
         //this.httpConfig = {extensionUri: _context.extensionUri,indexHtml:"",name:"STLViewer"};
     }
 
@@ -33,16 +33,16 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
     ): Promise<PawDrawDocument> {
         //console.log(uri);
         const document: PawDrawDocument = await PawDrawDocument.create(uri, openContext.backupId, {
-			getFileData: async () => {
-				const webviewsForDocument = Array.from(this.webviews.get(document.uri));
-				if (!webviewsForDocument.length) {
-					throw new Error('Could not find webview to save for');
-				}
-				const panel = webviewsForDocument[0];
-				const response = await this.postMessageWithResponse<number[]>(panel, 'getFileData', {});
-				return new Uint8Array(response);
-			}
-		});
+            getFileData: async () => {
+                const webviewsForDocument = Array.from(this.webviews.get(document.uri));
+                if (!webviewsForDocument.length) {
+                    throw new Error('Could not find webview to save for');
+                }
+                const panel = webviewsForDocument[0];
+                const response = await this.postMessageWithResponse<number[]>(panel, 'getFileData', {});
+                return new Uint8Array(response);
+            }
+        });
         return document;
     }
     //private tmpDate = 0;
@@ -64,7 +64,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
             port:workspaceConf.get("port") as number|| 0,
             srcPath:"",
             src:"",
-            name:"STLViewer",
+            name:`${this._ext}Viewer`,
             //includeImport:{} 
         };
         
@@ -81,7 +81,7 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                 postMessage:(e:any)=>any)=>{
                 const tag = initLoad(e.msg,postTypeTag);//,tag=>{
                 const msg = {
-                    type:(postTypeTag.get("stlData")||0)|(postTypeTag.get("begin")||0),
+                    type:(postTypeTag.get(this._ext+"Data")||0)|(postTypeTag.get("begin")||0),
                     msg:{db:document.documentData.buffer,config}
                 };
                 postMessage(msg);
@@ -89,14 +89,14 @@ export class STLEditorProvider   implements vscode.CustomEditorProvider<PawDrawD
                 //HandlePostMessage(e,ser.PostMessageSet);
                 //});
             });  
-            ser.HandleMsgMap.set("stlData".toLocaleLowerCase(),getMessage);
-            initBar("stlData");  
+            ser.HandleMsgMap.set(this._ext+"Data".toLocaleLowerCase(),getMessage);
+            initBar(this._ext+"Data");  
             
             webviewPanel.onDidDispose(()=>{
-                ser.HandleMsgMap.delete("stlData".toLocaleLowerCase());
+                ser.HandleMsgMap.delete(this._ext+"Data".toLocaleLowerCase());
                 initBar("");
             }) ;     
-             setHtmlForWebview(
+            setHtmlForWebview(
             webviewPanel.webview,
                 httpConfig,
                 getMessage,

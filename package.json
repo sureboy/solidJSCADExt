@@ -2,7 +2,7 @@
   "name": "solidjscad",
   "displayName": "solidJScad",
   "description": "Using JavaScript and @ jscad/modeling for 3D/2D graphic modeling,Using the ECMAScript Modules standard,Using Threejs to display,Vscode plugin that can be previewed in webview or browser.",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -94,6 +94,15 @@
         "selector": [
           {
             "filenamePattern": "*.stl"
+          }
+        ]
+      },
+      {
+        "viewType": "solidJScad.3mfPreview",
+        "displayName": "3MF Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.3mf"
           }
         ]
       },
