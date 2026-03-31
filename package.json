@@ -2,7 +2,7 @@
   "name": "solidjscad",
   "displayName": "solidJScad",
   "description": "Using JavaScript and @ jscad/modeling for 3D/2D graphic modeling,Using the ECMAScript Modules standard,Using Threejs to display,Vscode plugin that can be previewed in webview or browser.",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "engines": {
     "vscode": "^1.89.0"
   },
@@ -24,56 +24,61 @@
   "publisher": "WeijieZhao",
   "contributes": {
     "configuration": {
-      "title": "Init",
+      "title": "solidjscad",
       "properties": {
-        "init.in": {
+        "solidjscad.in": {
           "type": "string",
           "default": "index.js",
-          "description": "entry file"
+          "description": "入口文件 (Entry file)"
         },
-        "init.src": {
+        "solidjscad.src": {
           "type": "string",
           "default": "src",
-          "description": "entry folder"
+          "description": "源代码文件夹 (Source folder)"
         },
-        "init.func": {
+        "solidjscad.func": {
           "type": "string",
           "default": "main",
-          "description": "entry function"
+          "description": "入口函数名 (Entry function name)"
         },
-        "init.webui": {
+        "solidjscad.webui": {
           "type": "string",
           "default": "webui",
-          "description": "entry function"
+          "description": "WebUI 文件夹路径 (WebUI folder path)"
         },
-        "init.config": {
+        "solidjscad.config": {
           "type": "string",
           "default": "solidjscad.json",
-          "description": "entry config file"
+          "description": "配置文件名称 (Configuration file name)"
         },
-        "init.serverUrl": {
+        "solidjscad.serverUrl": {
           "type": "array",
           "default": ["solidjscad.com","solidjscad.cn"],
-          "description": "entry config file"
+          "description": "服务器地址列表 (Server URL list)"
         },
-        "init.port": {
+        "solidjscad.port": {
           "type": "number",
           "default": 3000,
-          "description": "http server port"
+          "description": "HTTP 服务器端口号 (HTTP server port number)"
         },
-        "init.webview": {
+        "solidjscad.webview": {
           "type": "boolean",
           "default": true,
-          "description": "webview"
+          "description": "是否启用 Webview (Enable Webview)"
         },
-        "init.includeImport": {
+        "solidjscad.watchFolder":{
+          "type": "boolean",
+          "default": true,
+          "description": "检测到专用配置文件时自动启动预览 (Automatically start preview when a dedicated configuration file is detected)"          
+        },
+        "solidjscad.includeImport": {
           "type": "object",
           "default": {
             "@jscad/modeling": "./lib/modeling.esm.js",
             "csgChange": "./lib/csgChange.js", 
             "manifold-3d":"./lib/manifold/manifold.js"
           },
-          "description": "webview"
+          "description": "模块导入映射，键为包名，值为本地路径 (Import mapping: package name to local path)"
         }
       }
     },
@@ -85,6 +90,10 @@
       {
         "command": "solidJScad.onload",
         "title": "solidjscad onload"
+      },
+      {
+        "command": "solidJScad.stop",
+        "title": "solidjscad stop"
       }
     ],
     "customEditors": [

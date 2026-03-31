@@ -1,5 +1,6 @@
 import * as os from "os"; 
 export type postTypeStr = 'begin'|'init'|'del'|'run'|'getSrc'|'gzData'|'stlData'|'bufferDB'|'3mfData'|string
+
 export type mainConfigType = {
   src:string,
   name: string,
@@ -15,6 +16,7 @@ export type mainConfigType = {
   //includeImport:{ [key: string]: string }
 }
 export type HandMessageFuncMap  = Map<string,(e:any,reqMsg:(req:any)=>any)=>any>
+export const projectName = "solidjscad";
 export function getNonce() {
 	let text = '';
 	const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';

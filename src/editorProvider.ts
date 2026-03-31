@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer';
+import {workerspaceMessageHandMap,initLoad,initBar} from './initConfig';
 //import type {HttpConfigType} from './nodeServer';
 import { RunHttpServer } from './nodeServer'; 
-import type {postTypeStr} from './util';
+import type {postTypeStr} from './util'; 
 const postTypeTag = new Map<postTypeStr,number>();
 export class EditorProvider   implements vscode.CustomEditorProvider<PawDrawDocument> {
  
@@ -56,7 +56,7 @@ export class EditorProvider   implements vscode.CustomEditorProvider<PawDrawDocu
         // Add the webview to our internal set of active webviews
         //console.log(document.uri);
         this.webviews.add(document.uri, webviewPanel);
-        const workspaceConf = vscode.workspace.getConfiguration("init");
+        const workspaceConf = vscode.workspace.getConfiguration("solidjscad");
         const config = {
             extensionUri:this._context.extensionUri,
             //pageName:"STLViewer",

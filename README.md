@@ -7,7 +7,7 @@ SolidJSCAD 是一个 VS Code 插件，让你在本地使用 **ESM 模块化 Java
 ## 特性
 
 - **零配置自动启动**：当在 VS Code 中打开包含 `solidjscad.json` 的项目时，插件会自动启动 HTTP 服务器并在 WebView 中预览模型，无需任何命令。
-- **状态栏快捷菜单**：右下角状态栏提供一键操作：创建项目、重新加载、停止服务器、在浏览器中打开。
+- **状态栏快捷菜单**：右下角状态栏提供一键操作：创建项目、重新加载、停止服务器。
 - **多模型函数切换**：支持在同一文件中定义多个导出函数，通过 WebView 工具栏下拉菜单实时切换预览模型，`func` 字段仅指定首次加载时默认显示的函数。
 - **外部命令集成**：支持在 `solidjscad.json` 中配置 `command` 字段，每次保存前自动执行外部命令（如 Python 脚本），并通过 stdout 传递二进制网格数据，实现与其他语言（Python、C++ 等）的无缝集成。
 - **本地 ESM 模块化编程**：直接在 VS Code 中编写现代 JavaScript，使用 `import/export` 组织模型代码。
@@ -22,15 +22,17 @@ SolidJSCAD 是一个 VS Code 插件，让你在本地使用 **ESM 模块化 Java
 
 ## 安装
 
+### 方式一：VS Code 商店安装
+
 1. 在 VS Code 扩展商店中搜索 `SolidJSCAD`。
 2. 点击安装。
 3. 重启 VS Code（如果需要）。
 
-或通过命令行安装：
+### 方式二：下载 VSIX 文件安装
 
-```bash
-code --install-extension solidjscad.solidjscad
-```
+1. 从 [GitHub Releases](https://github.com/sureboy/solidJSCADExt/releases) 下载最新的 `.vsix` 文件。
+2. 在 VS Code 中，打开扩展面板（`Ctrl+Shift+X`），点击右上角的 `...`，选择 **从 VSIX 安装**。
+3. 选择下载的 `.vsix` 文件，完成安装。
 
 ## 使用方法
 
@@ -41,7 +43,8 @@ code --install-extension solidjscad.solidjscad
 
 插件会：
 - 创建 `solidjscad.json` 配置文件。
-- 生成一个示例模型文件（如 `index.js`），包含两种几何内核的多个示例函数。 
+- 生成一个示例模型文件（如 `index.js`），包含两种几何内核的多个示例函数。
+- 自动安装必要的 npm 依赖（可选）。
 
 你也可以手动创建以下文件：
 
@@ -114,6 +117,8 @@ export const sphere_model = (opt) => {
 | `name` | string | ❌ | 项目名称，用于导出文件命名，默认取入口文件名 |
 | `date` | string | ❌ | 时间戳，插件自动维护 |
 | `command` | string | ❌ | 每次保存前执行的命令（如 `python ./test.py`），可留空。命令的 stdout 将被解析为二进制网格数据（协议见下文） |
+
+> **配置详情**：插件的所有内部设置（如端口、是否自动启动等）均保存在插件自身的 `config.json` 中，无需在 README 中赘述。如需修改，请直接编辑该文件。
 
 ### 2. 外部命令集成（command 字段详解）
 
@@ -195,7 +200,7 @@ if __name__ == "__main__":
 - 在 VS Code 的 WebView 中打开预览窗口。
 - 实时监听文件变化，自动更新模型。
 
-你也可以通过浏览器访问 `http://localhost:3000`，或局域网内使用 `http://<你的IP>:3000` 访问（需在设置中启用局域网访问）。
+你也可以通过浏览器访问 `http://localhost:3000`，或局域网内使用 `http://<你的IP>:3000` 访问（需在插件的 `config.json` 中启用局域网访问）。
 
 ### 4. 状态栏菜单
 
@@ -204,9 +209,8 @@ if __name__ == "__main__":
 - **Create**：创建新项目（生成配置文件及示例代码）。
 - **Reload**：重新加载配置并重启服务器（当修改了 `solidjscad.json` 或需要刷新时使用）。
 - **Stop**：停止预览服务器。
-- **Open in Browser**：在系统默认浏览器中打开预览页面（`http://localhost:3000`）。
 
-这些操作也对应各自的命令，可通过命令面板快速调用。
+> **注**：这些操作也对应各自的命令，可通过命令面板快速调用（命令 ID：`solidjscad.create`、`solidjscad.reload`、`solidjscad.stopPreview`）。不提供“在浏览器中打开”的命令，你可以直接访问 `http://localhost:3000`。
 
 ### 5. 切换模型函数
 
@@ -230,23 +234,9 @@ if __name__ == "__main__":
 |---------|------|
 | `solidjscad.create` | 创建新项目（生成配置文件及示例代码） |
 | `solidjscad.reload` | 重新加载配置并重启服务器 |
-| `solidjscad.stopPreview` | 停止预览服务器 | 
+| `solidjscad.stopPreview` | 停止预览服务器 |
 
-> **提示**：预览服务器会在检测到 `solidjscad.json` 时自动启动。所有命令均可通过状态栏菜单或命令面板执行。
-
-## 配置
-
-### VS Code 设置
-
-在 `settings.json` 中可以调整以下选项：
-
-```json
-{
-  "solidjscad.port": 3000,                // HTTP 服务器端口
-  "solidjscad.previewInWebview": true,    // 是否在 WebView 中打开预览
-  "solidjscad.autoStart": true            // 是否在检测到 solidjscad.json 时自动启动预览
-}
-```
+> **提示**：预览服务器会在检测到 `solidjscad.json` 时自动启动，无需手动执行 `startPreview` 命令。
 
 ## 技术栈
 
@@ -280,7 +270,7 @@ A: 可以在命令中重定向输出到文件，例如 `python ./test.py > outpu
 
 ### Q: 局域网预览无法访问？
 
-A: 检查防火墙是否允许 Node.js 进程使用当前端口。
+A: 请确保在插件的 `config.json` 中启用了局域网访问（`lanAccess: true`），并检查防火墙是否允许 Node.js 进程使用当前端口。
 
 ### Q: 如何自定义模块解析路径？
 
@@ -296,17 +286,17 @@ A: 每次保存模型文件或配置文件后，插件会先执行 `command` 中
 
 ### Q: 如何停止自动启动？
 
-A: 如果你不希望自动启动预览，可以将设置 `solidjscad.autoStart` 设为 `false`。之后你需要通过状态栏菜单或命令 `SolidJSCAD: Reload` 手动启动服务器（或者重新打开工作区）。
+A: 如果你不希望自动启动预览，可以在插件的 `config.json` 中将 `autoStart` 设为 `false`。之后你需要通过状态栏菜单或命令 `SolidJSCAD: Reload` 手动启动服务器（或者重新打开工作区）。
 
 ## 开发与贡献
 
-欢迎提交 Issue 和 Pull Request！项目源码托管在 [GitHub](https://github.com/solidjscad/vscode-extension) 上。
+欢迎提交 Issue 和 Pull Request！项目源码托管在 [GitHub](https://github.com/sureboy/solidJSCADExt) 上。
 
 ### 本地开发
 
 ```bash
-git clone https://github.com/solidjscad/vscode-extension
-cd vscode-extension
+git clone https://github.com/sureboy/solidJSCADExt
+cd solidJSCADExt
 npm install
 npm run compile
 ```

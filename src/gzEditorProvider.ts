@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import {PawDrawDocument,WebviewCollection,setHtmlForWebview,newWorkspacePackage} from './pawDrawEditor';
-import {workerspaceMessageHandMap,initLoad,initBar} from './bundleServer'; 
+import {workerspaceMessageHandMap,initLoad,initBar} from './initConfig'; 
 import { RunHttpServer } from './nodeServer'; 
 import type {HttpConfigType} from './nodeServer';
 import type {postTypeStr,mainConfigType} from './util'; 
@@ -62,7 +62,7 @@ export class gzEditorProvider implements vscode.CustomEditorProvider<PawDrawDocu
         };
         const packageName = path.basename(document.uri.fsPath,".solidjscad.gz");
         const nameConfig = packageName.split("_");
-        const workspaceConf = vscode.workspace.getConfiguration("init");
+        const workspaceConf = vscode.workspace.getConfiguration("solidjscad");
         const [func,in_,name,date] =nameConfig.length>=4?nameConfig:[
             workspaceConf.get<string>("func")||"",
             workspaceConf.get<string>("in")||"",

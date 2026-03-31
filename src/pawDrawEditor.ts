@@ -196,7 +196,7 @@ export class WebviewCollection {
 	}
 	
 }
-const showOutPut = (
+export const showOutPut = (
 	output:vscode.OutputChannel,
 	msg:any,
 	config:{
@@ -249,6 +249,7 @@ const listenMessage = (
 	handMap:Map<string,any>,
 	PostMessage:(m:any)=>any,
 	config:{
+		output?:vscode.OutputChannel
 		workspacePath?: vscode.Uri,
 		src:string,
 		includeImport?: {
@@ -256,13 +257,13 @@ const listenMessage = (
     }
 	},
 	//srcPath:string,
-	output?:vscode.OutputChannel
+	//output?:vscode.OutputChannel
 )=>{
 	console.log(message);
 	switch (message.type) {
 	case 'log':
-		if (output){
-			showOutPut(output,message.msg,config);
+		if (config.output){
+			showOutPut(config.output,message.msg,config);
 			//output.appendLine("log:"+message.msg);
 			//output.show();
 		}else{
@@ -273,8 +274,8 @@ const listenMessage = (
 	case 'error':
 		console.log("host error",message);
 
-		if (output){
-			showOutPut(output,message.msg,config,message.urlMap);
+		if (config.output){
+			showOutPut(config.output,message.msg,config,message.urlMap);
 			//output.appendLine("err:"+message.msg);
 			//output.show();
 		}else{		
@@ -308,7 +309,8 @@ export const  setHtmlForWebview =async (
 		rootPath:string,
 		//workspacePath?: vscode.Uri,
 		extensionUri: vscode.Uri,
-		serverIP:string[]
+		serverIP:string[],
+		output?:vscode.LogOutputChannel,
 		//includeImport?: {[key: string]: string;}
 	},
 	handleMessageMap:HandMessageFuncMap,port:number
@@ -339,14 +341,14 @@ export const  setHtmlForWebview =async (
 		vscode.Uri.joinPath(config.extensionUri, 'myModule',  'webui', 'assets',   'logo.png')
 	); 
 */
-	const output = vscode.window.createOutputChannel(config.name,{log:true});
+	config.output = vscode.window.createOutputChannel(config.name,{log:true});
 	//output.debug("test");
 	webview.onDidReceiveMessage(message => {
 		listenMessage(message,handleMessageMap,(e)=>{
 			webview.postMessage(e);//.then(v=>console.log(v));
 		},
 		config,
-		output);	
+		);	
 	}); 
 	try{
 		//console.log("paw",config);

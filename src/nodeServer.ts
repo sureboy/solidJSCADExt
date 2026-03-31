@@ -61,8 +61,32 @@ const msgToString = (m:reqMsg)=>{
     return JSON.stringify(m);
 };
 export const defaultSerConfig:
-{ser?:SerConfig|undefined} = 
-{};
+{ser?:SerConfig|undefined,
+    close:()=>void,
+} = 
+{close:function(){
+    const server = this.ser?.Server;
+    if (!server){
+        return;
+    }
+    server.close(() => {
+        console.log('All connections closed, exiting.');
+        //process.exit(0);
+    });
+
+    // 2. 立即关闭空闲连接（可选，减少等待时间）
+    server.closeIdleConnections();
+
+    // 3. 设置超时强制退出（避免因活动连接永远不关闭而卡住）
+    setTimeout(() => {
+        console.error('Forced shutdown: closing all connections.');
+        server.closeAllConnections();
+        this.ser=undefined;
+        //process.exit(1);
+    }, 10000);
+ 
+
+}};
 const contentType:{ [key: string]: string } = {
     '.html': 'text/html',
     '.js': 'text/javascript',
